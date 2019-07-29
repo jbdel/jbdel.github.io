@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" >
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="author" content="Jean-Benoit Delbrouck" />
+	<meta name="keywords" content="Jean-Benoit, Delbrouck, NLP, Neural machine translation, multimodal interfaces, interaction, cognition, robotics" />
+	<meta name="description" content="Jean-Benoit Delbrouck" />
+	<meta name="robots" content="all" />
+	<style>
+	body{
+	font-family: Verdana,Arial, Helvetica, sans-serif;
+	    font-size: 13px;
+	    color: black;
+	}
+	fieldset{
+	    margin-bottom:50px;
+	}
+	</style>
+</head>
+<body>
+
+<p>
+<a href=".."><< Back</a>
+</p>
+
+ <fieldset style="width:50%">
+              <legend>Available projects</legend>
+     <p>
+     <ul>
+         <li>
+             <a href="#chatbot">Chatbot pouvant interagir dans le monde réel: apprentissage par renforcement et réseaux de neurones profonds</a>
+         </li>
+         <li>
+             <a href="#vqa">Robot expressif réagissant à son environnement: deep learning affectif</a>
+         </li>
+         <li>
+             <a href="#navi">Navigation d’un robot dans un environnement virtuel réalistique</a>
+         </li>
+         <li>
+             <a href="#collab">Apprendre à collaborer par le langage et la vision: expériences avec robots et drones</a>
+         </li>
+
+     </ul>
+    </p>
+ </fieldset>
+
+
+
+
+
+
+ <fieldset style="width:50%">
+     <legend><h2 id="chatbot">Chatbot pouvant interagir dans le monde réel: apprentissage par renforcement et réseaux de neurones profonds</h2></legend>
+
+
+    <p><b>Abstract</b><br/>
+        IA et deep learning. Développement d'un chatbot avec lequel il sera possible de discutter à propos du contenu d’une image ou
+        d'un environnement visuel, reposant sur une technologie de réseaux de neurones multimodaux profonds (deep learning) et
+        d'apprentissage par renforcement, et réalisable par exemple sous forme de jeu de question-réponse ou de devinette à propos
+        d'une scène visuelle.
+        Ce type de technologie trouverait son utilité notamment dans l’apprentissage d’une langue étrangère, les agents virtuels intelligents,
+        etc.</p>
+
+    <p>Pour ce faire, nous utiliserons des datasets de type <a href="http://openaccess.thecvf.com/content_cvpr_2017/papers/de_Vries_GuessWhat_Visual_Object_CVPR_2017_paper.pdf" target="_blank">
+        Guesswhat</a>. GuessWhat permet un jeu à deux joueurs, ou l'un doit choisir un objet,
+        et l'autre deviner l'objet en posant des questions. Le premier joueur ne répond que par oui ou par non. Le but est de trouver l'objet en
+        posant un minimum de questions</p>
+        <center><img src="images/guesswhat1.png" width="80%" /></center>
+        <p>Des algorithmes tels que <a href="http://www.scholarpedia.org/article/Policy_gradient_methods#Likelihood_Ratio_Methods_and_REINFORCE" target="_blank">REINFORCE</a> permettent de faire du renforcement dans des réseaux neuronaux. Plus précisément, le réseau est vu
+        comme un processsus de décision markovien, rendant certains de ses composants non-dérivables. REINFORCE permet de trouver le gradient
+        dans ces zones (Monte-Carlo Policy Gradient)</p>
+
+        <center><img src="images/guesswhat2.png" width="80%" /></center>
+        <br/>
+ </fieldset>
+
+
+
+
+ <fieldset style="width:50%">
+     <legend><h2 id="vqa">Robot expressif réagissant à son environnement: deep learning affectif</h2></legend>
+        <p><b>Abstract</b><br/>
+            IA et deep learning. Utilisation de réseau de neurones profonds (deep learning) pour la compréhension de l'environnement par le robot,
+            et la réalisation de comportements permettant de refléter les états internes et les mécanismes de perceptifs et cognitifs du robot.
+            Il sera notamment possible pour le robot d'exprimer par ses mouvements les zones sur lesquelles sa perception/attention se porte ou ce qui
+            lui a permis d'aboutir à sa prise de décision. Des applications en interaction human-robot seront envisagées.
+            Elle seront plus naturelles grâce à l'anthropomorphisme accru par des comportement plus "organiques" permis par ces technologies.
+        </p>
+
+        <p>Nous commencerons par prendre un modèle de réponse aux questions visuelles pour permettre au robot d'interagir avec son monde.
+        Le modèle choisi sera celui d'Akira Fukui et al., <a href="https://arxiv.org/pdf/1606.01847.pdf" target="_blank">Multimodal Compact Bilinear Pooling for Visual
+                Question Answering and Visual Grounding</a>. Ce modèle permet de projeter un vecteur linguistique et un vecteur visuel dans un
+        espace vectoriel commun et de taille raisonnable, où les deux modalités communiquent sur leur informations respectives.</p>
+        <center><img src="images/mcbp.png" width="40%" /></center>
+
+        <p>Sur l'image précédente, nous extrairons les probabilités du classifieur pour évaluer la confiance que le modèle donne en sa réponse.
+            Egalement, nous nous immiscerons dans le processus de fabrication du vecteur visuel (en bleu sur la figure précédente). En effet,
+            celui-ci est obtenu via un modèle d'attention, qui permet au robot de porter son regard sur des zones bien spécifiques de l'image
+            selon la question qui lui est posée. L'image suivante représente un modèle d'attention entrainé dans le cadre de
+        captionning automatique d'image.</p>
+        <center><img src="images/showattend.png" width="70%" /></center>
+        <p>Même si, sur le principe, le modèle d'attention reste le même, Fukui et al. propose une attention encore plus complexe, comme
+        schématisée ci-dessous:</p>
+
+        <center><img src="images/mcbatt.png" width="70%" /></center>
+
+        <p>Plus précisement, nous nous intéresserons d'extraire le vecteur de taille 1x14x14 (en mauve), qui représentent l'attention
+        portée sur les 196 zones de l'image. Celle-ci nous donnera des informations sur le comportement du robot lors de la
+        construction de sa réponse. Par exemple, si l'attention portée sur l'image est diffuse et clairsemée, on peut postuler qu'il est
+        perdu dans l'image. Au contraire, une attention précise et compacte indiquera que le robot est allé directement à l'objet de la réponse.
+        Ces deux informations (confiance et attention) devront être traduite en émotions, ce qui incluera une phase d'annotation pour que le
+        robot apprenne à être expressif suivant sa réponse.</p>
+
+ </fieldset>
+
+
+ <fieldset style="width:50%">
+    <legend><h2 id="navi">Navigation d’un robot dans un environnement virtuel réalistique</h2></legend>
+    <p><b>Abstract</b><br/>
+        IA et deep learning. Le robot se voit attribué un objet bien spécifique dans une maison, il doit se déplacer dans
+        l’environnement jusqu’à le trouver. Il apprend à le faire de manière efficace: si il doit trouver le frigo,
+        il ne perdera pas son temps à visiter les chambres. De manière plus complexe, il peut aussi se voir attribué un
+        objet singulier et pluriel dans la maison, tel un vase. Il doit alors poser des questions pour s’assurer qu’il a trouvé le
+        bon (à propos de sa couleur ou de sa forme). Dans cet environnement, l’agent apprend via la vision, l’interaction,
+        la sémentique et la physique. Nous utiliserons la plateforme HoMe : <a href="https://arxiv.org/pdf/1711.11017.pdf" target="_blank">
+            Household Multimodal Environment</a>
+    </p>
+    <center><img src="https://github.com/HoME-Platform/home-platform/raw/master/doc/images/overview.png" width="70%" /></center>
+
+        <p>
+            La navigation dans des environnements complexe a été initiée par <a href="http://vizdoom.cs.put.edu.pl/" target="_blank">VizDoom</a>, une compétition annuelle organisée par Poznan university, qui
+            propose une simulation Doom ou des IA de différents participants peuvent s'y entre-tuer. Le but est d'avoir le plus de kill après
+            un laps de temps défini.
+
+        </p>
+        <center><img src="https://camo.githubusercontent.com/98a1b7f2946bb2f8f38cf61146d2db30634d7a63/687474703a2f2f7777772e63732e7075742e706f7a6e616e2e706c2f6d6b656d706b612f6d6973632f76697a646f6f6d5f676966732f76697a646f6f6d5f636f727269646f722e676966
+" width="70%" /></center>
+
+        <p> De façon moins ludique, mais tout aussi intéressante,
+            nous utiliserons la navigation de robot dans des environnements de maisons. Nous voudrions
+            apprendre a un robot de se déplacer efficacement pour trouver des objets, comme la démo ci-dessous:
+        </p>
+
+        <center><img src="https://media.giphy.com/media/82xccmW41hNkYFcuDz/giphy.gif" width="50%" /></center>
+
+
+</fieldset>
+
+
+
+ <fieldset style="width:50%">
+     <legend><h2 id="collab">Apprendre à collaborer par le langage et la vision: expériences avec robots et drones</h2></legend>
+    <p><b>Abstract</b><br/>
+        IA et deep learning. Deux robots avec des capacités différentes (eg : l’un vole, l’autre pas),  
+        doivent collaborer pour résoudre une tache.
+    </p>
+ </fieldset>
+
+
+
+
+</ul>
+
+</fieldset>
+
+
+</body>
+
+
+</html>
