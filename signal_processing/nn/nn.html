@@ -70,16 +70,15 @@ où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors d
 	Dans l'exemple suivant, nous classifions des données linéairement séparables.
 
 
-	<div class="theoreme" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+	<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 	text-align: justify; background-color:#ffeedd;border-color:#ff8822;
 	line-height: 1.8;">
-	Soit $X_{0}$ and $X_{1}$ de clusters de points dans un espace euclidien de dimension $N$.
+	<b>Théorème : </b> Soit $X_{0}$ and $X_{1}$ de clusters de points dans un espace euclidien de dimension $N$.
 	Alors $X_{0}$ and $X_{1}$ sont <i>linéairement séparable</i> si il existe $n+1$ nombres
 	$w_{1}, w_{2},..,w_{n}, k$ tel que chaque point $x \in X_{0}$
 	satisfait $\sum^{n}_{i=1} w_{i}x_{i} > k$ et chaque point $x \in X_{1}$ satisfait
 	$\sum^{n}_{i=1} w_{i}x_{i} < k$, où $x_{i}$ est la $i$-ème composante de $x$.
    </div>
-	nous illustrons le résultats d'un SVM. Nous disposons de plusieurs points $x \in \mathbb{R}^2$ distribué selon deux clusters.
 
 </p>
 
@@ -142,7 +141,10 @@ où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors d
 
 
 
-<p>Avec sklearn, on peut facilement trouver l'hyperplane $h$ et ses vastes marges. Les points $x$ présents sur la vaste marge s'appellent les vecteurs de supports.
+<p>
+	Nous disposons de plusieurs points $x \in \mathbb{R}^N, N=2$ distribué selon deux clusters. Le théorème précédent
+	nous indique que nous devrions trouver une solution avec un poid $w$ composé de seulement deux nombres.
+	Avec sklearn, on peut facilement trouver l'hyperplane $h$ et ses vastes marges. Les points $x$ présents sur la vaste marge s'appellent les vecteurs de supports.
 </p>
 
 
@@ -265,9 +267,10 @@ Classe 1
 
 <p><b>**Exercice: printer les trois vecteurs de supports $x$ qui se trouvent sur les marges**</b></p>
 
-<p>Un réseau de neurones (Neural Network, NN) est composé de plusieurs couches de perceptrons. Le perceptron est vu comme l'unité la plus petite
+<p>Un réseau de neurones (Neural Network, NN) est composé de plusieurs couches de perceptrons. Le perceptron est vu comme l'unité
+	la plus petite
 	d'un NN. Le perceptron est lui même un classifieur linéaire et similaire au SVM car équipé d'une matrice de poids $w$
-	et d'un biais $b$. Un NN composé de un perceptron est donc un équivalent à un SVM.
+	et d'un biais $b$. Un NN composé d'un unique perceptron est donc un équivalent à un SVM à la seule différence
  form of function learned
 	on va faire la même classification avec un réseau de neurone. Pour le faire, on va utiliser la librairie pytorch.</p>
 
