@@ -310,6 +310,8 @@ Classe 1
 
 </div>
 
+Nous définissons le NN : une classe <i>Net</i> avec un attribut linear : il s'agit d'un unique perceptron.
+
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
@@ -346,12 +348,14 @@ Classe 1
 
 </div>
 
+Nous choisissons la fonction <i><a href="https://towardsdatascience.com/understanding-binary-cross-entropy-log-loss-a-visual-explanation-a3ac6025181a" target="_blank">Binary Cross Entropy</a></i> comme loss, qui est adapté pour un problème de classification binaire.
+
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">loss_func</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">()</span> <span class="c1">#fonction de la loss</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">loss_func</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()</span> <span class="c1">#fonction de la loss</span>
 <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.03</span> <span class="c1">#pas d&#39;apprentissage</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">)</span> <span class="c1"># descente de gradient</span>
 
@@ -369,7 +373,7 @@ Classe 1
     <span class="c1"># forward pass</span>
     <span class="n">prob</span> <span class="o">=</span> <span class="n">net</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
     <span class="c1">#calcul de la loss</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_func</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_func</span><span class="p">(</span><span class="n">torch.sigmoid(prob)</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
 
     <span class="c1">#mis à jour du réseau</span>
     <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
@@ -412,6 +416,21 @@ Iter 90 - loss: 0.00
 </div>
 
 </div>
+
+<p>
+    	<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#ffe6e6;border-color:#ff6666;
+		line-height: 1.8;">
+		<b>Attention : </b>
+	    En fonction des poids du perceptron, la sortie du NN peut avoir toute une étendue de valeur, il ne prédit pas que des 0 et des 1. Les prédictions d'un réseau de neurones ne sont <b> pas binaires</b> tel que "je suis certain que ce point est de la classe 1". Plutôt, le réseau dit "je suis 75% sûr que ce point appartient à la classe 1". Cette distinction est cruciale car si on ne prédit que des 0 et des 1, il n'y a pas de nuance, de marge de progression. On a seulement tort ou raison. Mais en sortant <b>des probabilités</b>, il y a de l'espace pour s'améliorer. On peut modifier et ajuster le système pour qu'il aille dans une direction plutot que l'autre. La procédure d'apprentissage devient donc un processus controlé et incrémental. C'est pour cela que dans cet exemple, le NN est mise à jour par paquet de 4 exemples via une descente de gradient (c.f. prochain chapitre). Pour traduire la sortie du NN en terme de probabilités, nous utilisons la <b>fonction sigmoide</b>, aussi appelée logistique. Cette fonction "écrase" ses entrées entre 0 et 1.
+	</div>
+
+<br/>
+<center>
+<img src="data:image/png;base64,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" alt="sigmoid" />
+</center>
+</p>
+
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
 <div class="prompt input_prompt">In&nbsp;[*]:</div>
@@ -644,7 +663,7 @@ xljyREQyxpInIpIxljwRkYyx5ImIZIwlT0QkY/8Hy4tAoYraSakAAAAASUVORK5CYII=
 </div>
 
 En résumé, nous remarquons que la forme de la fonction apprise par le perceptron et le SVM linéaire est similaire. La différence réside en
-la manière de mettre à jour les poids du modèle : stochastic gradient descent (SGD) pour le perceptron et l'optimisation minimal séquentiel
+la manière de mettre à jour les poids du modèle : la descente de gradient stochastique (SGD) pour le perceptron et l'optimisation minimal séquentiel
 pour les SVM.
 
 <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
@@ -866,7 +885,7 @@ non-linéarité, en l'occurence <a href="https://fr.wikipedia.org/wiki/Tangente_
 
 <span class="n">net</span> <span class="o">=</span> <span class="n">Net</span><span class="p">()</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
 
-<span class="n">loss_func</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">()</span> <span class="c1">#fonction de la loss</span>
+<span class="n">loss_func</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BCELoss</span><span class="p">()</span> <span class="c1">#fonction de la loss</span>
 <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="c1">#pas d&#39;apprentissage</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">)</span> <span class="c1"># descente de gradient</span>
 
@@ -1247,7 +1266,30 @@ le vérifier avec sklearn :
 	</div>
 
 <p><b>**Exercice : jouez avec l'application suivante : <a href="http://playground.tensorflow.org/">http://playground.tensorflow.org/</a>. Trouvez les configurations minimales
-pour classifier les différents datasets. Ajoutez et enlevez des couches / des non-linéarités et analysez l'impacts sur les convergences</b></p>
+pour classifier les différents datasets. Ajoutez et enlevez des couches / des non-linéarités et analysez l'impacts sur les convergences**</b></p>
+<br/>
+
+<p>
+Un dernier point très important est à noter. Un SVM garanti de converger vers la solution optimale (qu'elle soit bonne ou mauvaise). En
+    effet, la solution d'un SVM est globale et unique. Le SVM est une technique statistique qui se base sur des <b>principes théoriques fondés et éprouvés</b>. Les réseaux de neurones sont <b>heuristiques</b> et souffrent d'avoir des minima locaux dans lequels l'apprentissage peut s'engouffrer, sans trouver l'optimal global. Le NN cherche à tracer une ligne entre les points des exemples sur lesquels il est entrainé, mais cette dernière n'aura peut-être pas une généralisation adéquate pour d'autre exemples non-vus. Vous pouvez d'ailleur vérifier en relancant les scripts : le SVM vous donnera toujours la même solution, à l'inverse des NN.
+</p>
+<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#e6eeff;border-color: #003399;
+		line-height: 1.8;">
+		<b>Similarités : </b>
+	<ul>
+		<li>Le perceptron est similaire à un SVM à noyau linéaire</li>
+		<li>Un SVM à noyau est équivalent à un NN deux couches </li>
+		<li>Certains noyaux ont la même propriété que d'ajouter
+		des neurones (ou perceptron) dans les couches cachées</li>
+	</ul>
+		<b>Différences : </b>
+	<ul>
+		<li>Algorithme de mise à jour du modèle</li>
+		<li>Les NN sont heuristiques, les SVM fondés théoriquement</li>
+	</ul>
+	</div>
+
 
 </body>
 
