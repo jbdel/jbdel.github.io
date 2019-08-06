@@ -50,6 +50,25 @@
 
     <body>
 
+    <p><h2>Différence entre les SVM et les réseaux de neurones : classification multi-classes</h2></p>
+
+
+    <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#ffffff;border-color: #000000;
+		line-height: 1.8; width:50%;">
+    <b>Théorie :</b>
+    <ul>
+        <li><a href="#svm">Pour les SVM</a></li>
+        <li><a href="#nn">Pour les réseaux de neurones</a></li></ul>
+    <b>Exercices :</b>
+    <ul>
+        <li><a href="#ex1">Exercice 1 : matrice de confusion</a></li>
+        <li><a href="#ex2">Exercice 2 : confidence via softmax</a></li>
+    </ul>
+</div>
+
+<center style="padding:10px;"><h3 id="svm">Pour les SVM</h3></center>
+
     <p>
 Les SVM sont de manière inhérente des classfieurs binaires. La méthode traditionnelle pour résoudre un problème multi-classes
 est d'utiliser la politique du "one versus the rest", c'est-à-dire d'attribuer un SVM par classe. Pour entraîner le classifieur pour la
@@ -5374,7 +5393,15 @@ cX8hvh/3437cj29z3F+I78f9uB/349sc9xfi+3E/7sf9+DbH/YX4ftyP+3E/vs3x/wGu4cZrmZPs
 
 <p>La PCA permet de réduire l'erreur à 7/24 sur ces 24 exemples du test-set.</p>
 
-    <p><b>**Exercice : en utilisant sk-learn, trouvez l'accuracy pour les 8 classes et imprimer la matrice de confusion**</b></p>
+    <p>
+
+     <div id="ex1" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+    text-align: justify; background-color:#99ff99;border-color:#004d00;
+        line-height: 1.8;">
+    <b>Exercice :</b> en utilisant sk-learn, trouvez l'accuracy pour les 8 classes et imprimer la matrice de confusion
+    </div>
+
+    </p>
 
     <p> Nous pouvons vérifier le contenu du modèle OneVsRestClassifier, nous avons bien 8 SVM empilés :</p>
 
@@ -5435,6 +5462,9 @@ cX8hvh/3437cj29z3F+I78f9uB/349sc9xfi+3E/7sf9+DbH/YX4ftyP+3E/vs3x/wGu4cZrmZPs
 </div>
 
 </div>
+
+
+    <center style="padding:10px;"><h3 id="nn">Pour les réseaux de neurones</h3></center>
 
 
 <p>
@@ -7512,11 +7542,21 @@ tensor(1.0000)
 </div>
 
 </div>
-                Ce choix de régularisation peut sembler arbitraire, mais la fonction <b>softmax est simplement une généralisation de la fonction sigmoidale</b> pour un nombre de sortie supérieur à 1. Utiliser la fonction softmax pour un problème binaire est équivalent à utiliser une sigmoide.
-                $$f(x)=\frac{1}{1 + e^{- x}}$$
-                $$\text{softmax}(\mathbf{x})_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}} \text{ for } i = 1, \dotsc , K \text{ and } \mathbf z=(z_1,\dotsc,z_K) \in\mathbb{R}^K$$
-
+                Ce choix de régularisation peut sembler arbitraire, mais la fonction <b>softmax est simplement une généralisation de la fonction sigmoidale</b> pour des problèmes multi-classes (à plusieurs sorties). Utiliser la fonction softmax pour un problème binaire est équivalent à utiliser une sigmoide. Nous voyons qu'il est d'ailleurs facile de passer de l'un à l'autre :
+                $$\text{sigmoid}(x)=\frac{1}{1 + e^{- x}}$$
+                $$\text{softmax}(\mathbf{x})_i = \frac{e^{x_i}}{\sum_{j=1}^K e^{x_j}} \text{ for } i = 1, \dotsc , K \text{ and } \mathbf x=(x_1,\dotsc,x_K) \in\mathbb{R}^K$$
+                Dans le softmax, chaque probabilité $x_i$ est divisée (et donc mise en relation) par la somme de tout les probabilités $x_1, ..., x_K$.
 </div>
+
+
+<p>
+
+ <div id="ex2" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+    text-align: justify; background-color:#99ff99;border-color:#004d00;
+    line-height: 1.8;">
+<b>Exercice :</b> pour un exemple du test-set, sortez les probabilités et normalisez-les avec la fonction torch.nn.softmax et donnez la confiance (probabilité) avec laquelle le modèle donne sa réponse
+</div>
+</p>
 
 
     </body>

@@ -48,7 +48,27 @@
 	</head>
 <body>
 
-<p><b>Difference entre les SVM et réseaux de neurones</b></p>
+
+<p><h2>Différence entre les SVM et les réseaux de neurones : classification binaire</h2></p>
+
+<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#ffffff;border-color: #000000;
+		line-height: 1.8; width:50%;">
+    <b>Théorie :</b>
+    <ul>
+        <li><a href="#sep">Pour les cas linéairement séparables</a></li>
+        <li><a href="#non_sep">Pour les cas linéairement non-séparables</a></li></ul>
+    <b>Exercices :</b>
+    <ul>
+        <li><a href="#ex1">Exercice 1 : vecteurs de supports</a></li>
+        <li><a href="#ex2">Exercice 2 : batch-size et learning rate</a></li>
+        <li><a href="#ex3">Exercice 3 : noyau RBF</a></li>
+        <li><a href="#ex4">Exercice 4 : application playground</a></li>
+    </ul>
+</div>
+
+<center style="padding:10px;"><h3 id="sep">Cas linéairement séparables</h3></center>
+
 
 <p>Les SVM simples séparent des clusteurs de données linéairement séparables en créant une frontière (appelée hyperplan) entre ceux-ci. Les SVM
 sont des classifieurs à sortie binaire, ils permettent donc de discriminer deux classes (ou deux clusters). Plus formellement, un SVM construit une fonction $h$ qui
@@ -274,7 +294,13 @@ Classe 1
 </div>
 </div>
 
-<p><b>**Exercice: printer les trois vecteurs de supports $x$ qui se trouvent sur les marges**</b></p>
+<p>
+ <div id="ex1" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#99ff99;border-color:#004d00;
+		line-height: 1.8;">
+    <b>Exercice :</b> printer les trois vecteurs de supports $x$ qui se trouvent sur les marges
+</div>
+</p>
 
 <p>Un réseau de neurones (Neural Network, NN) est composé de plusieurs couches de perceptrons. Le perceptron (ou neurone) est vu comme l'unité
 	la plus petite d'un NN.
@@ -422,7 +448,7 @@ Iter 90 - loss: 0.00
 		text-align: justify; background-color:#ffe6e6;border-color:#ff6666;
 		line-height: 1.8;">
 		<b>Attention : </b>
-	    En fonction des poids du perceptron, la sortie du NN peut avoir toute une étendue de valeur, il ne prédit pas que des 0 et des 1. Les prédictions d'un réseau de neurones ne sont <b> pas binaires</b> tel que "je suis certain que ce point est de la classe 1". Plutôt, le réseau dit "je suis 75% sûr que ce point appartient à la classe 1". Cette distinction est cruciale car si on ne prédit que des 0 et des 1, il n'y a pas de nuance, de marge de progression. On a seulement tort ou raison. Mais en sortant <b>des probabilités</b>, il y a de l'espace pour s'améliorer. On peut modifier et ajuster le système pour qu'il aille dans une direction plutot que l'autre. La procédure d'apprentissage devient donc un processus controlé et incrémental. C'est pour cela que dans cet exemple, le NN est mise à jour par paquet de 4 exemples via une descente de gradient (c.f. prochain chapitre). Pour traduire la sortie du NN en terme de probabilités, nous utilisons la <b>fonction sigmoide</b>, aussi appelée logistique. Cette fonction "écrase" ses entrées entre 0 et 1.
+	    En fonction des poids du perceptron, la sortie du NN peut avoir toute une étendue de valeur, il ne prédit pas que des 0 et des 1. Les prédictions d'un réseau de neurones ne sont <b> pas binaires</b> tel que "je suis certain que ce point est de la classe 1". Plutôt, le réseau dit "je suis 75% sûr que ce point appartient à la classe 1". Cette distinction est cruciale car si on ne prédit que des 0 et des 1, il n'y a pas de nuance, de marge de progression. On a seulement tort ou raison. Mais en sortant <b>des probabilités</b>, il y a de l'espace pour s'améliorer. On peut modifier et ajuster le système pour qu'il aille dans une direction plutot que l'autre. La procédure d'apprentissage devient donc un processus controlé et incrémental. C'est pour cela que dans cet exercice, le NN est mis à jour par paquet de 4 exemples via une descente de gradient (c.f. prochain chapitre). Pour traduire la sortie du NN en terme de probabilités, nous utilisons la <b>fonction sigmoide</b>, aussi appelée logistique. Cette fonction "écrase" ses entrées entre 0 et 1.
 	</div>
 
 <br/>
@@ -679,7 +705,17 @@ pour les SVM.
 	</ul>
 	</div>
 
-<p><b>**Exercice: Jouez avec le batch-size et le pas d'apprentissage pour expérimenter la sensibilité du modèle**</b></p>
+<p>
+   <div id="ex2" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#99ff99;border-color:#004d00;
+		line-height: 1.8;">
+    <b>Exercice :</b> Jouez avec le batch-size et le pas d'apprentissage pour expérimenter la sensibilité du modèle
+    </div>
+
+</p>
+
+
+<center style="padding:10px;"><h3 id="non_sep">Cas linéairement non-séparables</h3></center>
 
 Considérons maintenant un dataset qui n'est pas linéairement séparable et réessayons le SVM avec noyau linéaire :
 
@@ -737,7 +773,13 @@ Le noyau RBF est le suivant :
 
 	et peut être utilisé facilement pour créer une nouvelle dimension.
 </p>
-<p><b>**Exercice : Sans utiliser sklearn, implémentez le noyaux RBF dans le code suivant pour créer une troisième dimension**</b></p>
+<p>
+   <div id="ex3" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#99ff99;border-color:#004d00;
+		line-height: 1.8;">
+    <b>Exercice :</b> Sans utiliser sklearn, implémentez le noyaux RBF dans le code suivant pour créer une troisième dimension
+</div>
+</p>
 
 
 <div class="cell border-box-sizing code_cell rendered">
@@ -1265,8 +1307,15 @@ le vérifier avec sklearn :
 	</ul>
 	</div>
 
-<p><b>**Exercice : jouez avec l'application suivante : <a href="http://playground.tensorflow.org/">http://playground.tensorflow.org/</a>. Trouvez les configurations minimales
-pour classifier les différents datasets. Ajoutez et enlevez des couches / des non-linéarités et analysez l'impacts sur les convergences**</b></p>
+<p>
+    <div id="ex4" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#99ff99;border-color:#004d00;
+		line-height: 1.8;">
+    <b>Exercice :</b> jouez avec l'application suivante : <a href="http://playground.tensorflow.org/">http://playground.tensorflow.org/</a>. Trouvez les configurations minimales
+pour classifier les différents datasets. Ajoutez et enlevez des couches / des non-linéarités et analysez l'impacts sur les convergences
+</div>
+
+</p>
 <br/>
 
 <p>
