@@ -1,4 +1,3 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" >
     <head>
@@ -16,6 +15,7 @@
 	font-family: Verdana,Arial, Helvetica, sans-serif;
 	    color: black;
 	    width:50%;
+	    font-size:13px;
 	}
 	</style>
 	<!-- Load mathjax -->
@@ -47,7 +47,6 @@
 
 
 	</head>
-
     <body>
 
     <p><h2>Algorithme d'apprentissage d'un réseau de neurones</h2></p>
@@ -82,7 +81,7 @@
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[0]:</div>
+<div class="prompt input_prompt">In&nbsp;[*]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">make_blobs</span>
@@ -118,7 +117,7 @@
     <p> On calcul la loss pour chaque combinaison de poids :</p>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[0]:</div>
+<div class="prompt input_prompt">In&nbsp;[*]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="n">grid_size</span> <span class="o">=</span> <span class="mi">100</span>
@@ -143,7 +142,7 @@
     <p> On plot le grid de cette loss :</p>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[*]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="c1"># Plot the loss function surface</span>
@@ -235,7 +234,7 @@ line-height: 1.8;">
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[11]:</div>
+<div class="prompt input_prompt">In&nbsp;[*]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="k">def</span> <span class="nf">gradient</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
@@ -297,7 +296,7 @@ Loss: 0.6053519207544842 w: [[-0.48253108 -0.88018438]]
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[13]:</div>
+<div class="prompt input_prompt">In&nbsp;[*]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="c1"># Plot the error surface</span>
@@ -2133,7 +2132,7 @@ YII=
 
 </div>
 
-    <p>Comme vous l'avez vu dans les section précédentes, les librairies python deep-learning possède des outils de différentiation automatique et mette à jour les poids automatiquement après chaque forward pass (selon le pas d'apprentissage que vous leur renseignez).</p>
+    <p>Comme vous l'avez vu dans les section précédentes, les librairies python deep-learning possèdent des outils de différentiation automatique et mettent à jour les poids automatiquement après chaque forward pass (selon le pas d'apprentissage que vous leur renseignez).</p>
 
 <br/>
 <br/>
