@@ -1,0 +1,62 @@
+
+\documentclass{article}
+
+\usepackage{tikz}
+\begin{document}
+\pagestyle{empty}
+
+\def\layersep{2.5cm}
+
+\begin{tikzpicture}[shorten >=1pt,->,draw=black!50, node distance=\layersep]
+    \tikzstyle{every pin edge}=[<-,shorten <=1pt]
+    \tikzstyle{neuron}=[circle,fill=black!25,minimum size=17pt,inner sep=0pt]
+    \tikzstyle{input neuron}=[neuron, fill=green!50];
+    \tikzstyle{output neuron}=[neuron, fill=red!50];
+    \tikzstyle{hidden neuron}=[neuron, fill=blue!50];
+    \tikzstyle{annot} = [text width=4em, text centered]
+
+    % Draw the input layer nodes
+    \foreach \name / \y in {1/0,2/1,3/2,4/-1,5/1,6/-3,7/0}
+    % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+        \node[input neuron, pin=left:\y] (I-\name) at (0,-\name) {};
+
+    % Draw the hidden layer nodes
+    \foreach \name / \y in {1/-2,2/2,3/1,4/2,5/1}
+        \path[yshift=-1.0cm]
+            node[hidden neuron, pin={[pin edge={->}]right:\y}] (H-\name) at (\layersep,-\name cm) {};
+
+
+    % Draw the output layer node
+    \node[output neuron,pin={[pin edge={-}]right:Filtre}, right of=H-1] (O) {};
+
+
+    % \foreach \source in {1,...,2}
+    \foreach \source in {1,...,5}
+        \path (I-\source) edge (H-\source);
+            
+
+
+    \foreach \source in {2,...,6}
+        \pgfmathparse{int(\source-1)}
+        \edef\mya{\pgfmathresult}
+        \path (I-\source) edge (H-\mya);
+        
+    \foreach \source in {3,...,7}
+        \pgfmathparse{int(\source-2)}
+         \edef\mya{\pgfmathresult}
+         \path (I-\source) edge (H-\mya);
+         
+
+
+    % Annotate the layers
+    %\node[annot,above of=H-1, node distance=1cm] (hl) {Hidden layer 1};
+    %\node[annot,left of=hl] {Input layer};
+    %\node[annot,right of=hl] {Output layer};
+    \node[annot,above of=I-1, node distance=1cm](hl) {Input};
+    \node[annot,right of=hl] {Result};
+    \node[annot,below of=O, node distance=1cm] {[1, 0, -1] Stride 1};
+
+
+\end{tikzpicture}
+% End of code
+\end{document}
