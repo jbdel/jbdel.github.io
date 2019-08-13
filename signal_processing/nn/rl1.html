@@ -52,7 +52,7 @@
 
 <div id="unif"></div>
 
-    <p><h2>Neural Networks / Réseau de neurones</h2></p>
+    <p><h2>Apprentissage par renforcement</h2></p>
 
 
     <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
@@ -60,10 +60,6 @@
 		line-height: 1.8; width:80%;">
     <b>Sommaire :</b>
     <ul>
-        <li><a href="nn1.html">Différence entre les SVM et les réseaux de neurones : classification binaire</a></li>
-        <li><a href="nn2.html">Différence entre les SVM et les réseaux de neurones : classification multi-classes</a></li>
-        <li><a href="nn3.html">Algorithme d'apprentissage d'un réseau de neurones</a></li>
-        <li><a href="nn4.html">Réseau de neurones fully connected et convolutionnel</a></li>
 
     </ul>
 
@@ -71,7 +67,7 @@
 
 </div>
 
-		<center><h3 id="rl">Apprentissage par renforcement</h3></center>
+		<center><h3 id="rl">Processus décisionnel Markovien (MDP)</h3></center>
 
 		En machine learning, on considère qu'il existe trois catégories d'apprentissage : <br/> <br/>
 		<ul>
@@ -171,11 +167,11 @@ line-height: 1.8;">
 
 Selon le principe d'optimalité, nous pouvons réécrire la fonction de valeur optimale :
 
-$$V^*(s)=\max _{a}\left(R(s, a) + \gamma \; V\left(s^{\prime}\right)\right)\tag{1}$$
+$$V^*(s)=\max _{a}\left(R(s, a) + \gamma \; V^*\left(s^{\prime}\right)\right)\tag{1}$$
 
 et on en extrait la politique optimale $\pi^*$ :
 
-$$\pi^*(s)=\text{arg max} _{a}\left(R(s, a) + \gamma \; V\left(s^{\prime}\right)\right)\tag{2}$$
+$$\pi^*(s)=\text{arg max} _{a}\left(R(s, a) + \gamma \; V^*\left(s^{\prime}\right)\right)\tag{2}$$
 
 
 
@@ -185,9 +181,26 @@ laquelle on pense que le robot arrivera dans $s^\prime$. Nous pouvons alors une 
 la probabilité d'atterrir dans l'état $s^\prime$ après avoir pris l'action $a$ dans à l'état $s$. $V^\pi(s)$ devient :
 
 $$
-V^\pi(s)=\max _{a}\left(R(s, a) + \gamma \sum_{s^{\prime}} P\left(s, a, s^{\prime}\right) V\left(s^{\prime}\right)\right) \tag{3}
+V^*(s)=\max _{a}\left(R(s, a) + \gamma \sum_{s^{\prime}} P\left(s, a, s^{\prime}\right) V^*\left(s^{\prime}\right)\right) \tag{3}
 $$
 
+Nous comprenons que la fonction $V^*$ donne la valeur optimale d'un état selon la politique $\pi^*$. Cette valeur découle d'une agrégation
+des retours de récompenses sur chaque possibilité d'action dans l'état $s$. Un des sous-problèmes est donc de se préoccuper de la valeur
+d'une action particulière dans un état. Pour ce faire, on introduit la fonction action-état $Q$ qui est simplement l'équation 3 sans
+$\max$ :
+
+$$Q^(s, a)= R(s, a) + \gamma \sum_{s^{\prime}}\left(P\left(s, a, s^{\prime}\right) V\left(s^{\prime}\right)\right) \tag{4} $$
+
+Avec l'équation 3 et 4, on peut réécrire $V^{*}$ :
+
+$$V^{*}(s)= \max_{a'} Q^*(s,a') \tag{5}$$
+
+On peut remplacer directement $V^*$ dans $Q^*(s, a)$:
+
+$$Q^*(s, a)=R(s, a) + \gamma \sum_{s^{\prime}}\left(P\left(s, a, s^{\prime}\right) \max _{a^{\prime}} Q^*\left(s^{\prime},
+a^{\prime}\right)\right)\tag{6}$$
+
+Pourquoi cette réécriture ou l'action est explicite est-elle intéressante ?
 
 sans le max, c'est q,a , q,a interessant :
 https://datascience.stackexchange.com/questions/9832/what-is-the-q-function-and-what-is-the-v-function-in-reinforcement-learning
