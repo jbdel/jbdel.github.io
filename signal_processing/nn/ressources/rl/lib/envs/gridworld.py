@@ -54,7 +54,7 @@ class GridworldEnv(discrete.DiscreteEnv):
             P[s] = {a : [] for a in range(nA)}
 
             is_done = lambda s: s == 0 or s == (nS - 1)
-            reward = 0.0 if is_done(s) else -1.0
+            reward = 1.0 if is_done(s) else 0
 
             # We're stuck in a terminal state
             if is_done(s):
