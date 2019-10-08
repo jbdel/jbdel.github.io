@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" >
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="author" content="Jean-Benoit Delbrouck" />
+	<meta name="keywords" content="Jean-Benoit, Delbrouck, reseau de neurones, tutoriel, tutorial" />
+	<meta name="description" content="Jean-Benoit Delbrouck" />
+	<meta name="robots" content="all" />
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+	<link rel="stylesheet" href="jupyter_notebook.css" type="text/css" />
+
+	<!-- Load mathjax -->
+	<script type="text/javascript" async
+		src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
+	</script>
+	</script>
+	<!-- MathJax configuration -->
+	<script type="text/x-mathjax-config">
+	  MathJax.Hub.Config({
+		  tex2jax: {
+			  inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+			  displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+			  processEscapes: true,
+			  processEnvironments: true
+		  },
+		  // Center justify equations in code and markdown cells. Elsewhere
+		  // we use CSS to left justify single line equations in code cells.
+		  displayAlign: 'center',
+		  "HTML-CSS": {
+			  styles: {'.MathJax_Display': {"margin": 0}},
+			  linebreaks: { automatic: true }
+		  }
+	  });
+	</script>
+	<!-- End of mathjax configuration -->
+	<style>
+	body{
+	font-family: Verdana,Arial, Helvetica, sans-serif;
+	    color: black;
+	    width:50%;
+	}
+	</style>
+    <script>
+				$(function(){
+				  $("#unif").load("header.html");
+				});
+	</script>
+	</head>
+
+<body>
+
+<div id="unif"></div>
+
+    <p><h2>Exercice : mon premier CNN</h2></p>
+
+  <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[0]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="err">!</span><span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">s3</span><span class="o">.</span><span class="n">amazonaws</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">fast</span><span class="o">-</span><span class="n">ai</span><span class="o">-</span><span class="n">imageclas</span><span class="o">/</span><span class="n">imagenette</span><span class="o">-</span><span class="mf">160.</span><span class="n">tgz</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>--2019-10-08 10:54:45--  https://s3.amazonaws.com/fast-ai-imageclas/imagenette-160.tgz
+Resolving s3.amazonaws.com (s3.amazonaws.com)... 52.216.244.110
+Connecting to s3.amazonaws.com (s3.amazonaws.com)|52.216.244.110|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 98752094 (94M) [application/x-tar]
+Saving to: ‘imagenette-160.tgz’
+
+imagenette-160.tgz  100%[===================&gt;]  94.18M  33.6MB/s    in 2.8s
+
+2019-10-08 10:54:48 (33.6 MB/s) - ‘imagenette-160.tgz’ saved [98752094/98752094]
+
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[0]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="err">!</span><span class="n">tar</span> <span class="o">-</span><span class="n">xvzf</span> <span class="n">imagenette</span><span class="o">-</span><span class="mf">160.</span><span class="n">tgz</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+</div>
+
+	<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[0]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="c1">## INSTRUCTIONS:</span>
+
+<span class="c1">#Utiliser les datasets et dalaloader pour utiliser les données (ici, on utilise ImageFolder)</span>
+<span class="c1">#Utiliser la fonction transform pour pour resize les images 64,64</span>
+<span class="c1">#On envoit les données par paquet dans le réseau (batch_size), a vous de trouver le bon nombre a donner en argument a votre dataloader</span>
+
+<span class="c1">#Utiliser le GPU : appeler cuda() sur votre modèle (qui implémente torch.nn.module) et sur les données qui entrent dans votre réseau</span>
+
+<span class="c1">#Bonne pratique pour les CNN : faire une succession de convolution (nn.conv2d), d&#39;activation relu (F.relu), puis de pooling (nn.MaxPool2d)</span>
+<span class="c1">#Attention, les features maps du CNN sont en 3D, il faut repasser a 1D à un moment pour la classif , utiliser torch.view (ex : batch_size,3x3x64 =&gt; bathc_size,576 puis bs,576 -&gt; bs,10)</span>
+<span class="c1">#La sortie doit etre de taille 10, il y a 10 classes</span>
+
+<span class="c1">#Utiliser la loss adaptée pour classif</span>
+<span class="c1">#Utiliser la descente de gradient stochastique pour optimiser le reseau (optim.SGD) </span>
+<span class="c1">#Avant d&#39;envoyer un paquet dans le réseau, utiliser optimize.zero_grad. Après passage du batch, utiliser optim.step()</span>
+<span class="c1">#A vous de trouver le meilleur learning rate</span>
+
+<span class="c1">#Apres chaque epoch, faire une evaluation</span>
+<span class="c1">#Prediction : prendre à la sortie la classe qui a la meilleure confiance (torch.max) et comparer avec le label ground-truth. Pour cela, il faut itérer sur le dataloader de val.</span>
+
+<span class="c1">#Restrictions :</span>
+<span class="c1"># 1)</span>
+<span class="c1">#Avoir moins de 500.000 parametres</span>
+<span class="c1"># print(&quot;Nombre total de params&quot;,sum(p.numel() for p in model.parameters())) ou la variable model est votre modèle.</span>
+
+<span class="c1"># 2)</span>
+<span class="c1">#Avoir moins de 250 secondes d&#39;execution :</span>
+<span class="c1"># import time</span>
+<span class="c1"># start = time.time()</span>
+<span class="c1"># A la fin : print(&quot;Temps d&#39;execution : &quot;, time.time()-start, &#39;secondes.&#39;)  </span>
+
+
+<span class="c1">#Notation : 1/1 si réseau finit ses 10 epochs en moins de 250 secondes avec une epoch avec précision &gt; 55 %</span>
+<span class="c1">#           1 point bonus si vous battez ma solution en paramètres + temps (145 secondes) ET en précision (65%)</span>
+<span class="c1">#Ma solution :</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Nombre total de params 350114
+Loss for epoch 0 : tensor(840.3370, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 40 %
+Loss for epoch 1 : tensor(698.0801, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 48 %
+Loss for epoch 2 : tensor(619.6754, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 54 %
+Loss for epoch 3 : tensor(563.1716, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 57 %
+Loss for epoch 4 : tensor(505.4431, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 61 %
+Loss for epoch 5 : tensor(453.9288, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 65 %
+Loss for epoch 6 : tensor(397.5204, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 62 %
+Loss for epoch 7 : tensor(338.5242, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 61 %
+Loss for epoch 8 : tensor(279.8197, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 61 %
+Loss for epoch 9 : tensor(221.0976, device=&#39;cuda:0&#39;)
+Precision du réseau sur les données val: 58 %
+Temps d&#39;execution :  145.75855445861816 secondes.
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+
+</div></div></div></div></div>
+
+
+</body>
+</html>
