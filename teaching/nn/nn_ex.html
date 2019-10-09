@@ -127,7 +127,14 @@ imagenette-160.tgz  100%[===================&gt;]  94.18M  33.6MB/s    in 2.8s
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span class="c1">## INSTRUCTIONS:</span>
+<span class="c1">#Vous allez classifier un jeu de données d'images. Il contient environ 12.800 images pour 10 classes:</span>
+<span class="c1">#tench, English springer, cassette player, chain saw, church, French horn, garbage truck, gas pump, golf ball, parachute</span>
+<span class="c1">#Les images sont de taille 160 px et sont déjà splitées en train et val</span>
 
+<span class="c1">#Vous allez utiliser google colab (https://colab.research.google.com), créer une notebook sur python 3, ensuite aller dans onglet runtime > 
+change runtime type et mettre GPU en hardware accelerator. Vous pouvez désormais utiliser un GPU.</span>
+
+<span class="c1">#Le CNN:</span>
 <span class="c1">#Utiliser les datasets et dalaloader pour utiliser les données (ici, on utilise ImageFolder)</span>
 <span class="c1">#Utiliser la fonction transform pour pour resize les images 64,64</span>
 <span class="c1">#On envoit les données par paquet dans le réseau (batch_size), a vous de trouver le bon nombre a donner en argument a votre dataloader</span>
