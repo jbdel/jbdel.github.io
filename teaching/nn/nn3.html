@@ -63,6 +63,13 @@
     </ul>
 </div>
 
+<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+	text-align: justify; background-color:#f5ec42;border-color:#f5bf42;
+	line-height: 1.8;">
+	<b>Avertissement : </b> Le but de ce chaptire est de donner une intuition sur le fonctionement de la backward pass (appelée retro-propagation du gradient). Il n'est pas nécessaire de comprendre les mécanismes dans leurs détails mais d'avoir une vue globale de l'algorithme.
+   </div>
+
+
     <center style="padding:10px;"><h3 id="d">Descente de gradient</h3></center>
 
     <p>Un réseau est entrainé en deux phases : la <b>forward pass</b> et la <b>backward pass</b>. La forward pass correspond à faire passer les exemples d'entrainement dans le réseau et de caculer la loss correspondante. La backward pass consiste à mettre à jour les poids du réseau pour minimiser cette loss lors des prochaines forward pass. Cette procédure est répétée jusqu'à convergence, on appelle cela l'entraînement du réseau.</p>
