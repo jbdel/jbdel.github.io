@@ -18,6 +18,40 @@
 	    width:50%;
 	    font-size:13px;
 	}
+	
+	blockquote {
+		border-radius: 3px;
+		position: relative;  /*  <--- */
+		font-style: italic;
+		text-align: center;
+		padding: 1rem 1.2rem;
+		width: 80%;  /* create space for the quotes */
+		color: #4a4a4a;
+		margin: 1rem auto 2rem;
+		color: #4a4a4a;
+		background: #E8E8E8;
+	}
+	/* -- create the quotation marks -- */
+	 blockquote:before,
+	 blockquote:after{
+		font-family: FontAwesome;
+		position: absolute;
+		/* -- inside the relative position of blockquote -- */
+		top: 13px;
+		color: #E8E8E8;
+		font-size: 34px;
+	}
+	 blockquote:before{
+		content: "\f10d";
+		margin-right: 13px;
+		right: 100%;
+	}
+	 blockquote:after{
+		content: "\f10e";
+		margin-left: 13px;
+		left: 100%;
+	}
+
 	</style>
 	<!-- Load mathjax -->
 	<script type="text/javascript" async
@@ -167,7 +201,7 @@ line-height: 1.8;">
 
 Selon le principe d'optimalité ci-dessus, nous pouvons réécrire la fonction de valeur optimale :
 
-$$V^*(s)=\max _{a}\left(R(s, a) + \gamma \; V^*\left(s^{\prime}\right)\right)\tag{1}$$
+$$V^*(s)=\max _{a \in A}\left(R(s, a) + \gamma \; V^*\left(s^{\prime}\right)\right)\tag{1}$$
 
 c'est-à-dire que dans l'état $s$, on trouve l'action $a$ qui maximise le gain courant et les futurs gains dans $s^{\prime}$ (qui eux aussi sont optimaux). On en extrait la politique optimale $\pi^*$ :
 
@@ -181,7 +215,7 @@ laquelle on pense que le robot arrivera dans $s^\prime$. Nous définissons une m
 dicte la probabilité d'atterrir dans l'état $s^\prime$ après avoir pris l'action $a$ dans à l'état $s$. La fonction de valeur optimale devient :
 
 $$
-V^*(s)=\max _{a}\left(R(s, a) + \gamma \sum_{s^{\prime}} P\left(s, a, s^{\prime}\right) V^*\left(s^{\prime}\right)\right) \tag{3}
+V^*(s)=\max _{a \in A}\left(R(s, a) + \gamma \sum_{s^{\prime}} P\left(s, a, s^{\prime}\right) V^*\left(s^{\prime}\right)\right) \tag{3}
 $$
 
 
@@ -488,76 +522,49 @@ Cet algorithme itératif <b>n'est possible que lorsque l'environnement est connu
 <center><h3 id="qlearn">Algorithme model-free : Q-learning</h3></center>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Nous comprenons que la fonction $V^*$ donne la valeur optimale d'un état selon la politique $\pi^*$. Cette valeur découle d'une agrégation
 des retours de récompenses sur chaque possibilité d'action dans l'état $s$. Un des sous-problèmes est donc de se préoccuper de la valeur
-d'une action particulière dans un état. Pour ce faire, on introduit la fonction action-état $Q$ qui est simplement l'équation 3 sans
-$\max$ :
+d'une action particulière dans un état. Pour ce faire, on introduit la fonction action-état $Q$ :
 
-$$Q^(s, a)= R(s, a) + \gamma \sum_{s^{\prime}}\left(P\left(s, a, s^{\prime}\right) V\left(s^{\prime}\right)\right) \tag{4} $$
+$$Q^\pi(s, a) = \mathbb{E}^\pi \{\sum_{k=0}^\infty \gamma^k r_{t+k+1} | s_t = s, a_t=a\}$$
 
-Avec l'équation 3 et 4, on peut réécrire $V^{*}$ :
+qui correspond au retour espéré pour l'état $s$ en prenant l'action $a$, puis en suivant la politique $\pi$. Selon le principe d'optimalité, on peut réécrire $Q$ de cette manière :
 
-$$V^{*}(s)= \max_{a'} Q^*(s,a') \tag{5}$$
+$$Q(s, a)= R(s, a) + \gamma \sum_{s^{\prime}}\left(P\left(s, a, s^{\prime}\right) V\left(s^{\prime}\right)\right) \tag{4} $$
+
+L'équation 4 est simplement l'équation 3 pour un $a$ explicite (on enleve donc juste le $\max$). Avec l'équation 3 et 4, on peut réécrire $V^{*}$ :
+
+$$V^{*}(s)= \max_{a \in A} Q^*(s,a) \tag{5}$$
 
 On peut remplacer directement $V^*$ dans $Q^*(s, a)$:
 
 $$Q^*(s, a)=R(s, a) + \gamma \sum_{s^{\prime}}\left(P\left(s, a, s^{\prime}\right) \max _{a^{\prime}} Q^*\left(s^{\prime},
 a^{\prime}\right)\right)\tag{6}$$
 
-Pourquoi cette réécriture ou l'action est explicite est-elle intéressante ?
+Grâce à cette dernière fonction 6, l'agent dispose désormais d'une fonction où l'action est explicite. Il peut désormais expérimenter un environnement en interagissant avec celui-ci.<br/><br/>
 
-sans le max, c'est q,a , q,a interessant :
-https://datascience.stackexchange.com/questions/9832/what-is-the-q-function-and-what-is-the-v-function-in-reinforcement-learning
+Il est possible d'apprendre $Q$ par échantillonnage (traditionnellement appelée <a href="https://fr.wikipedia.org/wiki/M%C3%A9thode_de_Monte-Carlo">Méthode de Monte-Carlo</a>):
+<ul>
+	<li>Choix aléatoire d'un état $s \in S$</li>
+	<li>Choix aléatoire d'un état $a \in a$ (exploration)</li>
+	<li>Suivre la stratégie $\pi$ et observer la récompense $r$</li>
+	<li>Faire cela une infinité de fois et moyenner $Q^\pi(s, a) = \mathbb{E}^\pi \{r_t\}$</li>
+	<li>Améliorer la politique $\pi(s)=\text{arg max} _{a}Q^{\pi}(s, a)$</li>
+</ul>
 
+Problème : il faut attendre la fin de l’interaction pour améliorer la politique. En fonction de la complexité du modèle que l'on essaye d'apprendre, trouver une bonne politique peut prendre trop de temps. <br/><br/>
 
-#################
-
-$$Q^\pi(s, a) = \mathbb{E}^\pi \{\sum_{k=0}^\infty \gamma^k r_{t+k+1} | s_t = s, a_t=a\}$$
-
-
-
-
-
-Dynamic Programming is an umbrella encompassing many algorithms. Q-Learning is a specific algorithm. So, no, it is not the same.
-
-Also, if you mean Dynamic Programming as in Value Iteration or Policy Iteration, still not the same. These algorithms are "planning" methods. You have to give them a transition and a reward function and they will iteratively compute a value function and an optimal policy.
-
-Q-Learning is a model-free reinforcement learning method. This one is "model-free", not because it doesn't use a machine learning model or anything like that, but because they don't require, and don't use a model of the environment, also known as MDP, to obtain an optimal policy. You also have "model-based" methods. These, unlike Dynamic Programming methods, are based on learning a model, not simply using one. And, unlike model-free methods, don't throw away samples after estimating values, they instead try to reconstruct the transition and reward function to get better performance.
+En 1988, <a href="https://en.wikipedia.org/wiki/Richard_S._Sutton">Richard Sutton</a> (considéré comme le père de l'apprentissage par renforcement) propose une nouvelle classe de méthodes appliquées à l'exploration "model-free" appelée "apprentissage par différence temporelle" (ou temporal difference learning). Il définit son concept comme suit :
 
 
-######
-Dynamic Programming is an umbrella encompassing many algorithms. Q-Learning is a specific algorithm. So, no, it is not the same.
+<blockquote>Suppose you wish to predict the weather for Saturday, and you have some model that predicts Saturday's weather, given the weather of each day in the week. In the standard case, you would wait until Saturday and then adjust all your models. However, when it is, for example, Friday, you should have a pretty good idea of what the weather would be on Saturday – and thus be able to change, say, Saturday's model before Saturday arrives.</blockquote>
 
-Also, if you mean Dynamic Programming as in Value Iteration or Policy Iteration, still not the same. These algorithms are "planning"
-methods.You have to give them a transition and a reward function and they will iteratively compute a
-value function and an optimal policy.
+(from <a href="https://web.archive.org/web/20170808062001/http://www.incompleteideas.net/sutton/papers/sutton-88-with-erratum.pdf">https://web.archive.org/web/20170808062001/http://www.incompleteideas.net/sutton/papers/sutton-88-with-erratum.pdf</a>)<br/><br/>
+L'intuition est la suivante : Il est possible de mettre à jour un modèle prédictif en cours de route (car les prédictions proches de la dernière prédiction sont plus précises et donnent déjà un retour sur les prédictions précédentes), plutôt que d'attendre la retour ou la récompense finale avant pour mettre à jour l'entièreté du modèle. Prenez un autre exemple : un coach sportif. En début de saison, il affine la stratégie de son équipe en fonction des résultats de la saison précédente, des transferts, des conditions météorologiques, de la santé de ses joueurs, etc. Ses trois premiers matchs sont une catastrophe : son équipe essuie trois défaites. Attendra-t-il la fin de la saison pour effectuer des révisions dans sa stratégie ?<br/><br/>
 
-Q-Learning is a model-free reinforcement learning method. This one is "model-free", not because it doesn't
-use a machine learning model or anything like that, but because they don't require, and don't use a model of
-the environment, also known as MDP, to obtain an optimal policy. You also have "model-based" methods. These,
-unlike Dynamic Programming methods, are based on learning a model, not simply using one. And, unlike model-free
-methods, don't throw away samples after estimating values, they instead try to reconstruct the transition and
-reward function to get better performance.
+La Q-learning est un algorithme de différence temporelle et peut se conceptualiser comme suit:
 
-Model-based methods combine model-free and planning algorithms to get same good results with less amount of
-samples than required by model-free methods (Q-Learning), and without needing a model like Dynamic Programming methods (Value/Policy Iteration).
-
+$$Q^{new}(s_{t},a_{t}) \leftarrow  \underbrace{Q(s_{t},a_{t})}_{\text{old value}} + \underbrace{\alpha}_{\text{learning rate}} \cdot \overbrace{ \bigg( \underbrace{r_{t}}_{\text{récompense}} + \underbrace{\gamma}_{\text{discount factor}} \cdot \underbrace{\max_{a}Q(s_{t+1}, a)}_{\text{estimation valeur optimale}} -  Q(s_{t},a_{t}) \bigg)}^{\text{difference temporelle}} $$
 
 </body>
 </html>
