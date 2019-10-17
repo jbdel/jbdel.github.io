@@ -95,4 +95,4 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False):
     # else:
     #     plt.show(fig3)
 
-    return fig1, fig2, fig3
+    return fig1, fig2
