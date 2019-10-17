@@ -19,15 +19,15 @@ class CliffWalkingEnv(discrete.DiscreteEnv):
         coord[1] = max(coord[1], 0)
         return coord
 
-    def _calculate_transition_prob(self, current, delta):
+    def _calculate_transition_prob(self, transition_prob, current, delta):
         new_position = np.array(current) + np.array(delta)
         new_position = self._limit_coordinates(new_position).astype(int)
         new_state = np.ravel_multi_index(tuple(new_position), self.shape)
         reward = -100.0 if self._cliff[tuple(new_position)] else -1.0
         is_done = self._cliff[tuple(new_position)] or (tuple(new_position) == (3,11))
-        return [(1.0, new_state, reward, is_done)]
+        return [(transition_prob, new_state, reward, is_done)]
 
-    def __init__(self):
+    def __init__(self, transition_prob=1.0):
         self.shape = (4, 12)
 
         nS = np.prod(self.shape)
@@ -42,10 +42,10 @@ class CliffWalkingEnv(discrete.DiscreteEnv):
         for s in range(nS):
             position = np.unravel_index(s, self.shape)
             P[s] = { a : [] for a in range(nA) }
-            P[s][UP] = self._calculate_transition_prob(position, [-1, 0])
-            P[s][RIGHT] = self._calculate_transition_prob(position, [0, 1])
-            P[s][DOWN] = self._calculate_transition_prob(position, [1, 0])
-            P[s][LEFT] = self._calculate_transition_prob(position, [0, -1])
+            P[s][UP] = self._calculate_transition_prob(transition_prob, position, [-1, 0])
+            P[s][RIGHT] = self._calculate_transition_prob(transition_prob, position, [0, 1])
+            P[s][DOWN] = self._calculate_transition_prob(transition_prob, position, [1, 0])
+            P[s][LEFT] = self._calculate_transition_prob(transition_prob, position, [0, -1])
 
         # We always start in state (3, 0)
         isd = np.zeros(nS)
