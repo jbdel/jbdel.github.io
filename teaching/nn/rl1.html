@@ -19,38 +19,25 @@
 	    font-size:13px;
 	}
 	
-	blockquote {
-		border-radius: 3px;
-		position: relative;  /*  <--- */
-		font-style: italic;
-		text-align: center;
-		padding: 1rem 1.2rem;
-		width: 80%;  /* create space for the quotes */
-		color: #4a4a4a;
-		margin: 1rem auto 2rem;
-		color: #4a4a4a;
-		background: #E8E8E8;
-	}
-	/* -- create the quotation marks -- */
-	 blockquote:before,
-	 blockquote:after{
-		font-family: FontAwesome;
-		position: absolute;
-		/* -- inside the relative position of blockquote -- */
-		top: 13px;
-		color: #E8E8E8;
-		font-size: 34px;
-	}
-	 blockquote:before{
-		content: "\f10d";
-		margin-right: 13px;
-		right: 100%;
-	}
-	 blockquote:after{
-		content: "\f10e";
-		margin-left: 13px;
-		left: 100%;
-	}
+    blockquote {
+      background: #f9f9f9;
+      border-left: 10px solid #ccc;
+      margin: 1.5em 10px;
+      padding: 1.5em 10px;
+      quotes: "\201C""\201D""\2018""\2019";
+    }
+
+    blockquote:before {
+      color: #ccc;
+      content: open-quote;
+      font-size: 4em;
+      line-height: 0.1em;
+      margin-right: 0.25em;
+      vertical-align: -0.4em;
+    }
+    blockquote p {
+      display: inline;
+    }
 
 	</style>
 	<!-- Load mathjax -->
