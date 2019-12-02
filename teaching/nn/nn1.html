@@ -75,20 +75,20 @@
 
 
 <p>Les SVM simples séparent des clusteurs de données linéairement séparables en créant une frontière (appelée hyperplan) entre ceux-ci. Les SVM
-sont des classifieurs à sortie binaire, ils permettent donc de discriminer deux classes (ou deux clusters). Plus formellement, un SVM construit une fonction $h$ qui
-fait correspondre des échantillons $x$ vers une sortie $y$:
+sont des classificateurs à sortie binaire, ils permettent donc de discriminer deux classes (ou deux clusters). Plus formellement, un SVM construit une fonction $h$ qui
+fait correspondre des échantillons $x$ vers un sortie $y$ :
 
 $$y = h(x)$$
 
 La fonction $h$ est un vecteur de poids $w = (w_1, ..., w_N)$ où $N$ est la dimension du vecteur représentant un échantillon. La fonction peut
-alors s'écrire:
+alors s'écrire :
 
 $$ h(x) = w^T x - b$$
 
 où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors décidé que $x$ est de classe 1 si $h(x)\geq 0$ et de classe -1
-	sinon. L'hyperplan est la fonction $h$ lorsqu'elle vaut 0. Les SVM utilise
+	sinon. L'hyperplan est la fonction $h$ lorsqu'elle vaut 0. Les SVM utilisent
 	<a href="https://en.wikipedia.org/wiki/Sequential_minimal_optimization" target="_blank">l'algorithme d'optimisation minimal séquentiel</a> pour affiner
-	ses poids et son biais.
+	leurs poids et leurs biais.
 </p>
 <p>
 	Dans l'exemple suivant, nous classifions des données linéairement séparables.
@@ -97,10 +97,10 @@ où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors d
 	<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 	text-align: justify; background-color:#ffeedd;border-color:#ff8822;
 	line-height: 1.8;">
-	<b>Théorème : </b> Soit $X_{0}$ and $X_{1}$ deux clusters de points dans un espace euclidien de dimension $N$.
-	Alors $X_{0}$ and $X_{1}$ sont <i>linéairement séparable</i> si il existe $n+1$ nombres
+	<b>Théorème : </b> Soit $X_{0}$ et $X_{1}$ deux clusters de points dans un espace euclidien de dimension $N$.
+	Alors $X_{0}$ et $X_{1}$ sont <i>linéairement séparables</i> si il existe $n+1$ nombres
 	$w_{1}, w_{2},..,w_{n}, k$ tel que chaque point $x \in X_{0}$
-	satisfait $\sum^{n}_{i=1} w_{i}x_{i} > k$ et chaque point $x \in X_{1}$ satisfait
+	satisfasse $\sum^{n}_{i=1} w_{i}x_{i} > k$ et chaque point $x \in X_{1}$ satisfait
 	$\sum^{n}_{i=1} w_{i}x_{i} < k$, où $x_{i}$ est la $i$-ème composante de $x$.
    </div>
 
@@ -166,9 +166,9 @@ où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors d
 
 
 <p>
-	Nous disposons de plusieurs points $x \in \mathbb{R}^N, N=2$ distribué selon deux clusters. Le théorème précédent
+	Nous disposons de plusieurs points $x \in \mathbb{R}^N, N=2$ distribués selon deux clusters. Le théorème précédent
 	nous indique que nous devrions trouver une solution avec un poid $w$ composé de seulement deux nombres.
-	Avec sklearn, on peut facilement trouver l'hyperplane $h$ et ses vastes marges. Les points $x$ présents sur la vaste marge s'appellent les vecteurs de supports.
+    Avec sklearn, on peut facilement trouver l'hyperplane $h$ et ses vastes marges. Les points $x$ présents sur la vaste marge s'appellent les <b>vecteurs de supports</b>.
 </p>
 
 <div class="cell border-box-sizing code_cell rendered">
@@ -242,10 +242,10 @@ où $x \in \mathbb{R}^N$ et $b$ représente l'offset de la marge. Il est alors d
 </div>
 
 
-<p>On peut désormais faire des prédictions le modèle sklearn. On peut bien sur utiliser la fonction predict(), mais on peut aussi directement utiliser la matrice
-de poids $w$ et le biais $b$ qui projete nos points $x$ vers la classe $y$. Les poids peuvent être obtenus en utilisant
+<p>On peut désormais faire des prédictions avec le modèle sklearn. On peut bien sûr utiliser la fonction <b>predict()</b>, mais on peut aussi directement utiliser la matrice
+de poids $w$ et le biais $b$ qui projette nos points $x$ vers la classe $y$. Les poids peuvent être obtenus en utilisant
 	l'attribut coef_ du modèle et le biais via l'attribut intercept_. Le code suivant réalise une prédiction avec le
-	point $x[0]$ avec la fonction predict ou avec la matrice de poids $\begin{bmatrix}
+    point $x[0]$ et la fonction <b>predict()</b> ou avec la matrice de poids $\begin{bmatrix}
 -0.2539\\
 -0.8380
 \end{bmatrix}$ et le biais $-3.2113$.</p>
@@ -302,7 +302,7 @@ Classe 1
  <div id="ex1" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 		text-align: justify; background-color:#99ff99;border-color:#004d00;
 		line-height: 1.8;">
-    <b>Exercice :</b> printer les trois vecteurs de supports $x$ qui se trouvent sur les marges
+    <b>Exercice :</b> imprimez les trois vecteurs de supports $x$ qui se trouvent sur les marges
 </div>
 </p>
 
@@ -320,7 +320,7 @@ Classe 1
 	Nous remarquons que le perceptron est donc équivalent à un svm à noyau linéaire. <br/>
 	</div>
 
-	Reprenons l'exercice précédent et utilisons un perceptron. Pour le faire, on va utiliser la librairie pytorch.</p>
+	Reprenons l'exercice précédent et utilisons un perceptron. Pour le faire, nous allons utiliser la librairie pytorch.</p>
 
 
 <div class="cell border-box-sizing code_cell rendered">
@@ -342,7 +342,7 @@ Classe 1
 
 </div>
 
-Nous définissons le NN : une classe <i>Net</i> avec un attribut linear : il s'agit d'un unique perceptron.
+Nous définissons le NN à l'aide d'une classe que nous nommons <i>Net</i> et qui possède un attribut <b>Linear</b>. L'objet <b>nn.Linear</b> définit un perceptron unique.
 
 
 <div class="cell border-box-sizing code_cell rendered">
@@ -380,7 +380,7 @@ Nous définissons le NN : une classe <i>Net</i> avec un attribut linear : il s'a
 
 </div>
 
-Nous choisissons la fonction <i><a href="https://towardsdatascience.com/understanding-binary-cross-entropy-log-loss-a-visual-explanation-a3ac6025181a" target="_blank">Binary Cross Entropy</a></i> comme loss, qui est adapté pour un problème de classification binaire.
+Nous choisissons la fonction <i><a href="https://towardsdatascience.com/understanding-binary-cross-entropy-log-loss-a-visual-explanation-a3ac6025181a" target="_blank">Binary Cross Entropy</a></i> comme loss, qui est adaptée pour un problème de classification binaire.
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
@@ -454,7 +454,7 @@ Iter 90 - loss: 0.00
 		text-align: justify; background-color:#ffe6e6;border-color:#ff6666;
 		line-height: 1.8;">
 		<b>Attention : </b>
-	    En fonction des poids du perceptron, la sortie du NN peut avoir toute une étendue de valeur, il ne prédit pas que des 0 et des 1. Les prédictions d'un réseau de neurones ne sont <b> pas binaires</b> tel que "je suis certain que ce point est de la classe 1". Plutôt, le réseau dit "je suis 75% sûr que ce point appartient à la classe 1". Cette distinction est cruciale car si on ne prédit que des 0 et des 1, il n'y a pas de nuance, de marge de progression. On a seulement tort ou raison. Mais en sortant <b>des probabilités</b>, il y a de l'espace pour s'améliorer. On peut modifier et ajuster le système pour qu'il aille dans une direction plutot que l'autre. La procédure d'apprentissage devient donc un processus controlé et incrémental. C'est pour cela que dans cet exercice, le NN est mis à jour par paquet de 4 exemples via une descente de gradient (c.f. prochain chapitre). Pour traduire la sortie du NN en terme de probabilités, nous utilisons la <b>fonction sigmoide</b>, aussi appelée logistique. Cette fonction "écrase" ses entrées entre 0 et 1.
+	    En fonction des poids du perceptron, la sortie du NN peut avoir toute une étendue de valeurs, il ne prédit pas que des 0 et des 1. Les prédictions d'un réseau de neurones ne sont <b> pas binaires</b> tel que "je suis certain que ce point est de la classe 1". Plutôt, le réseau dit "je suis sûr à 75% que ce point appartient à la classe 1". Cette distinction est cruciale car si on ne prédit que des 0 et des 1, il n'y a pas de nuance ou de marge de progression. On a seulement tort ou raison. Mais en sortant <b>des probabilités</b>, il y a de l'espace pour s'améliorer. On peut modifier et ajuster le système pour qu'il aille dans une direction plutôt qu'une autre. La procédure d'apprentissage devient donc un processus controlé et incrémental. C'est pour cela que dans cet exercice, le NN est mis à jour par paquets (batch) de 4 exemples via une descente de gradient (c.f. prochain chapitre). Pour traduire la sortie du NN en termes de probabilités, nous utilisons la <b>fonction sigmoïde</b>, aussi appelée logistique. Cette fonction "écrase" ses entrées entre 0 et 1.
 	</div>
 
 <br/>
@@ -694,18 +694,18 @@ xljyREQyxpInIpIxljwRkYyx5ImIZIwlT0QkY/8Hy4tAoYraSakAAAAASUVORK5CYII=
 </div>
 </div>
 
-En résumé, nous remarquons que la forme de la fonction apprise par le perceptron et le SVM linéaire est similaire. La différence réside en
-la manière de mettre à jour les poids du modèle : la descente de gradient stochastique (SGD) pour le perceptron et l'optimisation minimal séquentiel
+En résumé, nous remarquons que la forme de la fonction apprise par le perceptron et le SVM linéaire est similaire. La différence réside dans
+la manière de mettre à jour les poids du modèle : la descente de gradient stochastique (SGD) pour le perceptron et l'optimisation minimale séquentiele
 pour les SVM.
 
 <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 		text-align: justify; background-color:#e6eeff;border-color: #003399;
 		line-height: 1.8;">
-		<b>Similarités : </b>
+		<b>Similarité : </b>
 	<ul>
 		<li>Le perceptron est similaire à un SVM à noyau linéaire</li>
 	</ul>
-		<b>Différences : </b>
+		<b>Différence : </b>
 	<ul>
 		<li>Algorithme de mise à jour du modèle</li>
 	</ul>
@@ -771,8 +771,8 @@ Considérons maintenant un dataset qui n'est pas linéairement séparable et ré
   </div>
 
 <p>
-Pour palier à ce problème, on peut utiliser le "kernel trick". L'idée est trouver une fonction $K(x, x^\prime)$ qui ajoute une nouvelle
-dimension au point $x$ pour que le problème devienne séparable. Il existe plusieurs noyaux tel que le polynomial, sigmoide ou
+Pour palier à ce problème, on peut utiliser le "kernel trick". L'idée est de trouver une fonction $K(x, x^\prime)$ qui ajoute une nouvelle
+dimension au point $x$ pour que le problème devienne séparable. Il existe plusieurs noyaux tels que le polynomial, sigmoïde ou
 RBF (<a href="https://en.wikipedia.org/wiki/Radial_basis_function_kernel" target="_blank">radial basis function</a>).
 Le noyau RBF est le suivant :
 	$$K(\mathbf{x}, \mathbf{x'}) = \exp\left(-\frac{\|\mathbf{x} - \mathbf{x'}\|^2}{2\sigma^2}\right)$$
@@ -783,7 +783,7 @@ Le noyau RBF est le suivant :
    <div id="ex3" style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 		text-align: justify; background-color:#99ff99;border-color:#004d00;
 		line-height: 1.8;">
-    <b>Exercice :</b> Sans utiliser sklearn, implémentez le noyaux RBF dans le code suivant pour créer une troisième dimension
+    <b>Exercice :</b> Sans utiliser sklearn, implémentez le noyau RBF dans le code suivant pour créer une troisième dimension.
 </div>
 </p>
 
@@ -888,8 +888,8 @@ Le noyau RBF est le suivant :
 </div>
 </div>
 
-Le kernel $K$ est fonction <b>non-linéaire</b>. Alors qu'un perceptron (ou noyau linéaire pour le SVM) "étend" ou "écrase" l'espace euclidien,
-les fonctions non-linéaires ont la propriété de les "couper", de les casser" ou de les "plier". En effet, on peut voir que le noyau RBF a
+Le kernel $K$ est une fonction <b>non-linéaire</b>. Alors qu'un perceptron (ou noyau linéaire pour le SVM) "étend" ou "écrase" l'espace euclidien,
+les fonctions non-linéaires ont la propriété de les "couper", de les "casser" ou de les "plier". En effet, on peut voir que le noyau RBF a
 "plié"
 l'espace pour mettre les points du cercle central en hauteur.
 
@@ -902,7 +902,7 @@ l'espace pour mettre les points du cercle central en hauteur.
 		une couche de trois neurones minimum, peu importe le nombre de couches qu'il possède.
    </div>
 
-Nous pouvons reprendre le code de tout à l'heure et modifier le NN pour lui ajouter une couche cachée de trois neurones, suivi d'une
+Nous pouvons reprendre le code utilisé précédemment et modifier le NN pour lui ajouter une couche cachée de trois neurones, suivi d'une
 non-linéarité, en l'occurence <a href="https://fr.wikipedia.org/wiki/Tangente_hyperbolique" target="_blank">une tangente hyperbolique (tanh)
 	</a> qui est une fonction non-linéaire qui projette son entrée entre -1 et 1.
 
@@ -1246,11 +1246,11 @@ BL4QQngICXwhhPAQEvhCCOEhJPCFEMJDSOALIYSH+D877pAn0ibo2wAAAABJRU5ErkJggg==
 
 
 
-Il est donc important de comprendre le noyau qu'on utilise : selon la proposition, une simple non-linéarité ne suffit pas. On peut
-en effet le vérifier avec le noyau sigmoidien $K$ définit par la fonction :
+Il est donc important de comprendre quel noyau on utilise : selon la proposition, une simple non-linéarité ne suffit pas. On peut
+en effet le vérifier avec le noyau sigmoïdal $K$ défini par la fonction :
 $$ K(x, x^\prime) = \tanh(\alpha x^Tx^\prime + c)$$
 qui équivaut à un unique peceptron à deux couches. Il ne remplit donc pas les conditions de la proposition. Nous pouvons facilement
-le vérifier avec sklearn :
+le vérifier avec la librairie sklearn :
 
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
@@ -1304,10 +1304,10 @@ le vérifier avec sklearn :
 	<ul>
 		<li>Le perceptron est similaire à un SVM à noyau linéaire</li>
 		<li>Un SVM à noyau est équivalent à un NN deux couches </li>
-		<li>Certains noyaux ont la même propriété que d'ajouter
-		des neurones (ou perceptron) dans les couches cachées</li>
+		<li>Certains noyaux sont équivalent à ajouter
+		des neurones (ou perceptrons) dans un NN.</li>
 	</ul>
-		<b>Différences : </b>
+		<b>Différence : </b>
 	<ul>
 		<li>Algorithme de mise à jour du modèle</li>
 	</ul>
@@ -1318,15 +1318,15 @@ le vérifier avec sklearn :
 		text-align: justify; background-color:#99ff99;border-color:#004d00;
 		line-height: 1.8;">
     <b>Exercice :</b> jouez avec l'application suivante : <a href="http://playground.tensorflow.org/">http://playground.tensorflow.org/</a>. Trouvez les configurations minimales
-pour classifier les différents datasets. Ajoutez et enlevez des couches / des non-linéarités et analysez l'impacts sur les convergences
+pour classifier les différents datasets. Ajoutez et enlevez des couches ou des non-linéarités et analysez l'impact sur les convergences.
 </div>
 
 </p>
 <br/>
 
 <p>
-Un dernier point très important est à noter. Un SVM garanti de converger vers la solution optimale (qu'elle soit bonne ou mauvaise). En
-    effet, la solution d'un SVM est globale et unique. Le SVM est une technique statistique qui se base sur des <b>principes théoriques fondés et éprouvés</b>. Les réseaux de neurones sont <b>heuristiques</b> et souffrent d'avoir des minima locaux dans lequels l'apprentissage peut s'engouffrer, sans trouver l'optimal global. Le NN cherche à tracer une ligne entre les points des exemples sur lesquels il est entrainé, mais cette dernière n'aura peut-être pas une généralisation adéquate pour d'autre exemples non-vus. Vous pouvez d'ailleur vérifier en relancant les scripts : le SVM vous donnera toujours la même solution, à l'inverse des NN.
+Un dernier point très important est à noter. Un SVM garantit de converger vers la solution optimale (qu'elle soit bonne ou mauvaise). En
+    effet, la solution d'un SVM est globale et unique. Le SVM est une technique statistique qui se base sur des <b>principes théoriques fondés et éprouvés</b>. Les réseaux de neurones sont <b>heuristiques</b> et souffrent d'avoir des minima locaux dans lesquels l'apprentissage peut s'engouffrer, sans trouver l'optimal global. Le NN cherche à tracer une ligne entre les points des exemples sur lesquels il est entrainé, mais cette dernière n'aura peut-être pas une généralisation adéquate pour d'autre exemples non-vus. Vous pouvez d'ailleurs vérifier en relançant les scripts : le SVM vous donnera toujours la même solution, à l'inverse des NN.
 </p>
 <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 		text-align: justify; background-color:#e6eeff;border-color: #003399;
@@ -1335,8 +1335,8 @@ Un dernier point très important est à noter. Un SVM garanti de converger vers 
 	<ul>
 		<li>Le perceptron est similaire à un SVM à noyau linéaire</li>
 		<li>Un SVM à noyau est équivalent à un NN deux couches </li>
-		<li>Certains noyaux ont la même propriété que d'ajouter
-		des neurones (ou perceptron) dans les couches cachées</li>
+		<li>Certains noyaux sont équivalent à ajouter
+		des neurones (ou perceptrons) dans un NN.</li>
 	</ul>
 		<b>Différences : </b>
 	<ul>
