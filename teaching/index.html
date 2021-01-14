@@ -1,117 +1,158 @@
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr" >
-    <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<meta name="author" content="Jean-Benoit Delbrouck" />
-	<meta name="keywords" content="Jean-Benoit, Delbrouck, reseau de neurones, tutoriel, tutorial" />
-	<meta name="description" content="Jean-Benoit Delbrouck" />
-	<meta name="robots" content="all" />
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="author" content="Jean-Benoit Delbrouck"/>
+    <meta name="keywords" content="Jean-Benoit, Delbrouck, reseau de neurones, tutoriel, tutorial"/>
+    <meta name="description" content="Jean-Benoit Delbrouck"/>
+    <meta name="robots" content="all"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
-	<link rel="stylesheet" href="jupyter_notebook.css" type="text/css" />
-	<style>
+    <link rel="stylesheet" href="jupyter_notebook.css" type="text/css"/>
+    <style>
 	body{
 	font-family: Verdana,Arial, Helvetica, sans-serif;
 	    color: black;
 	    width:50%;
 	    font-size:13px;
 	}
-	</style>
-	<!-- Load mathjax -->
-	<script type="text/javascript" async
-		src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML">
-	</script>
-	</script>
-	<!-- MathJax configuration -->
-	<script type="text/x-mathjax-config">
-	  MathJax.Hub.Config({
-		  tex2jax: {
-			  inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-			  displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-			  processEscapes: true,
-			  processEnvironments: true
-		  },
-		  // Center justify equations in code and markdown cells. Elsewhere
-		  // we use CSS to left justify single line equations in code cells.
-		  displayAlign: 'center',
-		  "HTML-CSS": {
-			  styles: {'.MathJax_Display': {"margin": 0}},
-			  linebreaks: { automatic: true }
-		  }
-	  });
-	</script>
+
+
+
+
+
+
+
+
+    </style>
+
     <script>
 				$(function(){
 				  $("#unif").load("header.html");
 				});
-	</script>
-	</head>
+
+
+
+
+
+
+
+
+    </script>
+</head>
 <body>
-<i>Cours écrit en 2019.<br/>
-Merci à <a href="https://be.linkedin.com/in/virginie-vandenbulcke-7b214817">Virginie Vandenbulcke</a> pour sa relecture bienveillante.<br/><br/>
-<a href="TP_Interro.zip">Exercices, solutions, test et test corrigés (password protected)</a><br/>
-Pour accès : jean-benoit.delbrouck@umons[dot]ac[dot]be<br/>
-ou : jeanbenoit.delbrouck@gmail[dot]com<br/><br/>
-</i>
+
 <div id="unif"></div>
 
-    <p><h2>Neural Networks / Réseau de neurones</h2></p>
-
-
-    <div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+<fieldset style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
 		text-align: justify; background-color:#ffffff;border-color: #000000;
 		line-height: 1.8; width:80%;">
-    <b>Sommaire :</b>
+    <legend>2020</legend>
+    <h2>Intelligence Artificielle</h2>
+    <b>Echauffement</b>
     <ul>
-        <li><a href="nn/nn1.html">SVM et les réseaux de neurones : classification binaire</a><br/>
-        (hyperplan, séparabilité linéaire, perceptron, fonction sigmoide, inséparabilité linéaire, kernel trick, heuristique et algorithme)   </li>
-        <li><a href="nn/nn2.html">SVM et les réseaux de neurones : classification multi-classes</a><br/>
-        (one versus the rest, PCA, features, fonction softmax)
-        </li>
-        <li><a href="nn/nn3.html">Algorithme d'apprentissage d'un réseau de neurones</a><br/>
-        (descente de gradient, minima local et global, courbure convexe, dérivée et gradient)</li>
-        <li><a href="nn/nn4.html">Réseau de neurones fully connected et convolutionnel</a><br/>
-        (fully connected, convolution, connectivité spatiale, connectivité en profondeur, padding et stride, pooling)
-        </li>
-        <li><a href="nn/nn_ex.html">(TP) Classifieur CNN sur ImageNette</a></li>
+        <li><a href="nn2020pytorch/overfit_underfit.html">Overfitting / Underfitting</a></li>
 
     </ul>
+    <b>Introduction au réseau de neurones (fully connected)</b>
+    <ol>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/CNJ942E7UyQ">Introduction au réseau de neurones et deep-learning</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/FIfByp7qc90">Réseau de neurones</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/Fnjj2QBpUM4">Régression sur PyTorch</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/cOMagXizAtk">Classification sur PyTorch</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/Y95L3CJZ5TQ">Enoncé exercices</a></li>
+        <li>
+            <a href="nn2020pytorch/intro_reseau_exercices.html">Exercice réseau de neurones</a></li>
+    </ol>
+
+    <b>Introduction au réseau de neurones convolutionnels</b>
+    <ol>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/Qy4BjZeoPxc">Introduction au Réseau de neurones convolutionnels</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/XEyArgAEcR0">Réseau de neurones convolutionnel</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/BZiqQWKBBrM">Convolution et Pooling sur Pytorch</a></li>
+        <li><img src="nn2020pytorch/github.svg" align="center" width="15px"/>
+            <a href="nn2019/ressources/conv-demo/index.html
+">Démo-convolution</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/qAOywJjRtYc">GPU sur Colab</a></li>
+        <li><img src="nn2020pytorch/youtube.ico" align="center" width="15px"/>
+            <a href="https://youtu.be/TwU12biBJK0">Enoncé exercices</a></li>
+        <li>
+            <a href="nn2020pytorch/intro_reseau_exercices.html">Exercice réseau de neurones</a></li>
+    </ol>
+
+    <b>Projet fin d'année: Visual Question Answering (mini-VQA)</b>
+    <ol>
+        <li><img src="nn2020pytorch/pptx.ico" align="center" width="15px"/>
+            <a href="nn2020pytorch/Projet IA 2020.pptx">Présentation projet IA</a></li>
+        <li><a href="nn2020pytorch/Projet_miniVQA_vierge.html">Enonce projet</a></li>
+        <li><a href="https://www.kaggle.com/c/iplml2020/">Compétition Kaggle</a></li>
+        <li><img src="nn2020pytorch/zip.ico" align="center" width="15px"/> <a href="nn2020pytorch/miniVQA.zip">Code pour
+            recréer le projet</a></li>
+    </ol>
+</fieldset>
+<fieldset style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#ffffff;border-color: #000000;
+		line-height: 1.8; width:80%;">
+    <legend>2019</legend>
+    <i>
+        Merci à <a href="https://be.linkedin.com/in/virginie-vandenbulcke-7b214817">Virginie Vandenbulcke</a> pour sa
+        relecture bienveillante.<br/><br/>
+        <a href="nn2019/TP_Interro.zip">Exercices, solutions, test et test corrigés (password protected)</a><br/>
+        Pour accès : jean-benoit.delbrouck@umons[dot]ac[dot]be<br/>
+        ou : jeanbenoit.delbrouck@gmail[dot]com<br/><br/>
+    </i>
+    <h2>Réseau de neurones</h2></p>
+    <ul>
+        <li><a href="nn2019/nn1.html">SVM et les réseaux de neurones : classification binaire</a><br/>
+            (hyperplan, séparabilité linéaire, perceptron, fonction sigmoide, inséparabilité linéaire, kernel trick,
+            heuristique et algorithme)
+        </li>
+        <li><a href="nn2019/nn2.html">SVM et les réseaux de neurones : classification multi-classes</a><br/>
+            (one versus the rest, PCA, features, fonction softmax)
+        </li>
+        <li><a href="nn2019/nn3.html">Algorithme d'apprentissage d'un réseau de neurones</a><br/>
+            (descente de gradient, minima local et global, courbure convexe, dérivée et gradient)
+        </li>
+        <li><a href="nn2019/nn4.html">Réseau de neurones fully connected et convolutionnel</a><br/>
+            (fully connected, convolution, connectivité spatiale, connectivité en profondeur, padding et stride,
+            pooling)
+        </li>
+        <li><a href="nn2019/nn_ex.html">(TP) Classifieur CNN sur ImageNette</a></li>
+
+    </ul>
+    <h2>Apprentissage par renforcement</h2></p>
+
+    <ul>
+        <li><a href="nn2019/rl1.html">Processus décisionnel markovien</a><br/>
+            (MDP, reward, fonction de valeur, programmation dynamique, itération de la valeur, Q-learning, méthode de
+            Monté-Carlo, apprentissage par différence temporelle)
+        </li>
+        <li><a href="nn2019/rl2.html">(TP) Deep Q-learning</a></li>
+
+    </ul>
+</fieldset>
 
 
-</div>
+<fieldset style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
+		text-align: justify; background-color:#ffffff;border-color: #000000;
+		line-height: 1.8; width:80%;">
+    <legend>2016-2019</legend>
+    <h2>Traitement du signal (exercices)</h2>
+    <ul>
+        <li><a href="SP/index.html">Notes</a></li>
 
-<p><h2>Apprentissage par renforcement</h2></p>
-
-
-<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
-    text-align: justify; background-color:#ffffff;border-color: #000000;
-    line-height: 1.8; width:80%;">
-<b>Sommaire  :</b>
-<ul>
-    <li><a href="nn/rl1.html">Processus décisionnel markovien</a><br/>
-    (MDP, reward, fonction de valeur, programmation dynamique, itération de la valeur, Q-learning, méthode de Monté-Carlo, apprentissage par différence temporelle)
-    </li>
-    <li><a href="nn/rl2.html">(TP) Deep Q-learning</a></li>
-
-</ul>
-</div>
-
-
-<p><h2>(Exercices) Traitement du signal : </h2></p>
-
-
-<div style="margin: 1em 2em; padding: 0.5em 1em 0.4em; border: 1px solid #aaa;
-    text-align: justify; background-color:#ffffff;border-color: #000000;
-    line-height: 1.8; width:80%;">
-<b>Sommaire  :</b>
-<ul>
-    <li><a href="SP/index.html">Notes</a></li>
-
-</ul>
-</div>
-
+    </ul>
+</fieldset>
 
 </body>
 </html>
