@@ -1,0 +1,295 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <style>
+        body{
+        font-family: Verdana,Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: black;
+        }
+
+        #papers li{
+            margin-bottom:10px;
+        }
+
+        a:link       { color: blue;   text-decoration: underline; }
+        a:visited    { color: blue; text-decoration: none;      }
+
+
+
+        #myImg {
+          border-radius: 5px;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+
+        #myImg:hover {opacity: 0.7;}
+
+        /* The Modal (background) */
+        .modal {
+          display: none; /* Hidden by default */
+          position: fixed; /* Stay in place */
+          z-index: 1; /* Sit on top */
+          padding-top: 100px; /* Location of the box */
+          left: 0;
+          top: 0;
+          width: 100%; /* Full width */
+          height: 100%; /* Full height */
+          overflow: auto; /* Enable scroll if needed */
+          background-color: rgb(0,0,0); /* Fallback color */
+          background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+        }
+
+        /* Modal Content (image) */
+        .modal-content {
+          margin: auto;
+          display: block;
+          width: 80%;
+          max-width: 700px;
+        }
+
+        /* Caption of Modal Image */
+        #caption {
+          margin: auto;
+          display: block;
+          width: 80%;
+          max-width: 700px;
+          text-align: center;
+          color: #ccc;
+          padding: 10px 0;
+          height: 150px;
+        }
+
+        /* Add Animation */
+        .modal-content, #caption {
+          -webkit-animation-name: zoom;
+          -webkit-animation-duration: 0.6s;
+          animation-name: zoom;
+          animation-duration: 0.6s;
+        }
+
+        @-webkit-keyframes zoom {
+          from {-webkit-transform:scale(0)}
+          to {-webkit-transform:scale(1)}
+        }
+
+        @keyframes zoom {
+          from {transform:scale(0)}
+          to {transform:scale(1)}
+        }
+
+        /* The Close Button */
+        .close {
+          position: absolute;
+          top: 15px;
+          right: 35px;
+          color: #f1f1f1;
+          font-size: 40px;
+          font-weight: bold;
+          transition: 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+          color: #bbb;
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        /* 100% Image Width on Smaller Screens */
+        @media only screen and (max-width: 700px){
+          .modal-content {
+            width: 100%;
+          }
+        }
+
+
+
+
+
+    </style>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
+
+    <!--    slider-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.3/tiny-slider.css">
+    <link rel="stylesheet" href="slider_styles.css">
+    <!--[if (lt IE 9)]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.3/min/tiny-slider.helper.ie8.js"></script>
+    <![endif]-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tiny-slider/2.9.2/min/tiny-slider.js"></script>
+    <!--    slider-->
+
+
+    <script>
+          async function getData() {
+            let ret = []
+            let root='https://jbdel.github.io/img/CA'
+            let main='https://api.github.com/repos/jbdel/jbdel.github.io/contents/img/CA'
+            const response = await fetch(main);
+            const folders = await response.json();
+            for (let folder of folders) {
+                unique_id = `autoWidth-${folder.name}-imgs`
+                ret.push(unique_id)
+                document.getElementById("container").innerHTML += `<fieldset style="width:50%"><legend>${folder.name}</legend><div id="${folder.name}-caption"></div><div class="" id="${unique_id}"></div></fieldset>`
+                if (folder.type == "dir"){
+                    await (async () => {
+                    let folder_url = `${main}/${folder.name}`
+                    const response = await fetch(folder_url);
+                    const content = await response.json();
+                    for (let c of content) {
+                        let name = c.name
+                        if (!name.includes("txt")){
+                            document.getElementById(unique_id).innerHTML += `<div class="item"><img src="${root}/${folder.name}/${c.name}" width="150px" height="100px" id="myImg"  onclick="imgOnClick(this);" /></div>`
+                        } else {
+                            $.get(`${root}/${folder.name}/${c.name}`, function(data){
+                            document.getElementById(`${folder.name}-caption`).innerHTML += `${data}<br/><br/><br/>`
+                            });
+                        }
+                    }
+                    })()
+                }
+            }
+            return ret;
+          }
+          getData().then((res)=>{
+                    <!-- for each unique_id, create options (autowidth) -->
+                    var options = {}
+                    res.forEach(function (item, index) {
+                          options[item] =  {
+                          autoWidth: true,
+                          items: 3.3,
+                          // slideBy: 2.6,
+                          gutter: 10,
+                          mouseDrag: true,
+                          swipeAngle: false,
+                        }
+                    });
+
+
+                            function getFW (width) {
+                                var sm = 400, md = 900, lg = 1400;
+                                return width < sm ? 150 : width >= sm && width < md ? 200 : width >= md && width < lg ? 300 : 400;
+                                }
+                                window.addEventListener('resize', function() { fw = getFW(ww); });
+                                var mobile = 'false',
+                                  isTestPage = false,
+                                  classIn = 'jello',
+                                  classOut = 'rollOut',
+                                  speed = 400,
+                                  doc = document,
+                                  win = window,
+                                  ww = win.innerWidth || doc.documentElement.clientWidth || doc.body.clientWidth,
+                                  fw = getFW(ww),
+                                  initFns = {},
+                                  sliders = new Object(),
+                                  gutter = 10,
+                                 edgepadding = 50;
+
+                                for (var i in options) {
+                                    var item = options[i];
+                                    item.container = '#' + i;
+                                    item.swipeAngle = false;
+                                    if (!item.speed) { item.speed = speed; }
+                                    if (doc.querySelector(item.container)) {
+                                      sliders[i] = tns(options[i]);
+                                      }
+                                }
+
+
+
+                                var doc = document,
+                              slideList = doc.querySelectorAll('.slider-container > div'),
+                              pageNavContainer = doc.querySelector('.nav'),
+                              pageNav = doc.querySelector('.nav ul'),
+                              toggleHandle = doc.querySelector('.nav-toggle-handle'),
+                              divider = window.innerHeight / 2,
+                              scrollTimer,
+                              resizeTimer;
+
+
+                                if (window.addEventListener) {
+                                window.addEventListener('scroll', function () {
+                                  clearTimeout(scrollTimer);
+
+                                  scrollTimer = setTimeout(function () {
+                                    [].forEach.call(slideList, function (el) {
+                                      var rect = el.getBoundingClientRect(),
+                                          navLink = pageNav.querySelector('[href="#' + el.id + '"]');
+                                      if (rect.top <= divider && rect.bottom > divider) {
+                                        if (navLink.className !== 'active') { navLink.className = 'active'; }
+                                      } else {
+                                        if (navLink.className !== '') { navLink.className = ''; }
+                                      }
+                                    });
+                                  }, 100);
+                                });
+
+                                window.addEventListener('resize', function () {
+                                  clearTimeout(resizeTimer);
+
+                                  resizeTimer = setTimeout(function () {
+                                    divider = window.innerHeight / 2;
+                                  }, 100);
+                                });
+                                }
+                            })
+    </script>
+
+    <script>
+
+    function imgOnClick(imgs) {
+        // Get the modal
+        var modal = document.getElementById("myModal");
+
+        // Get the image and insert it inside the modal - use its "alt" text as a caption
+        var img = document.getElementById("myImg");
+        var modalImg = document.getElementById("img01");
+        var captionText = document.getElementById("caption");
+          modal.style.display = "block";
+          modalImg.src = imgs.src;
+
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+    }
+
+
+
+
+    </script>
+
+
+</head>
+<body>
+
+<div id="container">
+    <!--    <fieldset style="width:50%">-->
+    <!--        <legend>Infos</legend>-->
+    <!--        <div class="result" id="test">-->
+    <!--        </div>-->
+    <!--    </fieldset>-->
+</div>
+
+<!-- The Modal -->
+<div id="myModal" class="modal">
+
+    <!-- The Close Button -->
+    <span class="close">&times;</span>
+
+    <!-- Modal Content (The Image) -->
+    <img class="modal-content" id="img01">
+
+    <!-- Modal Caption (Image Text) -->
+    <div id="caption"></div>
+</div>
+
+</body>
+</html>
