@@ -1,1 +1,2 @@
-text
+<p>Journée exceptionnelle, on va visiter l’endroit le plus connu du campus: le Main Quad
+avec sa Memorial Church.</p> 

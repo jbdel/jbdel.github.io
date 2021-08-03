@@ -130,7 +130,10 @@
             let main='https://api.github.com/repos/jbdel/jbdel.github.io/contents/img/CA'
             const response = await fetch(main);
             const folders = await response.json();
+            console.log(folders)
             for (let folder of folders) {
+                if (folder.type != 'dir'){ continue; }
+
                 unique_id = `autoWidth-${folder.name}-imgs`
                 ret.push(unique_id)
                 document.getElementById("container").innerHTML += `<fieldset style="width:50%"><legend>${folder.name}</legend><div id="${folder.name}-caption"></div><div class="" id="${unique_id}"></div></fieldset>`

@@ -8,9 +8,9 @@ ul, ol, li { margin: 0; padding: 0; }
 pre[class*="language-"] > code[data-language] { overflow: auto !important; }
 section { margin: 50px 0; }
 h1 { font-size: 45px; }
-h2 { 
+h2 {
   padding-top: 60px;
-  text-align: center; 
+  text-align: center;
 }
 @media (min-width: 300px) and (max-width: 799px) {
   h2 { padding-top: 20%; }
@@ -18,7 +18,7 @@ h2 {
 @media (min-width: 800px) {
   h2 { padding-top: 160px; }
 }
-p { 
+p {
   margin: 0;
   padding: 0.8em 0;
   line-height: 1.4;
@@ -91,15 +91,15 @@ img:not(.tns-lazy-img), .lazyload img { height: auto; }
   background-color: #af23ff;
   cursor: pointer;
 }
-.nav-toggle-handle:before { 
+.nav-toggle-handle:before {
   display: none;
   padding-right: 5px;
-  content: '◄'; 
+  content: '◄';
   font-size: 0.8em;
 }
-.nav-toggle-handle:after { 
+.nav-toggle-handle:after {
   padding-left: 5px;
-  content: '►'; 
+  content: '►';
   font-size: 0.8em;
 }
 
@@ -112,7 +112,7 @@ img:not(.tns-lazy-img), .lazyload img { height: auto; }
 .img-7 { background: #D6995B; background: hsl(30, 60%, 60%); }
 .img-8 { background: #705BD6; background: hsl(250, 60%, 60%); }
 .customize-tools { position: relative; }
-.thumbnails { 
+.thumbnails {
   margin: 20px 0;
   text-align: center;
 }
@@ -150,8 +150,8 @@ img:not(.tns-lazy-img), .lazyload img { height: auto; }
   margin: 0 5px;
   padding: 0 1em;
   height: 2.5em;
-  color: #000;
-  background: #66CCFF;
+  color: white;
+  background:  #ff6666;
   border-radius: 3px;
   border: 0;
 }
@@ -167,9 +167,9 @@ img:not(.tns-lazy-img), .lazyload img { height: auto; }
   background: transparent;
   border: 0;
 }
-.tns-controls [disabled] { 
+.tns-controls [disabled] {
   color: #999999;
-  background: #B3B3B3; 
+  background: #B3B3B3;
   cursor: not-allowed !important;
 }
 .tns-nav {
@@ -189,8 +189,8 @@ img:not(.tns-lazy-img), .lazyload img { height: auto; }
 .playbutton-wrapper { text-align: center; }
 .playbutton-wrapper button { height: 34px; padding: 0 10px; font-size: 14px; background: #fff; border-radius: 3px; border: 1px solid  #ccc; cursor: pointer; }
 .wrapper { padding: 0 5em; }
-.suite-container .title, 
-.suite-container .subtitle, 
+.suite-container .title,
+.suite-container .subtitle,
 .suite-container li { padding: 5px 10px; }
 .suite-container li {
   font-size: 12px;
@@ -274,11 +274,11 @@ pre[class*="language-"] { margin: 0; }
 .test-results .item-fail:after { content: '✗'; }
 .test-results .item-comment { font-style: italic; color: #666; }
 .test-results .item-notsure:after { content: '？'; }
-.test-results .item-running:after { 
+.test-results .item-running:after {
   display: inline-block;
   height: 16px;
-  content: url('../images/pinwheel.svg'); 
-  vertical-align: middle; 
+  content: url('../images/pinwheel.svg');
+  vertical-align: middle;
 }
 .customize-tools [hidden] { display: none; }
 
