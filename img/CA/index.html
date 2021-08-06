@@ -70,7 +70,7 @@
         /* Create four equal columns that floats next to eachother */
         .column {
           float: left;
-          width: 25%;
+          padding: 5px;
         }
 
         /* The Modal (background) */
@@ -84,7 +84,7 @@
           width: 100%;
           height: 100%;
           overflow: auto;
-          background-color: black;
+          background-color: rgba(0, 0, 0, 0.9);
         }
 
         /* Modal Content */
@@ -117,6 +117,9 @@
         /* Hide the slides by default */
         .mySlides {
           display: none;
+          width: 100%
+          text-align: center;
+          background-color: rgba(0, 0, 0, 0.9) !important;
         }
 
         /* Next & previous buttons */
@@ -161,13 +164,14 @@
         /* Caption text */
         .caption-container {
           text-align: center;
-          background-color: black;
+          background-color: rgba(0, 0, 0, 0.9);
           padding: 2px 16px;
           color: white;
         }
 
         img.demo {
           opacity: 0.6;
+          border-radius: 5px;
         }
 
         .active,
@@ -183,85 +187,6 @@
           box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
         }
 
-
-<!--        /* The Modal (background) */-->
-<!--        .modal {-->
-<!--          display: none; /* Hidden by default */-->
-<!--          position: fixed; /* Stay in place */-->
-<!--          z-index: 1; /* Sit on top */-->
-<!--          padding-top: 100px; /* Location of the box */-->
-<!--          left: 0;-->
-<!--          top: 0;-->
-<!--          width: 100%; /* Full width */-->
-<!--          height: 100%; /* Full height */-->
-<!--          overflow: auto; /* Enable scroll if needed */-->
-<!--          background-color: rgb(0,0,0); /* Fallback color */-->
-<!--          background-color: rgba(0,0,0,0.9); /* Black w/ opacity */-->
-<!--        }-->
-
-<!--        /* Modal Content (image) */-->
-<!--        .modal-content {-->
-<!--          margin: auto;-->
-<!--          display: block;-->
-<!--          width: 80%;-->
-<!--          max-width: 700px;-->
-<!--        }-->
-
-<!--        /* Caption of Modal Image */-->
-<!--        #caption {-->
-<!--          margin: auto;-->
-<!--          display: block;-->
-<!--          width: 80%;-->
-<!--          max-width: 700px;-->
-<!--          text-align: center;-->
-<!--          color: #ccc;-->
-<!--          padding: 10px 0;-->
-<!--          height: 150px;-->
-<!--        }-->
-
-<!--        /* Add Animation */-->
-<!--        .modal-content, #caption {-->
-<!--          -webkit-animation-name: zoom;-->
-<!--          -webkit-animation-duration: 0.6s;-->
-<!--          animation-name: zoom;-->
-<!--          animation-duration: 0.6s;-->
-<!--        }-->
-
-<!--        @-webkit-keyframes zoom {-->
-<!--          from {-webkit-transform:scale(0)}-->
-<!--          to {-webkit-transform:scale(1)}-->
-<!--        }-->
-
-<!--        @keyframes zoom {-->
-<!--          from {transform:scale(0)}-->
-<!--          to {transform:scale(1)}-->
-<!--        }-->
-
-<!--        /* The Close Button */-->
-<!--        .close {-->
-<!--          position: absolute;-->
-<!--          top: 15px;-->
-<!--          right: 35px;-->
-<!--          color: #f1f1f1;-->
-<!--          font-size: 40px;-->
-<!--          font-weight: bold;-->
-<!--          transition: 0.3s;-->
-<!--        }-->
-
-<!--        .close:hover,-->
-<!--        .close:focus {-->
-<!--          color: #bbb;-->
-<!--          text-decoration: none;-->
-<!--          cursor: pointer;-->
-<!--        }-->
-
-<!--        /* 100% Image Width on Smaller Screens */-->
-<!--        @media only screen and (max-width: 700px){-->
-<!--          .modal-content {-->
-<!--            width: 100%;-->
-<!--          }-->
-<!--        }-->
-
     </style>
 
 
@@ -275,34 +200,65 @@
     <!--    slider-->
 
     <script>
+
+function keydown(n){
+        // build key actions
+        $(document)
+          .keydown(function (e) {
+            switch (e.which) {
+              case 37: // left
+                  $(`#prev${n}`)
+                    .click();
+
+                break;
+
+              case 39: // right
+                  $(`#next${n}`)
+                    .click();
+                break;
+
+                case 27: // escape
+                  $(`#close${n}`)
+                    .click();
+                break;
+
+              default:
+                return; // exit this handler for other keys
+            }
+            e.preventDefault(); // prevent the default action (scroll / move caret)
+          });
+}
+
 // Open the Modal
-function openModal() {
-  document.getElementById("myModal").style.display = "block";
+function openModal(n) {
+  document.getElementById(`myModal${n}`).style.display = "block";
+  keydown(n)
 }
 
 // Close the Modal
-function closeModal() {
-  document.getElementById("myModal").style.display = "none";
+function closeModal(n) {
+  document.getElementById(`myModal${n}`).style.display = "none";
 }
 
 var slideIndex = 1;
-showSlides(slideIndex);
+<!--showSlides(slideIndex);-->
 
 // Next/previous controls
-function plusSlides(n) {
-  showSlides(slideIndex += n);
+function plusSlides(m, n) {
+  showSlides(m, slideIndex += n);
 }
 
 // Thumbnail image controls
-function currentSlide(n) {
-  showSlides(slideIndex = n);
+function currentSlide(m, n) {
+  showSlides(m, slideIndex = n);
 }
 
-function showSlides(n) {
+function showSlides(m, n) {
   var i;
-  var slides = document.getElementsByClassName("mySlides");
-  var dots = document.getElementsByClassName("demo");
-  var captionText = document.getElementById("caption");
+  var slides = document.getElementsByClassName(`mySlides id${m}`);
+  var dots = document.getElementsByClassName(`demo id${m}`);
+  var captionText = document.getElementById(`caption${m}`);
+
   if (n > slides.length) {slideIndex = 1}
   if (n < 1) {slideIndex = slides.length}
   for (i = 0; i < slides.length; i++) {
@@ -315,7 +271,8 @@ function showSlides(n) {
   dots[slideIndex-1].className += " active";
   captionText.innerHTML = dots[slideIndex-1].alt;
 }
-</script>
+
+    </script>
 
     <script>
           async function getData() {
@@ -336,17 +293,24 @@ function showSlides(n) {
                                                                 <div id="${folder.name}-caption"></div>
                                                                 <div class="" id="${unique_id}"></div>
                                                                 <div id="myModal${i}" class="modal">
-                                                                  <span class="close cursor" onclick="closeModal()">&times;</span>
-                                                                  <div class="modal-content" id="myModalContent${i}">
+                                                                  <span class="close cursor" id="close${i}" onclick="closeModal(${i})">&times;</span>
+                                                                  <div class="modal-content">
+                                                                        <!-- Next/previous controls -->
+                                                                        <a class="prev" id="prev${i}"  onclick="plusSlides(${i}, -1)">&#10094;</a>
+                                                                        <a class="next" id="next${i}" onclick="plusSlides(${i}, 1)">&#10095;</a>
 
-                                                                    <!-- Next/previous controls -->
-                                                                    <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
-                                                                    <a class="next" onclick="plusSlides(1)">&#10095;</a>
+                                                                        <div id="myModalContent${i}" align="center">
+                                                                        </div>
 
-                                                                    <!-- Caption text -->
-                                                                    <div class="caption-container">
-                                                                      <p id="caption"></p>
-                                                                    </div>
+                                                                        <!-- Caption text -->
+                                                                        <div class="caption-container">
+                                                                          <p id="caption${i}"></p>
+                                                                        </div>
+
+                                                                        <div id="myModalThumbnail${i}">
+                                                                        </div>
+
+                                                                  </div>
                                                                 </div>
                                                                 </fieldset>
                                                                 `
@@ -361,8 +325,21 @@ function showSlides(n) {
                         let name = c.name
                         if (!name.includes("txt")){
                             document.getElementById(unique_id).innerHTML += `
-                                                                            <img src="${root}/${folder.name}/${c.name}" width="150px" height="100px" id="myImg"" onclick="openModal(${i});currentSlide(${j})" />
-                                                                            `
+                                <img src="${root}/${folder.name}/${c.name}" width="150px" height="100px" id="myImg" onclick="openModal(${i});currentSlide(${i}, ${j+1})" />
+                                `
+                            document.getElementById(`myModalContent${i}`).innerHTML += `
+                                <div class="mySlides id${i}">
+                                    <div class="numbertext">${j+1} / ${content.length-1}</div>
+                                    <img src="${root}/${folder.name}/${c.name}" width="500px" />
+                                </div>
+                                    `
+
+                            document.getElementById(`myModalThumbnail${i}`).innerHTML += `
+                                <div class="column">
+                                  <img class="demo id${i}" alt="" src="${root}/${folder.name}/${c.name}" width="150px" height="100px" onclick="currentSlide(${i}, ${j+1})" />
+                                </div>
+                                    `
+
                         } else {
                             $.get(`${root}/${folder.name}/${c.name}`, function(data){
                             document.getElementById(`${folder.name}-caption`).innerHTML += `${data}<br/><br/><br/>`
@@ -417,141 +394,12 @@ function showSlides(n) {
                                       sliders[i] = tns(options[i]);
                                       }
                                 }
-
-
-
-                                var doc = document,
-                              slideList = doc.querySelectorAll('.slider-container > div'),
-                              pageNavContainer = doc.querySelector('.nav'),
-                              pageNav = doc.querySelector('.nav ul'),
-                              toggleHandle = doc.querySelector('.nav-toggle-handle'),
-                              divider = window.innerHeight / 2,
-                              scrollTimer,
-                              resizeTimer;
-
-
-                                if (window.addEventListener) {
-                                window.addEventListener('scroll', function () {
-                                  clearTimeout(scrollTimer);
-
-                                  scrollTimer = setTimeout(function () {
-                                    [].forEach.call(slideList, function (el) {
-                                      var rect = el.getBoundingClientRect(),
-                                          navLink = pageNav.querySelector('[href="#' + el.id + '"]');
-                                      if (rect.top <= divider && rect.bottom > divider) {
-                                        if (navLink.className !== 'active') { navLink.className = 'active'; }
-                                      } else {
-                                        if (navLink.className !== '') { navLink.className = ''; }
-                                      }
-                                    });
-                                  }, 100);
-                                });
-
-                                window.addEventListener('resize', function () {
-                                  clearTimeout(resizeTimer);
-
-                                  resizeTimer = setTimeout(function () {
-                                    divider = window.innerHeight / 2;
-                                  }, 100);
-                                });
-                                }
-
-
-
-
-                                loadGallery(true, '#myImg');
-
-    //This function disables buttons when needed
-    function disableButtons(counter_max, counter_current) {
-      $('#show-previous-image, #show-next-image')
-        .show();
-      if (counter_max === counter_current) {
-        $('#show-next-image')
-          .hide();
-      } else if (counter_current === 1) {
-        $('#show-previous-image')
-          .hide();
-      }
-    }
-
-    /**
-     *
-     * @param setIDs        Sets IDs when DOM is loaded. If using a PHP counter, set to false.
-     * @param setClickAttr  Sets the attribute for the click handler.
-     */
-
-    function loadGallery(setIDs, setClickAttr) {
-      let current_image,
-        selector,
-        counter = 0;
-
-      $('#show-next-image, #show-previous-image')
-        .click(function () {
-          if ($(this)
-            .attr('id') === 'show-previous-image') {
-            current_image--;
-          } else {
-            current_image++;
-          }
-
-          selector = $('[data-image-id="' + current_image + '"]');
-          updateGallery(selector);
-        });
-
-      function updateGallery(selector) {
-        let $sel = selector;
-        current_image = $sel.data('image-id');
-        $('#image-gallery-title')
-          .text($sel.data('title'));
-        $('#image-gallery-image')
-          .attr('src', $sel.data('image'));
-        disableButtons(counter, $sel.data('image-id'));
-      }
-
-      if (setIDs == true) {
-        $('[data-image-id]')
-          .each(function () {
-            counter++;
-            $(this)
-              .attr('data-image-id', counter);
-          });
-      }
-      $(setClickAttr)
-        .on('click', function () {
-          updateGallery($(this));
-        });
-    }
-
-
                             })
-
     </script>
 
     <script>
 
-    function imgOnClick(imgs) {
-        // Get the modal
-        var modal = document.getElementById("myModal");
-
-        // Get the image and insert it inside the modal - use its "alt" text as a caption
-        var img = document.getElementById("myImg");
-        var modalImg = document.getElementById("img01");
-        var captionText = document.getElementById("caption");
-          modal.style.display = "block";
-          modalImg.src = imgs.src;
-
-
-        // Get the <span> element that closes the modal
-        var span = document.getElementsByClassName("close")[0];
-
-        // When the user clicks on <span> (x), close the modal
-        span.onclick = function() {
-          modal.style.display = "none";
-        }
-    }
-
     </script>
-
 
 </head>
 <body>
