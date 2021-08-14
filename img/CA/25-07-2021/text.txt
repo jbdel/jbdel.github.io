@@ -1,2 +1,7 @@
 <p>Journée exceptionnelle, on va visiter l’endroit le plus connu du campus: le Main Quad
-avec sa Memorial Church.</p> 
+avec sa Memorial Church.</p>
+
+<p>L'église et l'arche sont construites en mémoire de Leland Stanford, avec la belle plaque <i>"born to mortality, may 14th 1868, passed to immortality march 13th 1884"</i>.
+Elle fut également le lieu du meurtre d'une étudiante en 1974, Arlis Perry.</p>
+
+<p> Et enfin, le main quad avec ses quatre coins: the History Corner, the Engineering Corner, the Geology Corner and the Math Corner.</p>

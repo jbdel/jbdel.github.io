@@ -1,1 +1,2 @@
-text
+<p>Notre thermomix et notre machine a café sont arrivés depuis la Belgique. Evidemment on se rend compte à ce moment la que les machines européennes utilisent du 220V alors qu'ici
+les prises offrent du 110V. Du coup, on a dû acheter deux transfo pour les faire marcher. </p>
