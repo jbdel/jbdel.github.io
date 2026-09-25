@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nnFoundation, read for report generation</title>
+<meta name="description" content="A report-generation-first reading of nnFoundation (arXiv:2609.26924): the 2.16M-volume pretraining data, the MAE-trained 3D ViT, the Qwen2.5-VL-3B bridge, and what the CT-RATE and MERLIN numbers really show.">
+<meta property="og:title" content="nnFoundation, read for report generation">
+<meta property="og:description" content="Where the data came from, how the encoder was trained without a single report, how it was wired into Qwen2.5-VL-3B, and what the appendix numbers show.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/nnfoundation-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/nnfoundation-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://arxiv.org/abs/2609.26924">arXiv</a>
+      <a href="https://arxiv.org/pdf/2609.26924">PDF</a>
+      <a href="https://github.com/MIC-DKFZ/nnssl">nnssl code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · CT report generation</p>
+    <h1>nnFoundation, read for report generation</h1>
+    <p class="dek">DKFZ’s new 3D radiology foundation model is evaluated on 108 tasks. Two of them are CT report generation, and they are easy to miss. These notes collect everything the paper and its appendix say about that setting: where the 2.16 million pretraining volumes came from, how the encoder was trained without a single report, how it was wired into Qwen2.5-VL-3B, and what the numbers show.</p>
+    <div class="meta">
+      <span><b>Paper</b> Constantin Ulrich Harsy, Tassilo Wald, … Fabian Isensee, Klaus H. Maier-Hein. <a href="https://arxiv.org/abs/2609.26924"><i>nnFoundation: 3D Foundation Models for Radiology</i></a>. arXiv:2609.26924, v1, 22 Sep 2026</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 25 Sep 2026</span>
+      <span><b>Reading time</b> ~15 min</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents">
+    <p class="h">Contents</p>
+    <ol>
+      <li><a href="#tldr"><span>–</span>TL;DR</a></li>
+      <li><a href="#why"><span>01</span>Why this experiment matters</a></li>
+      <li><a href="#data"><span>02</span>The data</a></li>
+      <li><a href="#pretraining"><span>03</span>Stage 0: pretraining</a></li>
+      <li><a href="#bridge"><span>04</span>Stages 1–2: the bridge</a></li>
+      <li><a href="#fov"><span>05</span>CT preprocessing</a></li>
+      <li><a href="#ctrate"><span>06</span>Results on CT-RATE</a></li>
+      <li><a href="#significance"><span>07</span>Is the lead real?</a></li>
+      <li><a href="#merlin"><span>08</span>Results on MERLIN</a></li>
+      <li><a href="#metrics"><span>09</span>Reading the metrics</a></li>
+      <li><a href="#gaps"><span>10</span>What the paper leaves out</a></li>
+      <li><a href="#takeaways"><span>11</span>Takeaways</a></li>
+      <li><a href="#appendix"><span>A</span>Recipe sheet &amp; sources</a></li>
+    </ol>
+  </nav>
+
+  <article>
+
+<section id="tldr">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">2.16M</div><div class="l">3D volumes in pretraining (CT, MRI, PET)</div></div>
+    <div class="tile" role="listitem"><div class="v">0</div><div class="l">radiology reports used in pretraining</div></div>
+    <div class="tile" role="listitem"><div class="v">674M</div><div class="l">parameters in the frozen 3D ViT</div></div>
+    <div class="tile" role="listitem"><div class="v">1,728</div><div class="l">visual tokens per CT fed to the LLM<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.437</div><div class="l">abnormality F1 on CT-RATE, best of 9 encoders</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic from the stated patch size and merge factor, for a 192³ input.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>The experiment is an encoder bake-off.</strong> Nine frozen image encoders are plugged, one at a time, into the same Qwen2.5-VL-3B + 3D adapter + LoRA recipe. The encoder is never updated, so score differences measure how much report-relevant information each representation already holds.</li>
+      <li><strong>nnFoundationViT comes first, but only just.</strong> On CT-RATE it scores BLEU 0.317, F1 0.437 and CRG 0.444; on MERLIN, BLEU 0.172. The 2D CURIA encoder is statistically tied on BLEU and F1. Only the CRG gap (+0.018) passes the paper’s own significance test.</li>
+      <li><strong>The encoder never read a report.</strong> It is a 40-layer 3D ViT trained by masked autoencoding, with 80% of its 8³-voxel patches hidden, on 2.16M volumes. Reports come in only later, to train the adapter and the LoRA weights on 25,692 CT-RATE scans.</li>
+      <li><strong>The data advantage comes from hospital access.</strong> 61% of the corpus comes from three German hospital archives: DKFZ, Bonn and Thoraxklinik Heidelberg. CT is 26.6% of it, about 574k volumes.</li>
+      <li><strong>BLEU hardly separates the encoders.</strong> F1 ranges from 0.000 to 0.437 across encoders, but BLEU only from 0.241 to 0.317. An encoder that gets no abnormality right (F1 = 0) still reaches 76% of the best BLEU.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why">
+  <h2><span class="n">01</span>Why this experiment matters</h2>
+  <p>Most 3D report-generation papers change several things at once: the encoder, the connector, the language model and the training data. That makes it hard to tell what helped. The report-generation experiment in nnFoundation does the opposite. Everything after the image encoder is fixed: Qwen2.5-VL-3B without its own 2D vision tower, one 3D adapter design, one two-stage training schedule and the same two datasets. Only the frozen encoder changes.</p>
+  <p>Because the encoder weights never move, differences in BLEU, F1 and CRG show what each pretrained representation already contains. If you are choosing a vision backbone for CT report generation, that is more useful than yet another end-to-end system. The experiment covers just two of the paper’s 108 tasks, and most of its numbers sit in Supplementary Tables 9, 10 and 15.</p>
+  <p>The line-up covers every major pretraining approach:</p>
+  <ul>
+    <li><strong>Masked autoencoding:</strong> nnFoundationViT and nnFoundationCNN</li>
+    <li><strong>DINOv2 self-distillation on 2D slices:</strong> CURIA</li>
+    <li><strong>Contrastive learning:</strong> CT-FM and VoCo</li>
+    <li><strong>Vision–language pretraining with reports:</strong> Merlin</li>
+    <li><strong>Supervised segmentation:</strong> VISTA3D</li>
+    <li><strong>Older hybrid objectives:</strong> SwinUNETR and MIS-FM</li>
+  </ul>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Report-generation pipeline: CT volume, frozen 3D ViT, trained 3D merger adapter, Qwen2.5-VL-3B with LoRA, report">
+      <div class="row">
+        <div class="box"><div class="t1">Chest CT volume + reference report</div><div class="t2">CT-RATE (25,692 volumes) or MERLIN (abdomen, 25,528)</div></div>
+        <div class="shape">variable size, native spacing</div>
+      </div>
+      <div class="conn"><div>lung ROI crop (TotalSegmentator, +4%) · 1 mm isotropic · z-score · 192³ crop</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">nnFoundationViT</div><div class="t2">3D ViT (Primus design), 40 layers, width 1,056, 674M params. MAE-pretrained, never updated.</div></div>
+        <div class="shape">192³ voxels<br>→ 13,824 tokens × 1,056</div>
+      </div>
+      <div class="conn"><div>spatial tokens, unpooled</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">3D merger adapter</div><div class="t2">Concatenate each 2×2×2 block of tokens, project to the LLM width.</div></div>
+        <div class="shape">2×2×2 merge → 1,728 × 8,448<br>project → 1,728 × 2,048</div>
+      </div>
+      <div class="conn"><div>visual prefix, followed by the text prompt</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">LoRA · stage 2</span><div class="t1">Qwen2.5-VL-3B language model</div><div class="t2">Original 2D vision tower removed. Base weights frozen; LoRA added after the stage-1 warm-up.</div></div>
+        <div class="shape">[1,728 visual tokens] + prompt<br>→ report tokens</div>
+      </div>
+      <div class="conn"><div>decoding settings not reported</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">Generated report</div><div class="t2">Scored with corpus BLEU; on CT-RATE also abnormality F1 and CRG</div></div>
+        <div class="shape">text</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen</span>
+        <span><i style="background:var(--ink)"></i>fully trained</span>
+        <span><i style="border:2px solid var(--ink)"></i>LoRA only</span>
+        <span>monospace = tensor shapes (our arithmetic; LLM width from the Qwen2.5-VL-3B config)</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The report-generation stack.</b> The same stack is reused for every encoder; only the frozen box changes, along with each encoder’s own preprocessing. Sources: Methods 4.6, 4.6.1 and Table 1.</figcaption>
+  </figure>
+</section>
+
+<section id="data">
+  <h2><span class="n">02</span>The data: 2.16 million volumes, zero reports</h2>
+  <p>The pretraining corpus is the hardest part to copy. The team gathered 3,271,454 imaging series from 125 sources and kept 2,158,570 volumes after curation. The corpus has three streams:</p>
+
+  <figure id="fig-composition">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 164" role="img" aria-label="Pretraining corpus by data stream and by modality" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><text x="0.0" y="21.0" class="t t-head" text-anchor="start" dominant-baseline="central">By data stream</text><g class="hit" tabindex="0" data-tip="Clinical partnerships: 1,315,227 volumes (60.9%)"><rect x="124.0" y="10.0" width="356.1" height="22.0" class="f-emph" rx="0"/><text x="132.0" y="21.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Clinical partnerships 60.9%</text><rect x="124.0" y="6.0" width="356.1" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Research cohorts: 737,714 volumes (34.2%)"><rect x="482.1" y="10.0" width="199.1" height="22.0" class="f-mid" rx="0"/><text x="490.1" y="21.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Research cohorts 34.2%</text><rect x="482.1" y="6.0" width="199.1" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Small public datasets: 105,629 volumes (4.9%)"><rect x="683.2" y="10.0" width="28.8" height="22.0" class="f-ctx" rx="0"/><rect x="683.2" y="6.0" width="28.8" height="30.0" class="hitbox"/></g><rect x="124.0" y="46.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="139.0" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Clinical partnerships 1,315,227</text><rect x="350.8" y="46.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="365.8" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Research cohorts 737,714</text><rect x="533.8" y="46.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="548.8" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Small public datasets 105,629</text><text x="0.0" y="105.0" class="t t-head" text-anchor="start" dominant-baseline="central">By modality</text><g class="hit" tabindex="0" data-tip="CT: 26.6% of 2,158,570 ≈ 574,180 volumes (derived)"><rect x="124.0" y="94.0" width="154.4" height="22.0" class="f-emph" rx="0"/><text x="132.0" y="105.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">CT 26.6%</text><rect x="124.0" y="90.0" width="154.4" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MRI: 71.7%"><rect x="280.4" y="94.0" width="419.6" height="22.0" class="f-ctx" rx="0"/><text x="288.4" y="105.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">MRI 71.7%</text><rect x="280.4" y="90.0" width="419.6" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="PET: 1.7%"><rect x="702.0" y="94.0" width="10.0" height="22.0" class="f-mid" rx="0"/><rect x="702.0" y="90.0" width="24.0" height="30.0" class="hitbox"/></g><rect x="124.0" y="130.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="139.0" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">CT 26.6% (≈574k volumes)</text><rect x="307.0" y="130.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="322.0" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">MRI 71.7%</text><rect x="396.2" y="130.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="411.2" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">PET 1.7%</text></svg></div>
+    <figcaption><b>Figure 2 — What the corpus is made of.</b> Clinical partnerships supply most of the volumes. By modality the corpus is mostly MRI; CT, the modality these notes focus on, is about a quarter. Sources: Results (“Large-scale multimodal 3D radiological data…”) and Supplementary Section 8.</figcaption>
+  </figure>
+
+  <p>Clinical partnerships dominate. The DKFZ radiology research PACS alone contributes 821,692 volumes, followed by Bonn with 264,803 and Thoraxklinik Heidelberg with 228,732. Together that is 1,315,227 volumes, or 60.9% of the corpus. Large research cohorts add 34.2%, for example the Osteoarthritis Initiative’s 240,867 MRIs, NLST’s 129,592 chest CTs, OpenNeuro and I-SPY 2. The 113 small public datasets that most papers are built on, mostly from TCIA, make up only 4.9%. The scale comes from institutional access within the Human Radiome Project, not from a clever scrape of public data.</p>
+
+  <figure id="fig-sources">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 388" role="img" aria-label="Largest pretraining sources by number of volumes" style="min-width:600px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Clinical partner (private)</text><rect x="200.8" y="6.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="215.8" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Public research cohort</text><rect x="376.4" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="391.4" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Everything else</text><line x1="292.0" y1="30.0" x2="292.0" y2="358.0" class="grid"/><text x="292.0" y="372.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="376.7" y1="30.0" x2="376.7" y2="358.0" class="grid"/><text x="376.7" y="372.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">200k</text><line x1="461.4" y1="30.0" x2="461.4" y2="358.0" class="grid"/><text x="461.4" y="372.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">400k</text><line x1="546.1" y1="30.0" x2="546.1" y2="358.0" class="grid"/><text x="546.1" y="372.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">600k</text><line x1="630.8" y1="30.0" x2="630.8" y2="358.0" class="grid"/><text x="630.8" y="372.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">800k</text><text x="0.0" y="47.5" class="t t-strong" text-anchor="start" dominant-baseline="central">DKFZ radiology research PACS</text><text x="206.0" y="47.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT · MR · PET</text><g class="hit" tabindex="0" data-tip="DKFZ radiology research PACS (CT · MR · PET): 821,692 volumes, 38.1% of the corpus"><path class="f-emph" d="M292.0,40.5H636.0Q640.0,40.5 640.0,44.5V50.5Q640.0,54.5 636.0,54.5H292.0Z"/><text x="646.0" y="47.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">821,692</text><rect x="292.0" y="35.0" width="418.0" height="25.0" class="hitbox"/></g><text x="0.0" y="74.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Bonn</text><text x="206.0" y="74.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT · MR</text><g class="hit" tabindex="0" data-tip="Bonn (CT · MR): 264,803 volumes, 12.3% of the corpus"><path class="f-emph" d="M292.0,67.5H400.2Q404.2,67.5 404.2,71.5V77.5Q404.2,81.5 400.2,81.5H292.0Z"/><text x="410.2" y="74.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">264,803</text><rect x="292.0" y="62.0" width="182.2" height="25.0" class="hitbox"/></g><text x="0.0" y="101.5" class="t" text-anchor="start" dominant-baseline="central">Osteoarthritis Initiative</text><text x="206.0" y="101.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR</text><g class="hit" tabindex="0" data-tip="Osteoarthritis Initiative (MR): 240,867 volumes, 11.2% of the corpus"><path class="f-mid" d="M292.0,94.5H390.0Q394.0,94.5 394.0,98.5V104.5Q394.0,108.5 390.0,108.5H292.0Z"/><text x="400.0" y="101.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">240,867</text><rect x="292.0" y="89.0" width="172.0" height="25.0" class="hitbox"/></g><text x="0.0" y="128.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Thoraxklinik Heidelberg</text><text x="206.0" y="128.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT · MR</text><g class="hit" tabindex="0" data-tip="Thoraxklinik Heidelberg (CT · MR): 228,732 volumes, 10.6% of the corpus"><path class="f-emph" d="M292.0,121.5H384.9Q388.9,121.5 388.9,125.5V131.5Q388.9,135.5 384.9,135.5H292.0Z"/><text x="394.9" y="128.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">228,732</text><rect x="292.0" y="116.0" width="166.9" height="25.0" class="hitbox"/></g><text x="0.0" y="155.5" class="t" text-anchor="start" dominant-baseline="central">NLST</text><text x="206.0" y="155.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT</text><g class="hit" tabindex="0" data-tip="NLST (CT): 129,592 volumes, 6.0% of the corpus"><path class="f-mid" d="M292.0,148.5H342.9Q346.9,148.5 346.9,152.5V158.5Q346.9,162.5 342.9,162.5H292.0Z"/><text x="352.9" y="155.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">129,592</text><rect x="292.0" y="143.0" width="124.9" height="25.0" class="hitbox"/></g><text x="0.0" y="182.5" class="t" text-anchor="start" dominant-baseline="central">OpenNeuro</text><text x="206.0" y="182.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT · MR · PET</text><g class="hit" tabindex="0" data-tip="OpenNeuro (CT · MR · PET): 115,639 volumes, 5.4% of the corpus"><path class="f-mid" d="M292.0,175.5H337.0Q341.0,175.5 341.0,179.5V185.5Q341.0,189.5 337.0,189.5H292.0Z"/><text x="347.0" y="182.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">115,639</text><rect x="292.0" y="170.0" width="119.0" height="25.0" class="hitbox"/></g><text x="0.0" y="209.5" class="t" text-anchor="start" dominant-baseline="central">I-SPY 2</text><text x="206.0" y="209.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR</text><g class="hit" tabindex="0" data-tip="I-SPY 2 (MR): 77,433 volumes, 3.6% of the corpus"><path class="f-mid" d="M292.0,202.5H320.8Q324.8,202.5 324.8,206.5V212.5Q324.8,216.5 320.8,216.5H292.0Z"/><text x="330.8" y="209.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">77,433</text><rect x="292.0" y="197.0" width="102.8" height="25.0" class="hitbox"/></g><text x="0.0" y="236.5" class="t" text-anchor="start" dominant-baseline="central">ABCD Study</text><text x="206.0" y="236.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR</text><g class="hit" tabindex="0" data-tip="ABCD Study (MR): 41,581 volumes, 1.9% of the corpus"><path class="f-mid" d="M292.0,229.5H305.6Q309.6,229.5 309.6,233.5V239.5Q309.6,243.5 305.6,243.5H292.0Z"/><text x="315.6" y="236.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">41,581</text><rect x="292.0" y="224.0" width="87.6" height="25.0" class="hitbox"/></g><text x="0.0" y="263.5" class="t" text-anchor="start" dominant-baseline="central">ACRIN 6698</text><text x="206.0" y="263.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR</text><g class="hit" tabindex="0" data-tip="ACRIN 6698 (MR): 41,532 volumes, 1.9% of the corpus"><path class="f-mid" d="M292.0,256.5H305.6Q309.6,256.5 309.6,260.5V266.5Q309.6,270.5 305.6,270.5H292.0Z"/><text x="315.6" y="263.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">41,532</text><rect x="292.0" y="251.0" width="87.6" height="25.0" class="hitbox"/></g><text x="0.0" y="290.5" class="t" text-anchor="start" dominant-baseline="central">A4 Study</text><text x="206.0" y="290.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR · PET</text><g class="hit" tabindex="0" data-tip="A4 Study (MR · PET): 28,153 volumes, 1.3% of the corpus"><path class="f-mid" d="M292.0,283.5H299.9Q303.9,283.5 303.9,287.5V293.5Q303.9,297.5 299.9,297.5H292.0Z"/><text x="309.9" y="290.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">28,153</text><rect x="292.0" y="278.0" width="81.9" height="25.0" class="hitbox"/></g><text x="0.0" y="317.5" class="t" text-anchor="start" dominant-baseline="central">UPenn-GBM</text><text x="206.0" y="317.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MR</text><g class="hit" tabindex="0" data-tip="UPenn-GBM (MR): 26,001 volumes, 1.2% of the corpus"><path class="f-mid" d="M292.0,310.5H299.0Q303.0,310.5 303.0,314.5V320.5Q303.0,324.5 299.0,324.5H292.0Z"/><text x="309.0" y="317.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">26,001</text><rect x="292.0" y="305.0" width="81.0" height="25.0" class="hitbox"/></g><text x="0.0" y="344.5" class="t" text-anchor="start" dominant-baseline="central">113 smaller public sources</text><text x="206.0" y="344.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">mixed</text><g class="hit" tabindex="0" data-tip="113 smaller public sources (mixed): 142,541 volumes, 6.6% of the corpus"><path class="f-ctx" d="M292.0,337.5H348.4Q352.4,337.5 352.4,341.5V347.5Q352.4,351.5 348.4,351.5H292.0Z"/><text x="358.4" y="344.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">142,541</text><rect x="292.0" y="332.0" width="130.4" height="25.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — The 11 largest sources account for 93% of the volumes.</b> Three private hospital archives lead. Among public cohorts, NLST is the only large CT-only source. Source: Supplementary Table 8. Its rows sum to 2,158,566, four fewer than the total given in the text.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Source</th><th scope="col">Modalities</th><th scope="col">Kind</th><th scope="col" class="num">Volumes</th><th scope="col" class="num">Share</th></tr></thead><tbody><tr><th scope="row">DKFZ radiology research PACS</th><td>CT · MR · PET</td><td>private</td><td class="num">821,692</td><td class="num">38.1%</td></tr><tr><th scope="row">Bonn</th><td>CT · MR</td><td>private</td><td class="num">264,803</td><td class="num">12.3%</td></tr><tr><th scope="row">Osteoarthritis Initiative</th><td>MR</td><td>public</td><td class="num">240,867</td><td class="num">11.2%</td></tr><tr><th scope="row">Thoraxklinik Heidelberg</th><td>CT · MR</td><td>private</td><td class="num">228,732</td><td class="num">10.6%</td></tr><tr><th scope="row">NLST</th><td>CT</td><td>public</td><td class="num">129,592</td><td class="num">6.0%</td></tr><tr><th scope="row">OpenNeuro</th><td>CT · MR · PET</td><td>public</td><td class="num">115,639</td><td class="num">5.4%</td></tr><tr><th scope="row">I-SPY 2</th><td>MR</td><td>public</td><td class="num">77,433</td><td class="num">3.6%</td></tr><tr><th scope="row">ABCD Study</th><td>MR</td><td>public</td><td class="num">41,581</td><td class="num">1.9%</td></tr><tr><th scope="row">ACRIN 6698</th><td>MR</td><td>public</td><td class="num">41,532</td><td class="num">1.9%</td></tr><tr><th scope="row">A4 Study</th><td>MR · PET</td><td>public</td><td class="num">28,153</td><td class="num">1.3%</td></tr><tr><th scope="row">UPenn-GBM</th><td>MR</td><td>public</td><td class="num">26,001</td><td class="num">1.2%</td></tr><tr><th scope="row">113 smaller public sources</th><td>mixed</td><td>other</td><td class="num">142,541</td><td class="num">6.6%</td></tr></tbody></table></div></details>
+  </figure>
+
+  <div class="callout soft">
+    <span class="label">What this means for CT <span class="tag">derived</span></span>
+    <p>CT is 26.6% of the corpus, or <strong>≈574k volumes</strong>. Only about 144k of them come from sources that are CT-only, and NLST alone accounts for 130k. The other ~430k CT volumes therefore sit in mixed-modality sources. The public ones among those are mostly MRI collections, so most of the CT signal must come from the three hospital archives. The paper does not break CT down by body region. Thoraxklinik is a specialist lung hospital, so chest CT is probably well covered.</p>
+  </div>
+
+  <p>Curation was aggressive and mostly automatic. A third of the aggregated series were dropped. The largest cuts were volumes derived from 4D series (458,754), volumes with fewer than 10 slices along an axis (229,693), and series that were not CT, MR or PET, or not images at all (180,051). Two steps matter directly for report generation:</p>
+  <ul>
+    <li>An out-of-distribution detector whose flags were reviewed by hand. This removed 25,456 volumes, 9,110 of them non-human scans.</li>
+    <li>Hash-based de-duplication against every downstream dataset, which removed 88,477 volumes. It keeps CT-RATE and MERLIN scans out of pretraining.</li>
+  </ul>
+
+  <figure id="fig-funnel">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 313" role="img" aria-label="Curation funnel from 3.27M series to 2.16M volumes" style="min-width:620px" xmlns="http://www.w3.org/2000/svg"><line x1="330.0" y1="8.0" x2="330.0" y2="283.0" class="grid"/><text x="330.0" y="297.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="415.3" y1="8.0" x2="415.3" y2="283.0" class="grid"/><text x="415.3" y="297.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1M</text><line x1="500.6" y1="8.0" x2="500.6" y2="283.0" class="grid"/><text x="500.6" y="297.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">2M</text><line x1="585.9" y1="8.0" x2="585.9" y2="283.0" class="grid"/><text x="585.9" y="297.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">3M</text><text x="318.0" y="20.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Aggregated series</text><g class="hit" tabindex="0" data-tip="Aggregated: 3,271,454 series"><path class="f-ctx" d="M330.0,14.0H605.0Q609.0,14.0 609.0,18.0V23.0Q609.0,27.0 605.0,27.0H330.0Z"/><rect x="330.0" y="8.5" width="279.0" height="24.0" class="hitbox"/></g><text x="720.0" y="20.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">3,271,454</text><text x="318.0" y="45.5" class="t" text-anchor="end" dominant-baseline="central">Not CT/MR/PET, or not an image</text><line x1="330.0" y1="45.5" x2="593.7" y2="45.5" class="track"/><g class="hit" tabindex="0" data-tip="Not CT/MR/PET, or not an image: removed 180,051; 3,091,403 remain"><rect x="593.7" y="39.0" width="15.4" height="13" rx="2" class="f-mid"/><rect x="585.0" y="33.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="45.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−180,051</text><text x="318.0" y="70.5" class="t" text-anchor="end" dominant-baseline="central">Non-finite voxel values</text><line x1="330.0" y1="70.5" x2="593.7" y2="70.5" class="track"/><g class="hit" tabindex="0" data-tip="Non-finite voxel values: removed 67; 3,091,336 remain"><rect x="592.2" y="64.0" width="1.5" height="13" rx="2" class="f-mid"/><rect x="569.7" y="58.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="70.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−67</text><text x="318.0" y="95.5" class="t" text-anchor="end" dominant-baseline="central">Segmentation masks (few unique values)</text><line x1="330.0" y1="95.5" x2="593.3" y2="95.5" class="track"/><g class="hit" tabindex="0" data-tip="Segmentation masks (few unique values): removed 4,192; 3,087,144 remain"><rect x="592.2" y="89.0" width="1.5" height="13" rx="2" class="f-mid"/><rect x="569.7" y="83.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="95.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−4,192</text><text x="318.0" y="120.5" class="t" text-anchor="end" dominant-baseline="central">Derived from 4D series (diffusion, dynamic)</text><line x1="330.0" y1="120.5" x2="554.2" y2="120.5" class="track"/><g class="hit" tabindex="0" data-tip="Derived from 4D series (diffusion, dynamic): removed 458,754; 2,628,390 remain"><rect x="554.2" y="114.0" width="39.1" height="13" rx="2" class="f-mid"/><rect x="554.2" y="108.5" width="39.1" height="24.0" class="hitbox"/></g><text x="720.0" y="120.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−458,754</text><text x="318.0" y="145.5" class="t" text-anchor="end" dominant-baseline="central">Outliers on review (incl. 9,110 non-human)</text><line x1="330.0" y1="145.5" x2="552.0" y2="145.5" class="track"/><g class="hit" tabindex="0" data-tip="Outliers on review (incl. 9,110 non-human): removed 25,456; 2,602,934 remain"><rect x="552.0" y="139.0" width="2.2" height="13" rx="2" class="f-mid"/><rect x="530.2" y="133.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="145.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−25,456</text><text x="318.0" y="170.5" class="t" text-anchor="end" dominant-baseline="central">Overlap with evaluation sets (hash dedup)</text><line x1="330.0" y1="170.5" x2="544.5" y2="170.5" class="track"/><g class="hit" tabindex="0" data-tip="Overlap with evaluation sets (hash dedup): removed 88,477; 2,514,457 remain"><rect x="544.5" y="164.0" width="7.5" height="13" rx="2" class="f-mid"/><rect x="528.0" y="158.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="170.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−88,477</text><text x="318.0" y="195.5" class="t" text-anchor="end" dominant-baseline="central">Implausible anatomy, failed reconstructions</text><line x1="330.0" y1="195.5" x2="536.0" y2="195.5" class="track"/><g class="hit" tabindex="0" data-tip="Implausible anatomy, failed reconstructions: removed 99,716; 2,414,741 remain"><rect x="536.0" y="189.0" width="8.5" height="13" rx="2" class="f-mid"/><rect x="520.5" y="183.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="195.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−99,716</text><text x="318.0" y="220.5" class="t" text-anchor="end" dominant-baseline="central">Fewer than 10 slices along an axis</text><line x1="330.0" y1="220.5" x2="516.4" y2="220.5" class="track"/><g class="hit" tabindex="0" data-tip="Fewer than 10 slices along an axis: removed 229,693; 2,185,048 remain"><rect x="516.4" y="214.0" width="19.6" height="13" rx="2" class="f-mid"/><rect x="512.0" y="208.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="220.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−229,693</text><text x="318.0" y="245.5" class="t" text-anchor="end" dominant-baseline="central">Voxel spacing &gt; 8 mm along an axis</text><line x1="330.0" y1="245.5" x2="514.1" y2="245.5" class="track"/><g class="hit" tabindex="0" data-tip="Voxel spacing &gt; 8 mm along an axis: removed 26,478; 2,158,570 remain"><rect x="514.1" y="239.0" width="2.3" height="13" rx="2" class="f-mid"/><rect x="492.4" y="233.5" width="24.0" height="24.0" class="hitbox"/></g><text x="720.0" y="245.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−26,478</text><line x1="0.0" y1="258.0" x2="720.0" y2="258.0" class="rule"/><text x="318.0" y="270.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Final pretraining corpus</text><g class="hit" tabindex="0" data-tip="Final corpus: 2,158,570 volumes (66.0% of aggregated)"><path class="f-emph" d="M330.0,264.0H510.1Q514.1,264.0 514.1,268.0V273.0Q514.1,277.0 510.1,277.0H330.0Z"/><rect x="330.0" y="258.5" width="184.1" height="24.0" class="hitbox"/></g><text x="720.0" y="270.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">2,158,570</text></svg></div>
+    <figcaption><b>Figure 4 — The curation funnel, step by step.</b> Grey bars show how much each filter removed; the step values add up exactly to the final 2,158,570. Hover a bar for exact counts. Source: Methods 4.1.</figcaption>
+  </figure>
+
+  <p>Pretraining uses no labels and no text. Volumes are not resampled to a common spacing, so the model sees native resolutions, and every image is z-score normalised.</p>
+</section>
+
+<section id="pretraining">
+  <h2><span class="n">03</span>Stage 0: pretraining an encoder that never reads</h2>
+  <p>The report-generation encoder is <strong>nnFoundationViT</strong>, a plain 3D Vision Transformer built on the Primus design, DKFZ’s ViT for 3D medical segmentation. A CT crop is cut into 8×8×8-voxel patches. Each patch becomes a 1,056-dimensional token, and 40 transformer layers process the sequence.</p>
+  <p>It is trained by <strong>masked autoencoding</strong>. For every 192³ crop, 80% of the patch tokens are hidden at random. The encoder sees the remaining 20%, and an 8-layer decoder reconstructs the missing voxels. The decoder is discarded after pretraining. No text, label or contrastive pair is used at any point in this stage.</p>
+
+  <dl class="recipe">
+    <dt>Architecture</dt><dd>Primus-style 3D ViT · depth 40 · width 1,056 · 674M parameters</dd>
+    <dt>Tokens</dt><dd>8×8×8-voxel patches → 24³ = 13,824 tokens per 192³ crop <span class="tag">derived</span></dd>
+    <dt>Objective</dt><dd>MAE, random patch masking, ratio 0.8 <span class="d">(≈2,765 visible tokens per crop, derived)</span></dd>
+    <dt>Decoder</dt><dd>8 transformer layers, used only during pretraining</dd>
+    <dt>Input</dt><dd>Random 192³ crops at native spacing, z-score intensities</dd>
+    <dt>Optimiser</dt><dd>AdamW, weight decay 0.05, peak LR 2×10⁻³, 50k linear warm-up steps, polynomial decay, gradient clipping 1, mixed precision</dd>
+    <dt>Schedule</dt><dd>Global batch 96 × 625,000 steps <span class="d">= 60M crops, ≈28 passes over the corpus (derived)</span></dd>
+    <dt>Compute</dt><dd>≈12,500 A100 GPU-hours (130 h on 96 GPUs)</dd>
+  </dl>
+
+  <h3>Why MAE, and why a large ViT</h3>
+  <p>The choice came from a controlled comparison run before scaling up. On a subset of ~630k public volumes, separate teams tuned MAE, DINOv2 and SimCLR-style contrastive learning, each for both a CNN (nnU-Net ResEnc-L) and a Primus ViT. Each team had a development budget of about 25k A100-hours, and each pretraining run was capped at 400 GPU-hours. MAE came out on top for both architectures.</p>
+  <p>Scaling then went differently for the two. Going from 205M to 674M parameters clearly helped the ViT but did not help the CNN, so the final pair is a 102M CNN and a 674M ViT.</p>
+  <p>One detail from the development runs is relevant to report generation. The depth of the MAE decoder shifted what the encoder learned: shallow decoders favoured segmentation, deeper ones favoured classification. The authors read this as decoder capacity trading fine local detail against more abstract features. The final model pairs its 40-layer encoder with the deepest decoder they tried (8 layers). Our reading is that this fits the ViT’s later strength on global, semantic tasks such as writing reports.</p>
+</section>
+
+<section id="bridge">
+  <h2><span class="n">04</span>Stages 1–2: from frozen features to a report</h2>
+  <p>Report generation reuses Qwen2.5-VL-3B but discards its 2D vision tower. The frozen 3D encoder takes its place, and a small adapter connects the two. At 674M parameters, the 3D encoder is about the same size as the 2D tower it replaces (roughly 0.65B, by our count from the Qwen2.5-VL config).</p>
+
+  <h3>The adapter: Qwen’s patch merger, in 3D</h3>
+  <p>Qwen2.5-VL shortens its sequence of vision tokens by concatenating each 2×2 group of neighbouring tokens and projecting the result into the language model’s embedding space. The nnFoundation adapter does the same over 2×2×2 groups. Eight neighbouring encoder tokens (8 × 1,056 = 8,448 features) are concatenated and projected to one LLM token. This keeps local 3D context together and makes the sequence 8× shorter.</p>
+
+  <figure id="fig-tokens">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 238" role="img" aria-label="Token geometry: 192 cubed voxels to 13,824 patch tokens to 1,728 LLM tokens" style="min-width:600px" xmlns="http://www.w3.org/2000/svg"><polygon class="cube-top" points="104.0,22.0 159.4,54.0 104.0,86.0 48.6,54.0"/><polygon class="cube-left" points="48.6,54.0 104.0,86.0 104.0,150.0 48.6,118.0"/><polygon class="cube-right" points="159.4,54.0 104.0,86.0 104.0,150.0 159.4,118.0"/><path class="cube-edge" d="M48.6,54.0L104.0,22.0L159.4,54.0L159.4,118.0L104.0,150.0L48.6,118.0L48.6,54.0L104.0,86.0L159.4,54.0M104.0,86.0L104.0,150.0"/><polygon class="cube-top" points="360.0,22.0 415.4,54.0 360.0,86.0 304.6,54.0"/><polygon class="cube-left" points="304.6,54.0 360.0,86.0 360.0,150.0 304.6,118.0"/><polygon class="cube-right" points="415.4,54.0 360.0,86.0 360.0,150.0 415.4,118.0"/><path class="cube-grid-fine" d="M362.3,23.3L306.9,55.3M357.7,23.3L413.1,55.3M306.9,55.3L306.9,119.3M304.6,115.3L360.0,147.3M413.1,55.3L413.1,119.3M415.4,115.3L360.0,147.3M364.6,24.7L309.2,56.7M355.4,24.7L410.8,56.7M309.2,56.7L309.2,120.7M304.6,112.7L360.0,144.7M410.8,56.7L410.8,120.7M415.4,112.7L360.0,144.7M366.9,26.0L311.5,58.0M353.1,26.0L408.5,58.0M311.5,58.0L311.5,122.0M304.6,110.0L360.0,142.0M408.5,58.0L408.5,122.0M415.4,110.0L360.0,142.0M369.2,27.3L313.8,59.3M350.8,27.3L406.2,59.3M313.8,59.3L313.8,123.3M304.6,107.3L360.0,139.3M406.2,59.3L406.2,123.3M415.4,107.3L360.0,139.3M371.5,28.7L316.1,60.7M348.5,28.7L403.9,60.7M316.1,60.7L316.1,124.7M304.6,104.7L360.0,136.7M403.9,60.7L403.9,124.7M415.4,104.7L360.0,136.7M373.9,30.0L318.4,62.0M346.1,30.0L401.6,62.0M318.4,62.0L318.4,126.0M304.6,102.0L360.0,134.0M401.6,62.0L401.6,126.0M415.4,102.0L360.0,134.0M376.2,31.3L320.7,63.3M343.8,31.3L399.3,63.3M320.7,63.3L320.7,127.3M304.6,99.3L360.0,131.3M399.3,63.3L399.3,127.3M415.4,99.3L360.0,131.3M378.5,32.7L323.0,64.7M341.5,32.7L397.0,64.7M323.0,64.7L323.0,128.7M304.6,96.7L360.0,128.7M397.0,64.7L397.0,128.7M415.4,96.7L360.0,128.7M380.8,34.0L325.4,66.0M339.2,34.0L394.6,66.0M325.4,66.0L325.4,130.0M304.6,94.0L360.0,126.0M394.6,66.0L394.6,130.0M415.4,94.0L360.0,126.0M383.1,35.3L327.7,67.3M336.9,35.3L392.3,67.3M327.7,67.3L327.7,131.3M304.6,91.3L360.0,123.3M392.3,67.3L392.3,131.3M415.4,91.3L360.0,123.3M385.4,36.7L330.0,68.7M334.6,36.7L390.0,68.7M330.0,68.7L330.0,132.7M304.6,88.7L360.0,120.7M390.0,68.7L390.0,132.7M415.4,88.7L360.0,120.7M387.7,38.0L332.3,70.0M332.3,38.0L387.7,70.0M332.3,70.0L332.3,134.0M304.6,86.0L360.0,118.0M387.7,70.0L387.7,134.0M415.4,86.0L360.0,118.0M390.0,39.3L334.6,71.3M330.0,39.3L385.4,71.3M334.6,71.3L334.6,135.3M304.6,83.3L360.0,115.3M385.4,71.3L385.4,135.3M415.4,83.3L360.0,115.3M392.3,40.7L336.9,72.7M327.7,40.7L383.1,72.7M336.9,72.7L336.9,136.7M304.6,80.7L360.0,112.7M383.1,72.7L383.1,136.7M415.4,80.7L360.0,112.7M394.6,42.0L339.2,74.0M325.4,42.0L380.8,74.0M339.2,74.0L339.2,138.0M304.6,78.0L360.0,110.0M380.8,74.0L380.8,138.0M415.4,78.0L360.0,110.0M397.0,43.3L341.5,75.3M323.0,43.3L378.5,75.3M341.5,75.3L341.5,139.3M304.6,75.3L360.0,107.3M378.5,75.3L378.5,139.3M415.4,75.3L360.0,107.3M399.3,44.7L343.8,76.7M320.7,44.7L376.2,76.7M343.8,76.7L343.8,140.7M304.6,72.7L360.0,104.7M376.2,76.7L376.2,140.7M415.4,72.7L360.0,104.7M401.6,46.0L346.1,78.0M318.4,46.0L373.9,78.0M346.1,78.0L346.1,142.0M304.6,70.0L360.0,102.0M373.9,78.0L373.9,142.0M415.4,70.0L360.0,102.0M403.9,47.3L348.5,79.3M316.1,47.3L371.5,79.3M348.5,79.3L348.5,143.3M304.6,67.3L360.0,99.3M371.5,79.3L371.5,143.3M415.4,67.3L360.0,99.3M406.2,48.7L350.8,80.7M313.8,48.7L369.2,80.7M350.8,80.7L350.8,144.7M304.6,64.7L360.0,96.7M369.2,80.7L369.2,144.7M415.4,64.7L360.0,96.7M408.5,50.0L353.1,82.0M311.5,50.0L366.9,82.0M353.1,82.0L353.1,146.0M304.6,62.0L360.0,94.0M366.9,82.0L366.9,146.0M415.4,62.0L360.0,94.0M410.8,51.3L355.4,83.3M309.2,51.3L364.6,83.3M355.4,83.3L355.4,147.3M304.6,59.3L360.0,91.3M364.6,83.3L364.6,147.3M415.4,59.3L360.0,91.3M413.1,52.7L357.7,84.7M306.9,52.7L362.3,84.7M357.7,84.7L357.7,148.7M304.6,56.7L360.0,88.7M362.3,84.7L362.3,148.7M415.4,56.7L360.0,88.7"/><path class="cube-edge" d="M304.6,54.0L360.0,22.0L415.4,54.0L415.4,118.0L360.0,150.0L304.6,118.0L304.6,54.0L360.0,86.0L415.4,54.0M360.0,86.0L360.0,150.0"/><polygon class="cube-top" points="616.0,22.0 671.4,54.0 616.0,86.0 560.6,54.0"/><polygon class="cube-left" points="560.6,54.0 616.0,86.0 616.0,150.0 560.6,118.0"/><polygon class="cube-right" points="671.4,54.0 616.0,86.0 616.0,150.0 671.4,118.0"/><path class="cube-grid-bold" d="M620.6,24.7L565.2,56.7M611.4,24.7L666.8,56.7M565.2,56.7L565.2,120.7M560.6,112.7L616.0,144.7M666.8,56.7L666.8,120.7M671.4,112.7L616.0,144.7M625.2,27.3L569.8,59.3M606.8,27.3L662.2,59.3M569.8,59.3L569.8,123.3M560.6,107.3L616.0,139.3M662.2,59.3L662.2,123.3M671.4,107.3L616.0,139.3M629.9,30.0L574.4,62.0M602.1,30.0L657.6,62.0M574.4,62.0L574.4,126.0M560.6,102.0L616.0,134.0M657.6,62.0L657.6,126.0M671.4,102.0L616.0,134.0M634.5,32.7L579.0,64.7M597.5,32.7L653.0,64.7M579.0,64.7L579.0,128.7M560.6,96.7L616.0,128.7M653.0,64.7L653.0,128.7M671.4,96.7L616.0,128.7M639.1,35.3L583.7,67.3M592.9,35.3L648.3,67.3M583.7,67.3L583.7,131.3M560.6,91.3L616.0,123.3M648.3,67.3L648.3,131.3M671.4,91.3L616.0,123.3M643.7,38.0L588.3,70.0M588.3,38.0L643.7,70.0M588.3,70.0L588.3,134.0M560.6,86.0L616.0,118.0M643.7,70.0L643.7,134.0M671.4,86.0L616.0,118.0M648.3,40.7L592.9,72.7M583.7,40.7L639.1,72.7M592.9,72.7L592.9,136.7M560.6,80.7L616.0,112.7M639.1,72.7L639.1,136.7M671.4,80.7L616.0,112.7M653.0,43.3L597.5,75.3M579.0,43.3L634.5,75.3M597.5,75.3L597.5,139.3M560.6,75.3L616.0,107.3M634.5,75.3L634.5,139.3M671.4,75.3L616.0,107.3M657.6,46.0L602.1,78.0M574.4,46.0L629.9,78.0M602.1,78.0L602.1,142.0M560.6,70.0L616.0,102.0M629.9,78.0L629.9,142.0M671.4,70.0L616.0,102.0M662.2,48.7L606.8,80.7M569.8,48.7L625.2,80.7M606.8,80.7L606.8,144.7M560.6,64.7L616.0,96.7M625.2,80.7L625.2,144.7M671.4,64.7L616.0,96.7M666.8,51.3L611.4,83.3M565.2,51.3L620.6,83.3M611.4,83.3L611.4,147.3M560.6,59.3L616.0,91.3M620.6,83.3L620.6,147.3M671.4,59.3L616.0,91.3"/><path class="cube-edge" d="M560.6,54.0L616.0,22.0L671.4,54.0L671.4,118.0L616.0,150.0L560.6,118.0L560.6,54.0L616.0,86.0L671.4,54.0M616.0,86.0L616.0,150.0"/><line x1="173.4" y1="86.0" x2="284.6" y2="86.0" class="arrow"/><path class="arrowhead" d="M290.6,86.0l-8,-4.5v9z"/><text x="232.0" y="72.0" class="t t-small t-strong" text-anchor="middle" dominant-baseline="central">nnFoundationViT</text><text x="232.0" y="101.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">frozen · 8³ patches</text><line x1="429.4" y1="86.0" x2="540.6" y2="86.0" class="arrow"/><path class="arrowhead" d="M546.6,86.0l-8,-4.5v9z"/><text x="488.0" y="72.0" class="t t-small t-strong" text-anchor="middle" dominant-baseline="central">3D merger</text><text x="488.0" y="101.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">trained · 2×2×2 → 1</text><text x="104.0" y="176.0" class="t t-strong" text-anchor="middle" dominant-baseline="central">192 × 192 × 192 voxels</text><text x="104.0" y="194.0" class="t t-small" text-anchor="middle" dominant-baseline="central">1 mm isotropic crop</text><text x="104.0" y="211.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">≈7.1M intensities</text><text x="360.0" y="176.0" class="t t-strong" text-anchor="middle" dominant-baseline="central">24 × 24 × 24 = 13,824 tokens</text><text x="360.0" y="194.0" class="t t-small" text-anchor="middle" dominant-baseline="central">1,056 features each</text><text x="360.0" y="211.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">encoder output</text><text x="616.0" y="176.0" class="t t-strong" text-anchor="middle" dominant-baseline="central">12 × 12 × 12 = 1,728 tokens</text><text x="616.0" y="194.0" class="t t-small" text-anchor="middle" dominant-baseline="central">2,048 features each</text><text x="616.0" y="211.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">LLM input (visual prefix)</text></svg></div>
+    <figcaption><b>Figure 5 — Token budget for one CT.</b> For a 192³ input at 1 mm, the encoder emits 13,824 tokens and the adapter passes 1,728 visual tokens to the LLM, a manageable prefix for a 3B model. The paper states the patch size, width and merge factor; the counts are our arithmetic.</figcaption>
+  </figure>
+
+  <p>The paper describes the adapter in one paragraph. Here is a minimal sketch of it, reconstructed from that description (not the authors’ code):</p>
+<pre><code><span class="k">class</span> PatchMerger3D(nn.Module):
+    <span class="c">"""Merge each 2x2x2 block of frozen-encoder tokens into one LLM token."""</span>
+    <span class="k">def</span> __init__(self, d_vis=1056, d_llm=2048, m=2):
+        super().__init__()
+        self.m, d_cat = m, d_vis * m ** 3          <span class="c"># 8 x 1056 = 8448</span>
+        self.norm = nn.LayerNorm(d_vis)            <span class="c"># Qwen2.5-VL uses RMSNorm</span>
+        self.mlp = nn.Sequential(
+            nn.Linear(d_cat, d_cat), nn.GELU(), nn.Linear(d_cat, d_llm))
+
+    <span class="k">def</span> forward(self, x):                          <span class="c"># x: (B, 24, 24, 24, 1056)</span>
+        B, D, H, W, C = x.shape
+        m = self.m
+        x = self.norm(x).view(B, D // m, m, H // m, m, W // m, m, C)
+        x = x.permute(0, 1, 3, 5, 2, 4, 6, 7)      <span class="c"># group each 2x2x2 block</span>
+        x = x.reshape(B, -1, m ** 3 * C)           <span class="c"># (B, 1728, 8448)</span>
+        <span class="k">return</span> self.mlp(x)                         <span class="c"># (B, 1728, 2048)</span></code></pre>
+  <p class="sm">If the adapter copies Qwen’s two-layer MLP exactly, it has about 89M trainable parameters (8,448² + 8,448 × 2,048). A single linear projection would have about 17M. The paper does not say which it uses.</p>
+
+  <h3>Training: two stages, one loss</h3>
+  <p>Training is plain supervised next-token prediction on the reference reports, in two stages. <strong>Stage 1</strong> trains only the adapter, for 1.2 epochs. This places the visual tokens somewhere the LLM can use them before the LLM itself is allowed to change; the authors describe it as a guard against feature collapse. <strong>Stage 2</strong> adds LoRA to the language model for another 10.8 epochs while the adapter keeps training. The encoder stays frozen throughout.</p>
+
+  <figure id="fig-timeline">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 200" role="img" aria-label="Two-stage report-generation schedule over 12 dataset epochs" style="min-width:600px" xmlns="http://www.w3.org/2000/svg"><line x1="181.0" y1="34.0" x2="231.0" y2="34.0" class="bracket"/><line x1="181.0" y1="30.0" x2="181.0" y2="38.0" class="bracket"/><line x1="231.0" y1="30.0" x2="231.0" y2="38.0" class="bracket"/><text x="180.0" y="18.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">Stage 1 · align · 1.2 ep</text><line x1="233.0" y1="34.0" x2="699.0" y2="34.0" class="bracket"/><line x1="233.0" y1="30.0" x2="233.0" y2="38.0" class="bracket"/><line x1="699.0" y1="30.0" x2="699.0" y2="38.0" class="bracket"/><text x="466.0" y="18.0" class="t t-small t-strong" text-anchor="middle" dominant-baseline="central">Stage 2 · LoRA fine-tune · 10.8 ep</text><line x1="180.0" y1="52.0" x2="180.0" y2="160.0" class="grid"/><text x="180.0" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="232.0" y1="52.0" x2="232.0" y2="160.0" class="grid-strong"/><text x="232.0" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1.2</text><line x1="266.7" y1="52.0" x2="266.7" y2="160.0" class="grid"/><text x="266.7" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">2</text><line x1="353.3" y1="52.0" x2="353.3" y2="160.0" class="grid"/><text x="353.3" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">4</text><line x1="440.0" y1="52.0" x2="440.0" y2="160.0" class="grid"/><text x="440.0" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">6</text><line x1="526.7" y1="52.0" x2="526.7" y2="160.0" class="grid"/><text x="526.7" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">8</text><line x1="613.3" y1="52.0" x2="613.3" y2="160.0" class="grid"/><text x="613.3" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10</text><line x1="700.0" y1="52.0" x2="700.0" y2="160.0" class="grid"/><text x="700.0" y="174.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">12</text><text x="700.0" y="190.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">dataset epochs</text><text x="166.0" y="75.0" class="t" text-anchor="end" dominant-baseline="central">nnFoundationViT encoder</text><g class="hit" tabindex="0" data-tip="nnFoundationViT encoder: frozen from epoch 0 to 12"><rect x="180.0" y="65.0" width="520.0" height="20.0" class="f-frozen" rx="3"/><text x="190.0" y="75.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">frozen</text><rect x="180.0" y="63.0" width="520.0" height="24.0" class="hitbox"/></g><text x="166.0" y="109.0" class="t t-strong" text-anchor="end" dominant-baseline="central">3D merger adapter</text><g class="hit" tabindex="0" data-tip="3D merger adapter: trained from epoch 0 to 12"><rect x="180.0" y="99.0" width="520.0" height="20.0" class="f-emph" rx="3"/><text x="190.0" y="109.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">trained (full)</text><rect x="180.0" y="97.0" width="520.0" height="24.0" class="hitbox"/></g><text x="166.0" y="143.0" class="t t-strong" text-anchor="end" dominant-baseline="central">Qwen2.5-VL-3B LLM</text><g class="hit" tabindex="0" data-tip="Qwen2.5-VL-3B LLM: frozen from epoch 0 to 1.2"><rect x="180.0" y="133.0" width="51.0" height="20.0" class="f-frozen" rx="3"/><rect x="180.0" y="131.0" width="51.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Qwen2.5-VL-3B LLM: LoRA from epoch 1.2 to 12"><rect x="233.0" y="133.0" width="467.0" height="20.0" class="f-emph" rx="3"/><text x="243.0" y="143.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">LoRA adapters trained</text><rect x="233.0" y="131.0" width="467.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 6 — Which weights move, and when.</b> Stage 1 aligns the adapter against a frozen LLM; stage 2 adds LoRA. The epoch counts are the only schedule details given. The paper does not report LoRA rank, batch size or report-generation optimiser. Source: Methods 4.6.1.</figcaption>
+  </figure>
+
+  <p>Every encoder got its own sweep over learning rate and field of view on internal validation splits, and each reported number is that encoder’s best configuration. The two ViTs, nnFoundationViT and CURIA, both preferred a learning rate of 1e-3. All the other encoders settled at 4e-4 (Table 1 below).</p>
+</section>
+
+<section id="fov">
+  <h2><span class="n">05</span>CT preprocessing and field of view</h2>
+  <p>Preprocessing is standardised per encoder. Each scan is resampled to the encoder’s native spacing, which for nnFoundation (no fixed spacing) means 1 mm isotropic. It is then normalised with the encoder’s own intensity scheme: z-score for most, [0, 1] scaling for VISTA3D and Merlin.</p>
+  <p>Each scan is then cropped to the anatomy. On CT-RATE, the region of interest is the union of TotalSegmentator’s lung labels. On MERLIN, it is the union of all TotalSegmentator foreground labels. Connected components under 400 voxels are discarded as outliers, and the bounding box is enlarged by 4%. Three field-of-view modes were then compared:</p>
+  <ul>
+    <li><strong>resize:</strong> trilinearly resize the ROI crop to the encoder’s native input size, which keeps all the anatomy at lower resolution;</li>
+    <li><strong>native crop:</strong> centre-crop the ROI to the native input size, which keeps full resolution but may cut off anatomy;</li>
+    <li><strong>192-crop:</strong> centre-crop to 192³.</li>
+  </ul>
+  <p>On MERLIN the abdominal ROI is larger than every encoder’s input, so only the resize mode was run. Two encoders needed special handling:</p>
+  <ul>
+    <li><strong>CURIA</strong> is a 2D model, so its per-slice tokens are mean-pooled into 8, 12 or 16 axial bins (part of the sweep) to form a volume grid.</li>
+    <li><strong>Merlin</strong>, on its own dataset, keeps its original 224×224×160 pad-and-crop pipeline with no ROI crop, so it is not disadvantaged by a shift away from its pretraining setup.</li>
+  </ul>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Encoder</th><th scope="col" class="num">Params</th><th scope="col" class="num">Native patch</th><th scope="col">Intensity</th><th scope="col" class="num">Report-gen LR</th><th scope="col">Chosen FOV</th></tr></thead><tbody><tr class="ours"><th scope="row">nnFoundationViT</th><td class="num">674M</td><td class="num">192³</td><td>z-score</td><td class="num">1e-3</td><td>native crop</td></tr><tr><th scope="row">CURIA</th><td class="num">86M</td><td class="num">1×512² (2D)</td><td>z-score</td><td class="num">1e-3</td><td>resized</td></tr><tr><th scope="row">CT-FM</th><td class="num">87M</td><td class="num">24×128²</td><td>z-score</td><td class="num">4e-4</td><td>192-crop</td></tr><tr><th scope="row">Merlin</th><td class="num">271M</td><td class="num">160×224²</td><td>[0, 1]</td><td class="num">4e-4</td><td>native crop</td></tr><tr><th scope="row">nnFoundationCNN</th><td class="num">102M</td><td class="num">192³</td><td>z-score</td><td class="num">4e-4</td><td>resized</td></tr><tr><th scope="row">VISTA3D</th><td class="num">218M</td><td class="num">128³</td><td>[0, 1]</td><td class="num">4e-4</td><td>192-crop</td></tr><tr><th scope="row">VoCo-B</th><td class="num">54M</td><td class="num">96³</td><td>z-score</td><td class="num">4e-4</td><td>192-crop</td></tr><tr><th scope="row">SwinUNETR</th><td class="num">102M</td><td class="num">96³</td><td>z-score</td><td class="num">4e-4</td><td>192-crop</td></tr><tr><th scope="row">MIS-FM</th><td class="num">142M</td><td class="num">64×128²</td><td>z-score</td><td class="num">4e-4</td><td>192-crop</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — Report-generation settings chosen by each encoder’s sweep.</b> “Native patch” is the pretraining input size listed in the paper. Source: Table 1a/b and Methods 4.6.</p>
+
+  <div class="callout">
+    <span class="label">Worth checking <span class="tag">our observation</span></span>
+    <p>nnFoundationViT’s native input is 192³ voxels at 1 mm. Its winning “native crop” is therefore a 19.2 cm cube from the centre of the lung bounding box, identical to “192-crop”. Adult lungs often extend beyond 19.2 cm from side to side and from apex to base. In many scans, the best configuration probably does not see the lung apices, bases or outer edges. That makes the result more impressive, and it suggests an easy follow-up: tile the ROI, or add a low-resolution view of the whole region.</p>
+  </div>
+</section>
+
+<section id="ctrate">
+  <h2><span class="n">06</span>Results on CT-RATE (chest CT)</h2>
+  <p>CT-RATE pairs 25,692 non-contrast chest CT scans from 21,304 patients with their radiology reports. The reports were written in Turkish, machine-translated into English and reviewed by bilingual medical students. It is the only benchmark here with structured abnormality labels, so it is the only one scored with clinical metrics.</p>
+
+  <figure id="fig-ctrate">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 336" role="img" aria-label="CT-RATE report generation: BLEU, abnormality F1 and CRG per frozen encoder" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="52.0" width="760.0" height="28.0" class="band"/><text x="138.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU</text><text x="138.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">common 0–0.5 scale</text><line x1="138.0" y1="48.0" x2="138.0" y2="304.0" class="grid"/><text x="138.0" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="172.5" y1="48.0" x2="172.5" y2="304.0" class="grid"/><text x="172.5" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="207.1" y1="48.0" x2="207.1" y2="304.0" class="grid"/><text x="207.1" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="241.6" y1="48.0" x2="241.6" y2="304.0" class="grid"/><text x="241.6" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="276.1" y1="48.0" x2="276.1" y2="304.0" class="grid"/><text x="276.1" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="310.7" y1="48.0" x2="310.7" y2="304.0" class="grid"/><text x="310.7" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · BLEU 0.317 (95% CI 0.311–0.323)"><line x1="245.4" y1="66.0" x2="249.5" y2="66.0" class="ci ci-emph"/><circle cx="247.5" cy="66.0" r="4.6" class="f-emph ring"/><text x="257.5" y="66.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.317</text><rect x="235.5" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CURIA · BLEU 0.316 (95% CI 0.310–0.323)"><line x1="245.1" y1="94.0" x2="249.5" y2="94.0" class="ci"/><circle cx="247.1" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="235.1" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-FM · BLEU 0.285 (95% CI 0.279–0.293)"><line x1="234.3" y1="122.0" x2="239.2" y2="122.0" class="ci"/><circle cx="236.4" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="224.4" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Merlin · BLEU 0.276 (95% CI 0.269–0.283)"><line x1="230.9" y1="150.0" x2="235.7" y2="150.0" class="ci"/><circle cx="233.3" cy="150.0" r="4.6" class="f-ctx ring"/><rect x="221.3" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationCNN · BLEU 0.267 (95% CI 0.260–0.275)"><line x1="227.8" y1="178.0" x2="233.0" y2="178.0" class="ci"/><circle cx="230.2" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="218.2" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VISTA3D · BLEU 0.271 (95% CI 0.263–0.278)"><line x1="228.8" y1="206.0" x2="234.0" y2="206.0" class="ci"/><circle cx="231.6" cy="206.0" r="4.6" class="f-ctx ring"/><rect x="219.6" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VoCo-B · BLEU 0.263 (95% CI 0.256–0.271)"><line x1="226.4" y1="234.0" x2="231.6" y2="234.0" class="ci"/><circle cx="228.8" cy="234.0" r="4.6" class="f-ctx ring"/><rect x="216.8" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="SwinUNETR · BLEU 0.247 (95% CI 0.239–0.255)"><line x1="220.5" y1="262.0" x2="226.1" y2="262.0" class="ci"/><circle cx="223.3" cy="262.0" r="4.6" class="f-ctx ring"/><rect x="211.3" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MIS-FM · BLEU 0.241 (95% CI 0.234–0.249)"><line x1="218.8" y1="290.0" x2="224.0" y2="290.0" class="ci"/><circle cx="221.2" cy="290.0" r="4.6" class="f-ctx ring"/><rect x="209.2" y="278.0" width="24.0" height="24.0" class="hitbox"/></g><text x="344.7" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Abnormality F1</text><text x="344.7" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">common 0–0.5 scale</text><line x1="344.7" y1="48.0" x2="344.7" y2="304.0" class="grid"/><text x="344.7" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="379.2" y1="48.0" x2="379.2" y2="304.0" class="grid"/><text x="379.2" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="413.7" y1="48.0" x2="413.7" y2="304.0" class="grid"/><text x="413.7" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="448.3" y1="48.0" x2="448.3" y2="304.0" class="grid"/><text x="448.3" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="482.8" y1="48.0" x2="482.8" y2="304.0" class="grid"/><text x="482.8" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="517.3" y1="48.0" x2="517.3" y2="304.0" class="grid"/><text x="517.3" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · Abnormality F1 0.437 (95% CI 0.427–0.448)"><line x1="492.1" y1="66.0" x2="499.4" y2="66.0" class="ci ci-emph"/><circle cx="495.6" cy="66.0" r="4.6" class="f-emph ring"/><text x="507.4" y="66.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.437</text><rect x="483.6" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CURIA · Abnormality F1 0.428 (95% CI 0.415–0.439)"><line x1="488.0" y1="94.0" x2="496.3" y2="94.0" class="ci"/><circle cx="492.5" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="480.5" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-FM · Abnormality F1 0.276 (95% CI 0.265–0.287)"><line x1="436.2" y1="122.0" x2="443.8" y2="122.0" class="ci"/><circle cx="440.0" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="428.0" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Merlin · Abnormality F1 0.227 (95% CI 0.216–0.237)"><line x1="419.3" y1="150.0" x2="426.5" y2="150.0" class="ci"/><circle cx="423.1" cy="150.0" r="4.6" class="f-ctx ring"/><rect x="411.1" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationCNN · Abnormality F1 0.146 (95% CI 0.138–0.154)"><line x1="392.3" y1="178.0" x2="397.8" y2="178.0" class="ci"/><circle cx="395.1" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="383.1" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VISTA3D · Abnormality F1 0.135 (95% CI 0.126–0.144)"><line x1="388.2" y1="206.0" x2="394.4" y2="206.0" class="ci"/><circle cx="391.3" cy="206.0" r="4.6" class="f-ctx ring"/><rect x="379.3" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VoCo-B · Abnormality F1 0.132 (95% CI 0.122–0.141)"><line x1="386.8" y1="234.0" x2="393.4" y2="234.0" class="ci"/><circle cx="390.3" cy="234.0" r="4.6" class="f-ctx ring"/><rect x="378.3" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="SwinUNETR · Abnormality F1 0.022 (95% CI 0.018–0.026)"><line x1="350.9" y1="262.0" x2="353.6" y2="262.0" class="ci"/><circle cx="352.3" cy="262.0" r="4.6" class="f-ctx ring"/><rect x="340.3" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MIS-FM · Abnormality F1 0.000 (95% CI 0.000–0.000)"><line x1="344.7" y1="290.0" x2="344.7" y2="290.0" class="ci"/><circle cx="344.7" cy="290.0" r="4.6" class="f-ctx ring"/><rect x="332.7" y="278.0" width="24.0" height="24.0" class="hitbox"/></g><text x="551.3" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">CRG score</text><text x="551.3" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">common 0–0.5 scale</text><line x1="551.3" y1="48.0" x2="551.3" y2="304.0" class="grid"/><text x="551.3" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="585.9" y1="48.0" x2="585.9" y2="304.0" class="grid"/><text x="585.9" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="620.4" y1="48.0" x2="620.4" y2="304.0" class="grid"/><text x="620.4" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="654.9" y1="48.0" x2="654.9" y2="304.0" class="grid"/><text x="654.9" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="689.5" y1="48.0" x2="689.5" y2="304.0" class="grid"/><text x="689.5" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="724.0" y1="48.0" x2="724.0" y2="304.0" class="grid"/><text x="724.0" y="318.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="666.4" y1="42.0" x2="666.4" y2="304.0" class="floor"/><text x="670.4" y="42.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">chance</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · CRG score 0.444 (95% CI 0.440–0.448)"><line x1="703.3" y1="66.0" x2="706.0" y2="66.0" class="ci ci-emph"/><circle cx="704.7" cy="66.0" r="4.6" class="f-emph ring"/><text x="714.0" y="66.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.444</text><rect x="692.7" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CURIA · CRG score 0.426 (95% CI 0.422–0.429)"><line x1="697.1" y1="94.0" x2="699.5" y2="94.0" class="ci"/><circle cx="698.4" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="686.4" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-FM · CRG score 0.384 (95% CI 0.381–0.387)"><line x1="682.9" y1="122.0" x2="685.0" y2="122.0" class="ci"/><circle cx="683.9" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="671.9" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Merlin · CRG score 0.372 (95% CI 0.369–0.374)"><line x1="678.8" y1="150.0" x2="680.5" y2="150.0" class="ci"/><circle cx="679.8" cy="150.0" r="4.6" class="f-ctx ring"/><rect x="667.8" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationCNN · CRG score 0.354 (95% CI 0.352–0.356)"><line x1="672.9" y1="178.0" x2="674.3" y2="178.0" class="ci"/><circle cx="673.6" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="661.6" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VISTA3D · CRG score 0.355 (95% CI 0.353–0.357)"><line x1="673.2" y1="206.0" x2="674.6" y2="206.0" class="ci"/><circle cx="673.9" cy="206.0" r="4.6" class="f-ctx ring"/><rect x="661.9" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VoCo-B · CRG score 0.354 (95% CI 0.352–0.355)"><line x1="672.9" y1="234.0" x2="673.9" y2="234.0" class="ci"/><circle cx="673.6" cy="234.0" r="4.6" class="f-ctx ring"/><rect x="661.6" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="SwinUNETR · CRG score 0.336 (95% CI 0.335–0.336)"><line x1="667.0" y1="262.0" x2="667.4" y2="262.0" class="ci"/><circle cx="667.4" cy="262.0" r="4.6" class="f-ctx ring"/><rect x="655.4" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MIS-FM · CRG score 0.333 (95% CI 0.333–0.333)"><line x1="666.3" y1="290.0" x2="666.3" y2="290.0" class="ci"/><circle cx="666.3" cy="290.0" r="4.6" class="f-ctx ring"/><rect x="654.3" y="278.0" width="24.0" height="24.0" class="hitbox"/></g><text x="124.0" y="66.0" class="t t-strong" text-anchor="end" dominant-baseline="central">nnFoundationViT</text><text x="124.0" y="94.0" class="t" text-anchor="end" dominant-baseline="central">CURIA</text><text x="124.0" y="122.0" class="t" text-anchor="end" dominant-baseline="central">CT-FM</text><text x="124.0" y="150.0" class="t" text-anchor="end" dominant-baseline="central">Merlin</text><text x="124.0" y="178.0" class="t" text-anchor="end" dominant-baseline="central">nnFoundationCNN</text><text x="124.0" y="206.0" class="t" text-anchor="end" dominant-baseline="central">VISTA3D</text><text x="124.0" y="234.0" class="t" text-anchor="end" dominant-baseline="central">VoCo-B</text><text x="124.0" y="262.0" class="t" text-anchor="end" dominant-baseline="central">SwinUNETR</text><text x="124.0" y="290.0" class="t" text-anchor="end" dominant-baseline="central">MIS-FM</text></svg></div>
+    <figcaption><b>Figure 7 — CT-RATE report generation with nine frozen encoders.</b> All three metrics share a 0–0.5 scale, so the spread of each metric can be compared directly. Lines are bootstrap 95% CIs, mostly narrower than the dots. The dashed line marks CRG = 1/3, chance level, which is also what an encoder scores if its reports never flag an abnormality (see <a href="#metrics">section 09</a>). Source: Supplementary Table 15.</figcaption>
+  </figure>
+
+  <div class="table-wrap"><table class="data stack"><thead><tr><th scope="col">Frozen encoder</th><th scope="col">Arch.</th><th scope="col">Pretraining</th><th scope="col" class="num">Pretrain vol.</th><th scope="col" class="num">BLEU</th><th scope="col" class="num">F1</th><th scope="col" class="num">CRG</th></tr></thead><tbody><tr class="ours"><th scope="row">nnFoundationViT</th><td>3D ViT</td><td>MAE</td><td class="num">2.1M</td><td class="num"><span class="v">0.317</span> <span class="ci">0.311–0.323</span></td><td class="num"><span class="v">0.437</span> <span class="ci">0.427–0.448</span></td><td class="num"><span class="v">0.444</span> <span class="ci">0.440–0.448</span></td></tr><tr><th scope="row">CURIA</th><td>2D ViT</td><td>DINOv2</td><td class="num">1M</td><td class="num"><span class="v">0.316</span> <span class="ci">0.310–0.323</span></td><td class="num"><span class="v">0.428</span> <span class="ci">0.415–0.439</span></td><td class="num"><span class="v">0.426</span> <span class="ci">0.422–0.429</span></td></tr><tr><th scope="row">CT-FM</th><td>3D CNN</td><td>Contrastive</td><td class="num">148k</td><td class="num"><span class="v">0.285</span> <span class="ci">0.279–0.293</span></td><td class="num"><span class="v">0.276</span> <span class="ci">0.265–0.287</span></td><td class="num"><span class="v">0.384</span> <span class="ci">0.381–0.387</span></td></tr><tr><th scope="row">Merlin</th><td>3D CNN</td><td>Vision–language</td><td class="num">15k</td><td class="num"><span class="v">0.276</span> <span class="ci">0.269–0.283</span></td><td class="num"><span class="v">0.227</span> <span class="ci">0.216–0.237</span></td><td class="num"><span class="v">0.372</span> <span class="ci">0.369–0.374</span></td></tr><tr><th scope="row">nnFoundationCNN</th><td>3D CNN</td><td>MAE</td><td class="num">2.1M</td><td class="num"><span class="v">0.267</span> <span class="ci">0.260–0.275</span></td><td class="num"><span class="v">0.146</span> <span class="ci">0.138–0.154</span></td><td class="num"><span class="v">0.354</span> <span class="ci">0.352–0.356</span></td></tr><tr><th scope="row">VISTA3D</th><td>3D CNN</td><td>Supervised seg.</td><td class="num">11k</td><td class="num"><span class="v">0.271</span> <span class="ci">0.263–0.278</span></td><td class="num"><span class="v">0.135</span> <span class="ci">0.126–0.144</span></td><td class="num"><span class="v">0.355</span> <span class="ci">0.353–0.357</span></td></tr><tr><th scope="row">VoCo-B</th><td>3D Swin</td><td>Vol. contrastive</td><td class="num">160k</td><td class="num"><span class="v">0.263</span> <span class="ci">0.256–0.271</span></td><td class="num"><span class="v">0.132</span> <span class="ci">0.122–0.141</span></td><td class="num"><span class="v">0.354</span> <span class="ci">0.352–0.355</span></td></tr><tr><th scope="row">SwinUNETR</th><td>3D Swin</td><td>Inpaint + contr. + rot.</td><td class="num">5k</td><td class="num"><span class="v">0.247</span> <span class="ci">0.239–0.255</span></td><td class="num"><span class="v">0.022</span> <span class="ci">0.018–0.026</span></td><td class="num"><span class="v">0.336</span> <span class="ci">0.335–0.336</span></td></tr><tr><th scope="row">MIS-FM</th><td>3D hybrid</td><td>Volume fusion</td><td class="num">110k</td><td class="num"><span class="v">0.241</span> <span class="ci">0.234–0.249</span></td><td class="num"><span class="v">0.000</span> <span class="ci">0.000–0.000</span></td><td class="num"><span class="v">0.333</span> <span class="ci">0.333–0.333</span></td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 2 — CT-RATE results with 95% CIs.</b> Sorted by F1. “Pretrain vol.” is as listed in the paper’s Table 1; CURIA’s 1M counts 2D slices as volume equivalents. Source: Supplementary Table 15 and Table 1a.</p>
+
+  <p>Five things stand out:</p>
+  <ol class="num-list">
+    <li><strong>Two leaders, then a large drop.</strong> nnFoundationViT (F1 0.437) and CURIA (0.428) are far ahead; the third encoder, CT-FM, reaches 0.276. The two leaders are the only plain ViTs in the line-up and have the largest pretraining sets. Their objectives are very different: MAE on 3D crops versus DINOv2 on 2D slices.</li>
+    <li><strong>Same data, different architecture, three times the F1.</strong> nnFoundationCNN has the same corpus and the same MAE objective as the ViT, yet reaches only F1 0.146. The CNN is the paper’s pick for segmentation. For report generation from frozen features, it is roughly level with VISTA3D and VoCo.</li>
+    <li><strong>Report supervision on a small dataset does not beat image-only pretraining at scale.</strong> Merlin’s encoder was pretrained with reports on ~15k CTs. It reaches F1 0.227, well behind both self-supervised ViTs.</li>
+    <li><strong>Some encoders give the LLM nothing to work with.</strong> MIS-FM scores F1 0.000 and a CRG of exactly 1/3, with CIs of zero width. That is chance level: its reports essentially never flag an abnormality. SwinUNETR is barely higher (0.022 and 0.336). With these features the LLM appears to write much the same normal-looking report for every scan, and that still earns BLEU 0.241–0.247.</li>
+    <li><strong>Absolute scores are modest.</strong> The best CRG, 0.444, corresponds to a pooled true-positive rate minus false-positive rate of about 0.37 (<a href="#metrics">section 09</a>). That leaves a lot of room to improve.</li>
+  </ol>
+
+  <figure id="fig-scale">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 400" role="img" aria-label="Pretraining scale versus CT-RATE abnormality F1, by architecture family" style="min-width:600px" xmlns="http://www.w3.org/2000/svg"><circle cx="69.0" cy="12.0" r="4.6" class="f-emph ring"/><text x="80.0" y="12.0" class="t t-small" text-anchor="start" dominant-baseline="central">Plain ViT (2D or 3D)</text><rect x="234.9" y="7.9" width="8.3" height="8.3" rx="1.5" class="f-mid ring"/><text x="250.0" y="12.0" class="t t-small" text-anchor="start" dominant-baseline="central">3D CNN</text><polygon points="319.4,5.7 325.1,16.3 313.6,16.3" class="f-ctx ring"/><text x="330.4" y="12.0" class="t t-small" text-anchor="start" dominant-baseline="central">Swin / hybrid</text><line x1="64.0" y1="350.0" x2="690.0" y2="350.0" class="grid"/><text x="54.0" y="350.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.0</text><line x1="64.0" y1="288.8" x2="690.0" y2="288.8" class="grid"/><text x="54.0" y="288.8" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.1</text><line x1="64.0" y1="227.6" x2="690.0" y2="227.6" class="grid"/><text x="54.0" y="227.6" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.2</text><line x1="64.0" y1="166.4" x2="690.0" y2="166.4" class="grid"/><text x="54.0" y="166.4" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.3</text><line x1="64.0" y1="105.2" x2="690.0" y2="105.2" class="grid"/><text x="54.0" y="105.2" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.4</text><line x1="64.0" y1="44.0" x2="690.0" y2="44.0" class="grid"/><text x="54.0" y="44.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.5</text><line x1="168.7" y1="44.0" x2="168.7" y2="350.0" class="grid"/><text x="168.7" y="366.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10k</text><line x1="369.1" y1="44.0" x2="369.1" y2="350.0" class="grid"/><text x="369.1" y="366.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100k</text><line x1="569.4" y1="44.0" x2="569.4" y2="350.0" class="grid"/><text x="569.4" y="366.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1M</text><text x="377.0" y="388.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">pretraining volumes (log scale, as listed in the paper&#x27;s Table 1)</text><text x="14.0" y="197.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central" transform="rotate(-90 14 197.0)">CT-RATE abnormality F1</text><path class="bracket" d="M645.9,82.6H651.9V260.6H645.9"/><text x="645.9" y="149.6" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">same 2.1M volumes,</text><text x="645.9" y="165.6" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">same MAE objective:</text><text x="645.9" y="181.6" class="t t-small t-strong" text-anchor="end" dominant-baseline="central">ΔF1 = 0.291</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · 3D ViT, MAE, 674M params, 2.1M pretraining volumes · CT-RATE F1 0.437"><circle cx="633.9" cy="82.6" r="5.2" class="f-emph ring"/><text x="633.9" y="66.6" class="t t-small t-strong" text-anchor="middle" dominant-baseline="central">nnFoundationViT</text><rect x="621.9" y="70.6" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CURIA · 2D ViT, DINOv2, 86M params, 1M pretraining volumes · CT-RATE F1 0.428"><circle cx="569.4" cy="88.1" r="4.6" class="f-emph ring"/><text x="559.4" y="88.1" class="t t-small" text-anchor="end" dominant-baseline="central">CURIA (2D)</text><rect x="557.4" y="76.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-FM · 3D CNN, Contrastive, 87M params, 148k pretraining volumes · CT-RATE F1 0.276"><rect x="399.0" y="176.9" width="8.3" height="8.3" rx="1.5" class="f-mid ring"/><text x="413.2" y="179.1" class="t t-small" text-anchor="start" dominant-baseline="central">CT-FM</text><rect x="391.2" y="169.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Merlin · 3D CNN, Vision–language, 271M params, 15k pretraining volumes · CT-RATE F1 0.227"><rect x="199.9" y="206.9" width="8.3" height="8.3" rx="1.5" class="f-mid ring"/><text x="214.0" y="211.1" class="t t-small" text-anchor="start" dominant-baseline="central">Merlin</text><rect x="192.0" y="199.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationCNN · 3D CNN, MAE, 102M params, 2.1M pretraining volumes · CT-RATE F1 0.146"><rect x="629.8" y="256.5" width="8.3" height="8.3" rx="1.5" class="f-mid ring"/><text x="623.9" y="260.6" class="t t-small" text-anchor="end" dominant-baseline="central">nnFoundationCNN</text><rect x="621.9" y="248.6" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VISTA3D · 3D CNN, Supervised seg., 218M params, 11k pretraining volumes · CT-RATE F1 0.135"><rect x="172.9" y="263.2" width="8.3" height="8.3" rx="1.5" class="f-mid ring"/><text x="187.0" y="267.4" class="t t-small" text-anchor="start" dominant-baseline="central">VISTA3D</text><rect x="165.0" y="255.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VoCo-B · 3D Swin, Vol. contrastive, 54M params, 160k pretraining volumes · CT-RATE F1 0.132"><polygon points="410.0,262.9 415.7,273.5 404.2,273.5" class="f-ctx ring"/><text x="420.0" y="269.2" class="t t-small" text-anchor="start" dominant-baseline="central">VoCo-B</text><rect x="398.0" y="257.2" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="SwinUNETR · 3D Swin, Inpaint + contr. + rot., 102M params, 5k pretraining volumes · CT-RATE F1 0.022"><polygon points="108.4,330.2 114.2,340.8 102.7,340.8" class="f-ctx ring"/><text x="118.4" y="328.5" class="t t-small" text-anchor="start" dominant-baseline="central">SwinUNETR</text><rect x="96.4" y="324.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MIS-FM · 3D hybrid, Volume fusion, 142M params, 110k pretraining volumes · CT-RATE F1 0.000"><polygon points="377.4,343.7 383.1,354.3 371.6,354.3" class="f-ctx ring"/><text x="387.4" y="342.0" class="t t-small" text-anchor="start" dominant-baseline="central">MIS-FM</text><rect x="365.4" y="338.0" width="24.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 8 — Scale matters, but architecture matters more.</b> Pretraining set size alone does not predict F1. The two nnFoundation models were trained on identical data with the same objective, and they sit 0.29 F1 apart. Hover a point for its architecture, objective and size. Sources: Table 1a and Supplementary Table 15.</figcaption>
+  </figure>
+
+  <h3>Where does 0.437 sit?</h3>
+  <p>Other CT-RATE report generators, scored with the same labeler, give some context. Test sets and averaging differ between papers, so treat this as a rough guide, not a leaderboard.</p>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th scope="col">System</th><th scope="col" class="num">F1</th><th scope="col" class="num">CRG</th><th scope="col">Reported in</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">CT2Rep</th><td class="num">0.160</td><td class="num">0.359</td><td>CRG paper (2025), CT-RATE validation set</td></tr>
+        <tr><th scope="row">CT-CHAT</th><td class="num">0.184</td><td class="num">0.368</td><td>CRG paper (2025), CT-RATE validation set</td></tr>
+        <tr><th scope="row">Merlin (its own report generator)</th><td class="num">0.160</td><td class="num">0.352</td><td>CRG paper (2025), CT-RATE validation set</td></tr>
+        <tr class="ours"><th scope="row">nnFoundationViT + Qwen2.5-VL-3B</th><td class="num"><span class="v">0.437</span></td><td class="num"><span class="v">0.444</span></td><td>this paper; test split and averaging not stated</td></tr>
+        <tr><th scope="row">DKFZ companion paper, best configs</th><td class="num">≈0.49</td><td class="num">–</td><td>Resolution Meets Reduction (2026), macro F1, 1,564 validation reports</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tcap"><b>Table 3 — CT-RATE context.</b> A frozen, report-free encoder behind a 3B LLM clears the 2024-era systems by a wide margin. A closely related DKFZ paper, which tunes how visual tokens are reduced, reaches about 0.49. Sources: <a href="https://arxiv.org/abs/2505.17167">arXiv:2505.17167</a> and <a href="https://arxiv.org/abs/2608.08713">arXiv:2608.08713</a>.</p>
+</section>
+
+<section id="significance">
+  <h2><span class="n">07</span>Is the lead real?</h2>
+  <p>The paper uses a strict rule: nnFoundation “outperforms” a comparator only if the 95% paired-bootstrap interval for the difference lies entirely above zero. By that rule, the win over CURIA holds for CRG only (+0.018, 95% CI +0.014 to +0.023). The F1 lead (+0.009, CI −0.005 to +0.022) and the BLEU lead (+0.001) are within noise. Against every other encoder, nnFoundationViT is clearly ahead on all three metrics.</p>
+
+  <figure id="fig-forest">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 308" role="img" aria-label="Paired differences, nnFoundationViT minus each comparator, with 95% CIs" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><text x="138.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Δ abnormality F1</text><text x="138.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT-RATE</text><line x1="156.5" y1="48.0" x2="156.5" y2="276.0" class="zero"/><text x="156.5" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="193.4" y1="48.0" x2="193.4" y2="276.0" class="grid"/><text x="193.4" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.1</text><line x1="230.3" y1="48.0" x2="230.3" y2="276.0" class="grid"/><text x="230.3" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.2</text><line x1="267.3" y1="48.0" x2="267.3" y2="276.0" class="grid"/><text x="267.3" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.3</text><line x1="304.2" y1="48.0" x2="304.2" y2="276.0" class="grid"/><text x="304.2" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.4</text><g class="hit" tabindex="0" data-tip="nnFoundationViT − CURIA · Δ abnormality F1 +0.009 (95% CI -0.005 to +0.022) — not significant"><line x1="154.6" y1="66.0" x2="164.6" y2="66.0" class="ci ci-emph"/><circle cx="159.8" cy="66.0" r="4.4" class="f-hollow"/><text x="171.6" y="66.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">n.s.</text><rect x="147.8" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − CT-FM · Δ abnormality F1 +0.161 (95% CI +0.147 to +0.173)"><line x1="210.8" y1="94.0" x2="220.4" y2="94.0" class="ci ci-emph"/><circle cx="215.9" cy="94.0" r="4.4" class="f-emph ring"/><rect x="203.9" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − Merlin · Δ abnormality F1 +0.210 (95% CI +0.197 to +0.223)"><line x1="229.2" y1="122.0" x2="238.8" y2="122.0" class="ci ci-emph"/><circle cx="234.0" cy="122.0" r="4.4" class="f-emph ring"/><rect x="222.0" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − nnFoundationCNN · Δ abnormality F1 +0.291 (95% CI +0.279 to +0.303)"><line x1="259.5" y1="150.0" x2="268.4" y2="150.0" class="ci ci-emph"/><circle cx="263.9" cy="150.0" r="4.4" class="f-emph ring"/><rect x="251.9" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VISTA3D · Δ abnormality F1 +0.302 (95% CI +0.289 to +0.315)"><line x1="263.2" y1="178.0" x2="272.8" y2="178.0" class="ci ci-emph"/><circle cx="268.0" cy="178.0" r="4.4" class="f-emph ring"/><rect x="256.0" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VoCo-B · Δ abnormality F1 +0.306 (95% CI +0.293 to +0.317)"><line x1="264.7" y1="206.0" x2="273.5" y2="206.0" class="ci ci-emph"/><circle cx="269.5" cy="206.0" r="4.4" class="f-emph ring"/><rect x="257.5" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − SwinUNETR · Δ abnormality F1 +0.415 (95% CI +0.404 to +0.427)"><line x1="305.7" y1="234.0" x2="314.2" y2="234.0" class="ci ci-emph"/><circle cx="309.7" cy="234.0" r="4.4" class="f-emph ring"/><rect x="297.7" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − MIS-FM · Δ abnormality F1 +0.437 (95% CI +0.427 to +0.448)"><line x1="314.2" y1="262.0" x2="321.9" y2="262.0" class="ci ci-emph"/><circle cx="317.9" cy="262.0" r="4.4" class="f-emph ring"/><rect x="305.9" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><text x="348.7" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Δ CRG</text><text x="348.7" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT-RATE</text><line x1="375.0" y1="48.0" x2="375.0" y2="276.0" class="zero"/><text x="375.0" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="427.8" y1="48.0" x2="427.8" y2="276.0" class="grid"/><text x="427.8" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.04</text><line x1="480.6" y1="48.0" x2="480.6" y2="276.0" class="grid"/><text x="480.6" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.08</text><line x1="533.3" y1="48.0" x2="533.3" y2="276.0" class="grid"/><text x="533.3" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.12</text><g class="hit" tabindex="0" data-tip="nnFoundationViT − CURIA · Δ CRG +0.018 (95% CI +0.014 to +0.023)"><line x1="393.5" y1="66.0" x2="405.4" y2="66.0" class="ci ci-emph"/><circle cx="398.8" cy="66.0" r="4.4" class="f-emph ring"/><rect x="386.8" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − CT-FM · Δ CRG +0.060 (95% CI +0.056 to +0.064)"><line x1="448.9" y1="94.0" x2="459.5" y2="94.0" class="ci ci-emph"/><circle cx="454.2" cy="94.0" r="4.4" class="f-emph ring"/><rect x="442.2" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − Merlin · Δ CRG +0.072 (95% CI +0.068 to +0.076)"><line x1="464.7" y1="122.0" x2="475.3" y2="122.0" class="ci ci-emph"/><circle cx="470.0" cy="122.0" r="4.4" class="f-emph ring"/><rect x="458.0" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − nnFoundationCNN · Δ CRG +0.090 (95% CI +0.086 to +0.094)"><line x1="488.5" y1="150.0" x2="499.0" y2="150.0" class="ci ci-emph"/><circle cx="493.8" cy="150.0" r="4.4" class="f-emph ring"/><rect x="481.8" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VISTA3D · Δ CRG +0.089 (95% CI +0.085 to +0.093)"><line x1="487.2" y1="178.0" x2="497.7" y2="178.0" class="ci ci-emph"/><circle cx="492.4" cy="178.0" r="4.4" class="f-emph ring"/><rect x="480.4" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VoCo-B · Δ CRG +0.090 (95% CI +0.086 to +0.094)"><line x1="488.5" y1="206.0" x2="499.0" y2="206.0" class="ci ci-emph"/><circle cx="493.8" cy="206.0" r="4.4" class="f-emph ring"/><rect x="481.8" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − SwinUNETR · Δ CRG +0.108 (95% CI +0.104 to +0.112)"><line x1="512.2" y1="234.0" x2="522.8" y2="234.0" class="ci ci-emph"/><circle cx="517.5" cy="234.0" r="4.4" class="f-emph ring"/><rect x="505.5" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − MIS-FM · Δ CRG +0.111 (95% CI +0.107 to +0.115)"><line x1="516.2" y1="262.0" x2="526.7" y2="262.0" class="ci ci-emph"/><circle cx="521.5" cy="262.0" r="4.4" class="f-emph ring"/><rect x="509.5" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><text x="559.3" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Δ BLEU</text><text x="559.3" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">mean of CT-RATE and MERLIN</text><line x1="585.7" y1="48.0" x2="585.7" y2="276.0" class="zero"/><text x="585.7" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="638.5" y1="48.0" x2="638.5" y2="276.0" class="grid"/><text x="638.5" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.04</text><line x1="691.2" y1="48.0" x2="691.2" y2="276.0" class="grid"/><text x="691.2" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.08</text><line x1="744.0" y1="48.0" x2="744.0" y2="276.0" class="grid"/><text x="744.0" y="290.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.12</text><g class="hit" tabindex="0" data-tip="nnFoundationViT − CURIA · Δ BLEU +0.001 (95% CI -0.001 to +0.004) — not significant"><line x1="584.4" y1="66.0" x2="591.0" y2="66.0" class="ci ci-emph"/><circle cx="587.0" cy="66.0" r="4.4" class="f-hollow"/><text x="598.0" y="66.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">n.s.</text><rect x="575.0" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − CT-FM · Δ BLEU +0.017 (95% CI +0.014 to +0.019)"><line x1="604.2" y1="94.0" x2="610.8" y2="94.0" class="ci ci-emph"/><circle cx="608.1" cy="94.0" r="4.4" class="f-emph ring"/><rect x="596.1" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − Merlin · Δ BLEU +0.021 (95% CI +0.018 to +0.024)"><line x1="609.5" y1="122.0" x2="617.4" y2="122.0" class="ci ci-emph"/><circle cx="613.4" cy="122.0" r="4.4" class="f-emph ring"/><rect x="601.4" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − nnFoundationCNN · Δ BLEU +0.064 (95% CI +0.062 to +0.067)"><line x1="667.5" y1="150.0" x2="674.1" y2="150.0" class="ci ci-emph"/><circle cx="670.1" cy="150.0" r="4.4" class="f-emph ring"/><rect x="658.1" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VISTA3D · Δ BLEU +0.070 (95% CI +0.067 to +0.072)"><line x1="674.1" y1="178.0" x2="680.7" y2="178.0" class="ci ci-emph"/><circle cx="678.0" cy="178.0" r="4.4" class="f-emph ring"/><rect x="666.0" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − VoCo-B · Δ BLEU +0.072 (95% CI +0.069 to +0.075)"><line x1="676.7" y1="206.0" x2="684.6" y2="206.0" class="ci ci-emph"/><circle cx="680.7" cy="206.0" r="4.4" class="f-emph ring"/><rect x="668.7" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − SwinUNETR · Δ BLEU +0.071 (95% CI +0.069 to +0.074)"><line x1="676.7" y1="234.0" x2="683.3" y2="234.0" class="ci ci-emph"/><circle cx="679.4" cy="234.0" r="4.4" class="f-emph ring"/><rect x="667.4" y="222.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="nnFoundationViT − MIS-FM · Δ BLEU +0.114 (95% CI +0.112 to +0.117)"><line x1="733.4" y1="262.0" x2="740.0" y2="262.0" class="ci ci-emph"/><circle cx="736.1" cy="262.0" r="4.4" class="f-emph ring"/><rect x="724.1" y="250.0" width="24.0" height="24.0" class="hitbox"/></g><text x="124.0" y="66.0" class="t" text-anchor="end" dominant-baseline="central">vs CURIA</text><text x="124.0" y="94.0" class="t" text-anchor="end" dominant-baseline="central">vs CT-FM</text><text x="124.0" y="122.0" class="t" text-anchor="end" dominant-baseline="central">vs Merlin</text><text x="124.0" y="150.0" class="t" text-anchor="end" dominant-baseline="central">vs nnFoundationCNN</text><text x="124.0" y="178.0" class="t" text-anchor="end" dominant-baseline="central">vs VISTA3D</text><text x="124.0" y="206.0" class="t" text-anchor="end" dominant-baseline="central">vs VoCo-B</text><text x="124.0" y="234.0" class="t" text-anchor="end" dominant-baseline="central">vs SwinUNETR</text><text x="124.0" y="262.0" class="t" text-anchor="end" dominant-baseline="central">vs MIS-FM</text></svg></div>
+    <figcaption><b>Figure 9 — Paired differences, nnFoundationViT minus each comparator.</b> Hollow dots marked “n.s.” have a 95% CI that crosses zero. Each panel has its own scale. ΔBLEU is averaged over CT-RATE and MERLIN, as in the paper. Source: Supplementary Table 10.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">nnFoundationViT minus</th><th scope="col" class="num">Δ F1</th><th scope="col" class="num">Δ CRG</th><th scope="col" class="num">Δ BLEU (2-dataset mean)</th></tr></thead><tbody><tr><th scope="row">CURIA</th><td class="num"><span class="v">+0.009</span> <span class="ci">-0.005 to +0.022</span> <span class="ns">n.s.</span></td><td class="num"><span class="v">+0.018</span> <span class="ci">+0.014 to +0.023</span></td><td class="num"><span class="v">+0.001</span> <span class="ci">-0.001 to +0.004</span> <span class="ns">n.s.</span></td></tr><tr><th scope="row">CT-FM</th><td class="num"><span class="v">+0.161</span> <span class="ci">+0.147 to +0.173</span></td><td class="num"><span class="v">+0.060</span> <span class="ci">+0.056 to +0.064</span></td><td class="num"><span class="v">+0.017</span> <span class="ci">+0.014 to +0.019</span></td></tr><tr><th scope="row">Merlin</th><td class="num"><span class="v">+0.210</span> <span class="ci">+0.197 to +0.223</span></td><td class="num"><span class="v">+0.072</span> <span class="ci">+0.068 to +0.076</span></td><td class="num"><span class="v">+0.021</span> <span class="ci">+0.018 to +0.024</span></td></tr><tr><th scope="row">nnFoundationCNN</th><td class="num"><span class="v">+0.291</span> <span class="ci">+0.279 to +0.303</span></td><td class="num"><span class="v">+0.090</span> <span class="ci">+0.086 to +0.094</span></td><td class="num"><span class="v">+0.064</span> <span class="ci">+0.062 to +0.067</span></td></tr><tr><th scope="row">VISTA3D</th><td class="num"><span class="v">+0.302</span> <span class="ci">+0.289 to +0.315</span></td><td class="num"><span class="v">+0.089</span> <span class="ci">+0.085 to +0.093</span></td><td class="num"><span class="v">+0.070</span> <span class="ci">+0.067 to +0.072</span></td></tr><tr><th scope="row">VoCo-B</th><td class="num"><span class="v">+0.306</span> <span class="ci">+0.293 to +0.317</span></td><td class="num"><span class="v">+0.090</span> <span class="ci">+0.086 to +0.094</span></td><td class="num"><span class="v">+0.072</span> <span class="ci">+0.069 to +0.075</span></td></tr><tr><th scope="row">SwinUNETR</th><td class="num"><span class="v">+0.415</span> <span class="ci">+0.404 to +0.427</span></td><td class="num"><span class="v">+0.108</span> <span class="ci">+0.104 to +0.112</span></td><td class="num"><span class="v">+0.071</span> <span class="ci">+0.069 to +0.074</span></td></tr><tr><th scope="row">MIS-FM</th><td class="num"><span class="v">+0.437</span> <span class="ci">+0.427 to +0.448</span></td><td class="num"><span class="v">+0.111</span> <span class="ci">+0.107 to +0.115</span></td><td class="num"><span class="v">+0.114</span> <span class="ci">+0.112 to +0.117</span></td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>The paper’s ranking summary tells the same story. On report generation, nnFoundation’s mean rank is 1.00 (95% CI 1.00–2.50) and CURIA’s is 2.00 (1.50–3.00). A fair headline is therefore “best or joint best”. The more interesting result is the tie itself: a 2D slice encoder, with slice features mean-pooled into a coarse volume grid, nearly matches a native 3D ViT at writing chest CT reports.</p>
+</section>
+
+<section id="merlin">
+  <h2><span class="n">08</span>Results on MERLIN (abdominal CT)</h2>
+  <p>MERLIN is Stanford’s abdominal CT dataset: 25,528 scans in the paper’s count, with findings organised by organ system. The Merlin encoder was pretrained on its roughly 15k-scan training split. Only BLEU is reported for this benchmark, with no abnormality labels, so it says nothing about clinical correctness.</p>
+
+  <figure id="fig-merlin">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 285" role="img" aria-label="MERLIN abdominal CT report generation: BLEU per frozen encoder" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><line x1="150.0" y1="8.0" x2="150.0" y2="253.0" class="grid"/><text x="150.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="267.5" y1="8.0" x2="267.5" y2="253.0" class="grid"/><text x="267.5" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.05</text><line x1="385.0" y1="8.0" x2="385.0" y2="253.0" class="grid"/><text x="385.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="502.5" y1="8.0" x2="502.5" y2="253.0" class="grid"/><text x="502.5" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.15</text><line x1="620.0" y1="8.0" x2="620.0" y2="253.0" class="grid"/><text x="620.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><text x="136.0" y="23.5" class="t t-strong" text-anchor="end" dominant-baseline="central">nnFoundationViT</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · MERLIN BLEU 0.172 (95% CI 0.169–0.175)"><path class="f-emph" d="M150.0,16.5H550.2Q554.2,16.5 554.2,20.5V26.5Q554.2,30.5 550.2,30.5H150.0Z"/><line x1="547.1" y1="23.5" x2="561.2" y2="23.5" class="whisker"/><line x1="547.1" y1="19.5" x2="547.1" y2="27.5" class="whisker"/><line x1="561.2" y1="19.5" x2="561.2" y2="27.5" class="whisker"/><text x="568.2" y="23.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.172</text><rect x="150.0" y="11.5" width="455.2" height="24.0" class="hitbox"/></g><text x="136.0" y="50.5" class="t" text-anchor="end" dominant-baseline="central">CURIA</text><g class="hit" tabindex="0" data-tip="CURIA · MERLIN BLEU 0.170 (95% CI 0.167–0.173)"><path class="f-ctx" d="M150.0,43.5H545.5Q549.5,43.5 549.5,47.5V53.5Q549.5,57.5 545.5,57.5H150.0Z"/><line x1="542.5" y1="50.5" x2="556.5" y2="50.5" class="whisker"/><line x1="542.5" y1="46.5" x2="542.5" y2="54.5" class="whisker"/><line x1="556.5" y1="46.5" x2="556.5" y2="54.5" class="whisker"/><text x="563.5" y="50.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.170</text><rect x="150.0" y="38.5" width="450.5" height="24.0" class="hitbox"/></g><text x="136.0" y="77.5" class="t" text-anchor="end" dominant-baseline="central">CT-FM</text><g class="hit" tabindex="0" data-tip="CT-FM · MERLIN BLEU 0.170 (95% CI 0.167–0.173)"><path class="f-ctx" d="M150.0,70.5H545.5Q549.5,70.5 549.5,74.5V80.5Q549.5,84.5 545.5,84.5H150.0Z"/><line x1="542.5" y1="77.5" x2="556.5" y2="77.5" class="whisker"/><line x1="542.5" y1="73.5" x2="542.5" y2="81.5" class="whisker"/><line x1="556.5" y1="73.5" x2="556.5" y2="81.5" class="whisker"/><text x="563.5" y="77.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.170</text><rect x="150.0" y="65.5" width="450.5" height="24.0" class="hitbox"/></g><text x="136.0" y="104.5" class="t" text-anchor="end" dominant-baseline="central">Merlin</text><g class="hit" tabindex="0" data-tip="Merlin · MERLIN BLEU 0.170 (95% CI 0.167–0.173)"><path class="f-ctx" d="M150.0,97.5H545.5Q549.5,97.5 549.5,101.5V107.5Q549.5,111.5 545.5,111.5H150.0Z"/><line x1="542.5" y1="104.5" x2="556.5" y2="104.5" class="whisker"/><line x1="542.5" y1="100.5" x2="542.5" y2="108.5" class="whisker"/><line x1="556.5" y1="100.5" x2="556.5" y2="108.5" class="whisker"/><text x="563.5" y="104.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.170</text><rect x="150.0" y="92.5" width="450.5" height="24.0" class="hitbox"/></g><text x="136.0" y="131.5" class="t" text-anchor="end" dominant-baseline="central">SwinUNETR</text><g class="hit" tabindex="0" data-tip="SwinUNETR · MERLIN BLEU 0.100 (95% CI 0.097–0.103)"><path class="f-ctx" d="M150.0,124.5H381.0Q385.0,124.5 385.0,128.5V134.5Q385.0,138.5 381.0,138.5H150.0Z"/><line x1="377.9" y1="131.5" x2="392.0" y2="131.5" class="whisker"/><line x1="377.9" y1="127.5" x2="377.9" y2="135.5" class="whisker"/><line x1="392.0" y1="127.5" x2="392.0" y2="135.5" class="whisker"/><text x="399.0" y="131.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.100</text><rect x="150.0" y="119.5" width="286.0" height="24.0" class="hitbox"/></g><text x="136.0" y="158.5" class="t" text-anchor="end" dominant-baseline="central">nnFoundationCNN</text><g class="hit" tabindex="0" data-tip="nnFoundationCNN · MERLIN BLEU 0.093 (95% CI 0.090–0.096)"><path class="f-ctx" d="M150.0,151.5H364.5Q368.5,151.5 368.5,155.5V161.5Q368.5,165.5 364.5,165.5H150.0Z"/><line x1="361.5" y1="158.5" x2="375.6" y2="158.5" class="whisker"/><line x1="361.5" y1="154.5" x2="361.5" y2="162.5" class="whisker"/><line x1="375.6" y1="154.5" x2="375.6" y2="162.5" class="whisker"/><text x="382.6" y="158.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.093</text><rect x="150.0" y="146.5" width="269.6" height="24.0" class="hitbox"/></g><text x="136.0" y="185.5" class="t" text-anchor="end" dominant-baseline="central">VoCo-B</text><g class="hit" tabindex="0" data-tip="VoCo-B · MERLIN BLEU 0.081 (95% CI 0.078–0.084)"><path class="f-ctx" d="M150.0,178.5H336.4Q340.4,178.5 340.4,182.5V188.5Q340.4,192.5 336.4,192.5H150.0Z"/><line x1="333.3" y1="185.5" x2="347.4" y2="185.5" class="whisker"/><line x1="333.3" y1="181.5" x2="333.3" y2="189.5" class="whisker"/><line x1="347.4" y1="181.5" x2="347.4" y2="189.5" class="whisker"/><text x="354.4" y="185.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.081</text><rect x="150.0" y="173.5" width="241.4" height="24.0" class="hitbox"/></g><text x="136.0" y="212.5" class="t" text-anchor="end" dominant-baseline="central">VISTA3D</text><g class="hit" tabindex="0" data-tip="VISTA3D · MERLIN BLEU 0.079 (95% CI 0.076–0.082)"><path class="f-ctx" d="M150.0,205.5H331.6Q335.6,205.5 335.6,209.5V215.5Q335.6,219.5 331.6,219.5H150.0Z"/><line x1="328.6" y1="212.5" x2="342.7" y2="212.5" class="whisker"/><line x1="328.6" y1="208.5" x2="328.6" y2="216.5" class="whisker"/><line x1="342.7" y1="208.5" x2="342.7" y2="216.5" class="whisker"/><text x="349.7" y="212.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.079</text><rect x="150.0" y="200.5" width="236.7" height="24.0" class="hitbox"/></g><text x="136.0" y="239.5" class="t" text-anchor="end" dominant-baseline="central">MIS-FM</text><g class="hit" tabindex="0" data-tip="MIS-FM · MERLIN BLEU 0.019 (95% CI 0.018–0.020)"><path class="f-ctx" d="M150.0,232.5H190.6Q194.6,232.5 194.6,236.5V242.5Q194.6,246.5 190.6,246.5H150.0Z"/><line x1="192.3" y1="239.5" x2="197.0" y2="239.5" class="whisker"/><line x1="192.3" y1="235.5" x2="192.3" y2="243.5" class="whisker"/><line x1="197.0" y1="235.5" x2="197.0" y2="243.5" class="whisker"/><text x="204.0" y="239.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.019</text><rect x="150.0" y="227.5" width="91.0" height="24.0" class="hitbox"/></g><path class="bracket" d="M636.0,14.0H642.0V114.0H636.0"/><text x="650.0" y="56.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">overlapping</text><text x="650.0" y="72.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">95% CIs</text></svg></div>
+    <figcaption><b>Figure 10 — MERLIN report generation (BLEU only).</b> Four encoders are statistically tied at the top. Scores are lower than on CT-RATE, but BLEU is not comparable across datasets because report length and style differ. Source: Supplementary Table 15.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data narrow"><thead><tr><th scope="col">Frozen encoder</th><th scope="col" class="num">MERLIN BLEU (95% CI)</th></tr></thead><tbody><tr class="ours"><th scope="row">nnFoundationViT</th><td class="num"><span class="v">0.172</span> <span class="ci">0.169–0.175</span></td></tr><tr><th scope="row">CURIA</th><td class="num"><span class="v">0.170</span> <span class="ci">0.167–0.173</span></td></tr><tr><th scope="row">CT-FM</th><td class="num"><span class="v">0.170</span> <span class="ci">0.167–0.173</span></td></tr><tr><th scope="row">Merlin</th><td class="num"><span class="v">0.170</span> <span class="ci">0.167–0.173</span></td></tr><tr><th scope="row">SwinUNETR</th><td class="num"><span class="v">0.100</span> <span class="ci">0.097–0.103</span></td></tr><tr><th scope="row">nnFoundationCNN</th><td class="num"><span class="v">0.093</span> <span class="ci">0.090–0.096</span></td></tr><tr><th scope="row">VoCo-B</th><td class="num"><span class="v">0.081</span> <span class="ci">0.078–0.084</span></td></tr><tr><th scope="row">VISTA3D</th><td class="num"><span class="v">0.079</span> <span class="ci">0.076–0.082</span></td></tr><tr><th scope="row">MIS-FM</th><td class="num"><span class="v">0.019</span> <span class="ci">0.018–0.020</span></td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Four encoders are tied at the top: nnFoundationViT at 0.172, and CURIA, CT-FM and Merlin at 0.170, with overlapping intervals. Merlin is the in-domain reference here. It was pretrained on this very dataset and evaluated with its original preprocessing, so matching it with an encoder that never saw these scans is a good sign for transfer. Below the top four, scores roughly halve (0.079–0.100), and MIS-FM drops to 0.019.</p>
+</section>
+
+<section id="metrics">
+  <h2><span class="n">09</span>Reading the metrics</h2>
+
+  <h3>BLEU</h3>
+  <p>The paper uses corpus-level BLEU: n-gram overlap between generated and reference reports, pooled over the test set. It doesn’t state the n-gram order; the common CT-RATE evaluation code uses BLEU-4. BLEU rewards fluent, templated wording, which is why an encoder with F1 = 0 still scores 0.241 on CT-RATE. Its range across the nine encoders on CT-RATE is 0.076, against 0.437 for F1.</p>
+
+  <h3>Abnormality-label F1</h3>
+  <p>F1 is computed only where structured labels exist, which here means CT-RATE. Each CT-RATE scan carries 18 multi-label abnormality annotations:</p>
+  <ul class="chips">
+    <li>Medical material</li><li>Arterial wall calcification</li><li>Cardiomegaly</li><li>Pericardial effusion</li>
+    <li>Coronary artery wall calcification</li><li>Hiatal hernia</li><li>Lymphadenopathy</li><li>Emphysema</li>
+    <li>Atelectasis</li><li>Lung nodule</li><li>Lung opacity</li><li>Pulmonary fibrotic sequela</li>
+    <li>Pleural effusion</li><li>Mosaic attenuation pattern</li><li>Peribronchial thickening</li><li>Consolidation</li>
+    <li>Bronchiectasis</li><li>Interlobular septal thickening</li>
+  </ul>
+  <p>To score a generated report, its abnormalities first have to be read out of the text. The paper doesn’t name its extractor. The standard tool is the RadBERT classifier released with CT-RATE, fine-tuned on 1,000 manually labelled reports and thresholded at 0.5. The same classifier produced CT-RATE’s ground-truth labels.</p>
+
+  <div class="callout">
+    <span class="label">Micro or macro F1?</span>
+    <p>The paper doesn’t say; it only calls the metric “abnormality-label F1”, while it explicitly macro-averages segmentation and classification. Two clues point to <strong>macro</strong>:</p>
+    <ul>
+      <li>The evaluation code of the MICCAI 2025 VLM3D challenge, the reference implementation for CT-RATE report generation, computes positive-class F1 for each abnormality and takes the unweighted mean.</li>
+      <li>A DKFZ companion paper with an overlapping author team and the same frozen-encoder + LoRA recipe states that it computes macro F1 across all 18 classes with the RadBERT classifier.</li>
+    </ul>
+    <p>That makes macro the likely reading, but it is not confirmed. The distinction matters because the 18 labels are highly imbalanced: micro-F1 is dominated by common findings, while macro-F1 gives rare findings equal weight.</p>
+  </div>
+
+  <h3>CRG score</h3>
+  <p>CRG (Hamamci et al., 2025) counts true positives, false negatives and false positives over every label slot in the test set. It weights them so that an empty report and an exhaustive one score the same:</p>
+  <div class="eq">
+    s = w·TP − w·FN − FP,&nbsp;&nbsp; w = (T − A) / 2A,&nbsp;&nbsp; S<sub>max</sub> = w·A<br>
+    CRG = S<sub>max</sub> / (2·S<sub>max</sub> − s)&nbsp;&nbsp;<span class="c"># T = label slots (reports × 18), A = positive labels</span>
+  </div>
+  <p>A little algebra shows that CRG is a rescaling of Youden’s J (sensitivity + specificity − 1) over the pooled label slots:</p>
+  <div class="eq">CRG = 1 / (3 − 2J),&nbsp;&nbsp; J = TPR − FPR&nbsp;&nbsp;<span class="c"># our derivation</span></div>
+  <p>So 1/3 is chance level (J = 0). That is also exactly what a model scores if it never reports an abnormality, or always reports all of them. The scale runs from 0.2 (J = −1) to 1. MIS-FM’s exact 0.333, alongside F1 = 0, means its reports essentially never flag an abnormality. Converted back to J, the results are easier to read:</p>
+
+  <figure id="fig-youden">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 285" role="img" aria-label="CRG converted to Youden&#x27;s J (pooled TPR minus FPR) per frozen encoder" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><line x1="150.0" y1="8.0" x2="150.0" y2="253.0" class="grid"/><text x="150.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="267.5" y1="8.0" x2="267.5" y2="253.0" class="grid"/><text x="267.5" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="385.0" y1="8.0" x2="385.0" y2="253.0" class="grid"/><text x="385.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="502.5" y1="8.0" x2="502.5" y2="253.0" class="grid"/><text x="502.5" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="620.0" y1="8.0" x2="620.0" y2="253.0" class="grid"/><text x="620.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><text x="136.0" y="23.5" class="t t-strong" text-anchor="end" dominant-baseline="central">nnFoundationViT</text><g class="hit" tabindex="0" data-tip="nnFoundationViT · CRG 0.444 → J ≈ 0.374"><path class="f-emph" d="M150.0,16.5H585.3Q589.3,16.5 589.3,20.5V26.5Q589.3,30.5 585.3,30.5H150.0Z"/><text x="596.3" y="23.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.37</text><rect x="150.0" y="11.5" width="479.3" height="24.0" class="hitbox"/></g><text x="136.0" y="50.5" class="t" text-anchor="end" dominant-baseline="central">CURIA</text><g class="hit" tabindex="0" data-tip="CURIA · CRG 0.426 → J ≈ 0.326"><path class="f-ctx" d="M150.0,43.5H529.4Q533.4,43.5 533.4,47.5V53.5Q533.4,57.5 529.4,57.5H150.0Z"/><text x="540.4" y="50.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.33</text><rect x="150.0" y="38.5" width="423.4" height="24.0" class="hitbox"/></g><text x="136.0" y="77.5" class="t" text-anchor="end" dominant-baseline="central">CT-FM</text><g class="hit" tabindex="0" data-tip="CT-FM · CRG 0.384 → J ≈ 0.198"><path class="f-ctx" d="M150.0,70.5H378.6Q382.6,70.5 382.6,74.5V80.5Q382.6,84.5 378.6,84.5H150.0Z"/><text x="389.6" y="77.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.20</text><rect x="150.0" y="65.5" width="272.6" height="24.0" class="hitbox"/></g><text x="136.0" y="104.5" class="t" text-anchor="end" dominant-baseline="central">Merlin</text><g class="hit" tabindex="0" data-tip="Merlin · CRG 0.372 → J ≈ 0.156"><path class="f-ctx" d="M150.0,97.5H329.2Q333.2,97.5 333.2,101.5V107.5Q333.2,111.5 329.2,111.5H150.0Z"/><text x="340.2" y="104.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.16</text><rect x="150.0" y="92.5" width="223.2" height="24.0" class="hitbox"/></g><text x="136.0" y="131.5" class="t" text-anchor="end" dominant-baseline="central">VISTA3D</text><g class="hit" tabindex="0" data-tip="VISTA3D · CRG 0.355 → J ≈ 0.092"><path class="f-ctx" d="M150.0,124.5H253.6Q257.6,124.5 257.6,128.5V134.5Q257.6,138.5 253.6,138.5H150.0Z"/><text x="264.6" y="131.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.09</text><rect x="150.0" y="119.5" width="147.6" height="24.0" class="hitbox"/></g><text x="136.0" y="158.5" class="t" text-anchor="end" dominant-baseline="central">nnFoundationCNN</text><g class="hit" tabindex="0" data-tip="nnFoundationCNN · CRG 0.354 → J ≈ 0.088"><path class="f-ctx" d="M150.0,151.5H248.9Q252.9,151.5 252.9,155.5V161.5Q252.9,165.5 248.9,165.5H150.0Z"/><text x="259.9" y="158.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.09</text><rect x="150.0" y="146.5" width="142.9" height="24.0" class="hitbox"/></g><text x="136.0" y="185.5" class="t" text-anchor="end" dominant-baseline="central">VoCo-B</text><g class="hit" tabindex="0" data-tip="VoCo-B · CRG 0.354 → J ≈ 0.088"><path class="f-ctx" d="M150.0,178.5H248.9Q252.9,178.5 252.9,182.5V188.5Q252.9,192.5 248.9,192.5H150.0Z"/><text x="259.9" y="185.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.09</text><rect x="150.0" y="173.5" width="142.9" height="24.0" class="hitbox"/></g><text x="136.0" y="212.5" class="t" text-anchor="end" dominant-baseline="central">SwinUNETR</text><g class="hit" tabindex="0" data-tip="SwinUNETR · CRG 0.336 → J ≈ 0.012"><path class="f-ctx" d="M150.0,205.5H160.0Q164.0,205.5 164.0,209.5V215.5Q164.0,219.5 160.0,219.5H150.0Z"/><text x="171.0" y="212.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.01</text><rect x="150.0" y="200.5" width="54.0" height="24.0" class="hitbox"/></g><text x="136.0" y="239.5" class="t" text-anchor="end" dominant-baseline="central">MIS-FM</text><g class="hit" tabindex="0" data-tip="MIS-FM · CRG 0.333 → J ≈ 0.000"><text x="157.0" y="239.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">≈ 0</text><rect x="150.0" y="227.5" width="40.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 11 — CRG converted back to detection skill.</b> J = (3 − 1/CRG) / 2: the pooled true-positive rate minus the false-positive rate across all 18 labels. nnFoundationViT’s reports reach J ≈ 0.37; three encoders are close to chance. <span class="tag">derived</span> This assumes nnFoundation uses the standard pooled CRG computation, which the paper does not state. Source: Supplementary Table 15.</figcaption>
+  </figure>
+
+  <div class="callout soft">
+    <span class="label">Caveat on the labels</span>
+    <p>CT-RATE’s abnormality labels were extracted from the reports by a text classifier, not read from the images by radiologists. Both the reference labels and every score computed from them inherit that classifier’s errors.</p>
+  </div>
+</section>
+
+<section id="gaps">
+  <h2><span class="n">10</span>What the paper leaves out</h2>
+  <p>The protocol is described in two short paragraphs. Several details you would need to reproduce the numbers, or to compare them with other CT-RATE work, are missing:</p>
+  <ul>
+    <li><strong>Language-model training:</strong> LoRA rank, alpha and target modules; the report-generation optimiser and schedule; batch size; context length; the prompt. The DKFZ companion paper with the same recipe uses LoRA r = 32, α = 64 and dropout 0.1, which may carry over.</li>
+    <li><strong>Targets:</strong> which report sections are generated (findings, impression or both) and any text cleaning.</li>
+    <li><strong>Scoring:</strong> the label extractor behind F1 and CRG, and whether F1 is micro- or macro-averaged. Most likely it is the RadBERT classifier with macro F1 (<a href="#metrics">section 09</a>).</li>
+    <li><strong>Evaluation set:</strong> test-split size, and how scans with several reconstructions were handled.</li>
+    <li><strong>Decoding:</strong> greedy or sampled, and the maximum length.</li>
+    <li><strong>Cost:</strong> compute for the report-generation runs. The whole evaluation suite used more than 50k A100-hours.</li>
+    <li><strong>Deeper analysis:</strong> per-abnormality results, radiologist review, or comparison with published CT-RATE report generators.</li>
+    <li><strong>Ablations:</strong> on the adapter design or the two-stage schedule, and a baseline with the encoder unfrozen.</li>
+    <li><strong>Code:</strong> the paper says fine-tuning pipelines for vision–language tasks are provided. The only repository it links is <a href="https://github.com/MIC-DKFZ/nnssl">nnssl</a>, which covers pretraining, and the <a href="https://huggingface.co/MIC-DKFZ/nnFoundationViT">model card</a> lists report generation as “TBA”. The encoder weights themselves are public under CC-BY-SA-4.0.</li>
+  </ul>
+</section>
+
+<section id="takeaways">
+  <h2><span class="n">11</span>Takeaways for building a CT report generator</h2>
+  <ol class="num-list">
+    <li><strong>Treat the encoder as the main lever, and benchmark it frozen.</strong> With the LLM, adapter and recipe held fixed, swapping encoders moved F1 from 0.00 to 0.44. A frozen-encoder comparison like this one is cheap and gives clear answers.</li>
+    <li><strong>For report generation, choose a ViT pretrained at scale.</strong> Both leaders are plain ViTs. Every CNN and Swin encoder lags far behind, including one trained on the same 2.1M volumes. For segmentation the order flips, and the paper’s CNN wins.</li>
+    <li><strong>You may not need reports to pretrain the encoder.</strong> Image-only self-supervision at scale beat vision–language pretraining on a small dataset. Reports are needed to train the adapter and LoRA weights, and CT-RATE’s ~20k training patients were enough. The encoder weights are <a href="https://huggingface.co/MIC-DKFZ/nnFoundationViT">public</a>, so you can reuse the 12,500 GPU-hours of pretraining.</li>
+    <li><strong>Test a strong 2D encoder before committing to 3D.</strong> CURIA, with slices mean-pooled into axial bins, is statistically tied on F1 and BLEU.</li>
+    <li><strong>Don’t rely on BLEU alone.</strong> Track a clinical metric such as label F1 or CRG, and watch for template collapse: F1 near 0, or CRG stuck at chance (1/3).</li>
+    <li><strong>Keep the two-stage schedule and sweep per encoder.</strong> Warming up the adapter alone before adding LoRA is cheap insurance. ROI cropping and the field-of-view choice both change the results.</li>
+    <li><strong>There is plenty of headroom.</strong> Each constraint here has an obvious upgrade: the encoder is frozen, the LLM has only 3B parameters, and only LoRA is trained. Candidates are partial unfreezing, a larger LLM, tiling the full lung volume, and reinforcement learning against a clinical reward such as CRG.</li>
+  </ol>
+</section>
+
+<section id="appendix">
+  <h2><span class="n">A</span>Recipe sheet &amp; sources</h2>
+  <h3>Everything the paper specifies for report generation</h3>
+  <dl class="recipe">
+    <dt>Datasets</dt><dd>CT-RATE (chest, 25,692 volumes) · MERLIN (abdomen, 25,528 volumes)</dd>
+    <dt>Language model</dt><dd>Qwen2.5-VL-3B, 2D vision tower replaced by the frozen 3D encoder</dd>
+    <dt>Adapter</dt><dd>Spatial-to-channel merge of 2³ neighbouring tokens, projected to the LLM hidden size</dd>
+    <dt>Loss</dt><dd>Supervised next-token prediction on reports</dd>
+    <dt>Stage 1</dt><dd>1.2 epochs · adapter only</dd>
+    <dt>Stage 2</dt><dd>10.8 epochs · adapter + LoRA on the LLM</dd>
+    <dt>Encoder</dt><dd>Frozen throughout, for every method</dd>
+    <dt>Sweeps</dt><dd>Learning rate × field of view per encoder, internal validation split, best configuration reported</dd>
+    <dt>nnFoundationViT</dt><dd>LR 1e-3 · native crop (192³ at 1 mm) · lung ROI on CT-RATE, resize on MERLIN</dd>
+    <dt>Metrics</dt><dd>Corpus BLEU; abnormality F1 and CRG on CT-RATE; bootstrap 95% CIs (1,000 replicates); paired-bootstrap significance</dd>
+    <dt>Not reported</dt><dd class="nr">LoRA rank/alpha/targets, batch size, optimiser, prompt, decoding, report sections, label extractor, F1 averaging, test-split size, compute</dd>
+    <dt>Likely, not confirmed</dt><dd>RadBERT labeler, macro F1, pooled CRG. LoRA r = 32, α = 64, dropout 0.1, as in the DKFZ companion paper</dd>
+  </dl>
+
+  <h3>References</h3>
+  <ol class="refs">
+    <li>Ulrich Harsy, C., Wald, T., et al. <a href="https://arxiv.org/abs/2609.26924">nnFoundation: 3D Foundation Models for Radiology</a>. arXiv:2609.26924 (2026).</li>
+    <li>MIC-DKFZ. <a href="https://github.com/MIC-DKFZ/nnssl">nnssl: self-supervised learning framework for 3D medical images</a> (linked from the paper).</li>
+    <li>Hamamci, I. E., et al. CT-RATE / CT-CLIP. <a href="https://arxiv.org/abs/2403.17834">arXiv:2403.17834</a> · <a href="https://huggingface.co/datasets/ibrahimhamamci/CT-RATE">dataset</a>.</li>
+    <li>Hamamci, I. E., et al. <a href="https://arxiv.org/abs/2505.17167">CRG Score: a distribution-aware clinical metric for radiology report generation</a> (2025).</li>
+    <li>Suprijadi, J., Stock, R., et al. <a href="https://arxiv.org/abs/2608.08713">Resolution Meets Reduction: efficient visual context for 3D radiology report generation</a> (2026). DKFZ companion paper.</li>
+    <li>VLM3D challenge report-generation evaluation code: <a href="https://github.com/forithmus/VLM3D-Dockers">forithmus/VLM3D-Dockers</a>.</li>
+    <li>MIC-DKFZ. <a href="https://huggingface.co/MIC-DKFZ/nnFoundationViT">nnFoundationViT model card</a> (CC-BY-SA-4.0).</li>
+    <li>Blankemeier, L., et al. <a href="https://arxiv.org/abs/2406.06512">Merlin: a vision–language foundation model for 3D computed tomography</a>.</li>
+    <li>Qwen Team. <a href="https://arxiv.org/abs/2502.13923">Qwen2.5-VL technical report</a> (2025).</li>
+    <li>Wasserthal, J., et al. <a href="https://github.com/wasserth/TotalSegmentator">TotalSegmentator</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on arXiv:2609.26924. All numbers come from the paper and its supplementary material unless marked <em>derived</em> or <em>our observation</em>. Figures were generated with Python from those tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
