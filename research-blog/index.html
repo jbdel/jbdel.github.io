@@ -17,7 +17,7 @@
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="Research blog: latest post, nnFoundation read for report generation">
+<meta property="og:image:alt" content="Research blog: latest post, nnFoundation, read for report generation">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://jbdel.github.io/research-blog/nnfoundation-report-generation/og.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
@@ -45,17 +45,19 @@ a:hover { text-decoration-color: var(--ink); }
 main { max-width: 760px; margin: 0 auto; padding: 64px 16px 96px; }
 h1 { font-family: var(--sans); font-size: 44px; line-height: 1.1; letter-spacing: -.028em; margin: 0 0 12px; }
 .lede { color: var(--ink-2); font-size: 20px; margin: 0 0 48px; max-width: 34em; }
-.posts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
-.post { padding: 26px 0 28px; border-bottom: 1px solid var(--rule); }
-.post .meta { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
-.post .meta .k { font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: 11px; color: var(--ink-3); }
-.post h2 { font-family: var(--sans); font-size: 24px; line-height: 1.25; letter-spacing: -.015em; margin: 0 0 8px; }
-.post h2 a { text-decoration: none; }
-.post h2 a:hover { text-decoration: underline; text-decoration-color: var(--ink); }
-.post p { margin: 0; color: var(--ink-2); font-size: 17px; }
+.posts { border-top: 1px solid var(--ink); }
+.post-card { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; padding: 22px 0 24px; border-bottom: 1px solid var(--rule); }
+.post-card .thumb img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; }
+.post-card .meta { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; }
+.post-card .meta .k { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.post-card h2 { font-family: var(--sans); font-size: 23px; line-height: 1.25; letter-spacing: -.015em; margin: 0 0 8px; }
+.post-card h2 a { text-decoration: none; }
+.post-card h2 a:hover { text-decoration: underline; text-decoration-color: var(--ink); }
+.post-card .sum { margin: 0; color: var(--ink-2); font-size: 17px; line-height: 1.55; }
 footer { border-top: 1px solid var(--rule); }
 footer .in { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
-@media (max-width: 600px) { h1 { font-size: 34px; } .lede { font-size: 18px; } main { padding-top: 40px; } }
+@media (max-width: 640px) { h1 { font-size: 34px; } .lede { font-size: 18px; } main { padding-top: 40px; }
+  .post-card { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 </style>
 </head>
 <body>
@@ -63,13 +65,18 @@ footer .in { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; font-fam
 <main>
   <h1>Research blog</h1>
   <p class="lede">Long-form reading notes on radiology AI papers, with a focus on report generation.</p>
-  <ul class="posts">
-    <li class="post">
-      <div class="meta"><span class="k">CT report generation</span><span>25 Sep 2026</span><span>~15 min read</span></div>
-      <h2><a href="/research-blog/nnfoundation-report-generation/">nnFoundation, read for report generation</a></h2>
-      <p>The report-generation part of DKFZ’s 2.16M-volume radiology foundation model: where the data came from, how a 674M 3D ViT was pretrained without a single report, how it was wired into Qwen2.5-VL-3B, and what the appendix numbers show.</p>
-    </li>
-  </ul>
+  <div class="posts">
+<!-- POSTS:START -->
+<article class="post-card">
+  <a class="thumb" href="/research-blog/nnfoundation-report-generation/" tabindex="-1" aria-hidden="true"><img src="/research-blog/nnfoundation-report-generation/og.png" alt="" width="1200" height="627" loading="lazy"></a>
+  <div class="body">
+    <p class="meta"><span class="k">CT report generation</span><span>25 Sep 2026</span><span>~15 min read</span></p>
+    <h2><a href="/research-blog/nnfoundation-report-generation/">nnFoundation, read for report generation</a></h2>
+    <p class="sum">The report-generation side of DKFZ’s 2.16M-volume radiology foundation model: where the data came from, how a 674M 3D ViT was pretrained without a single report, how it was wired into Qwen2.5-VL-3B, and what the appendix numbers show.</p>
+  </div>
+</article>
+<!-- POSTS:END -->
+  </div>
 </main>
 <footer><div class="in">© 2026 <a href="/">Jean-Benoit Delbrouck</a></div></footer>
 </body>

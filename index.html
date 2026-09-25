@@ -1,170 +1,161 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jean-Benoit Delbrouck</title>
-  <meta name="description" content="AI Researcher Engineer at HOPPR & Hugging Face | Stanford-trained AI Researcher | Advancing Safe and Robust Medical AI"/>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 100 20 10 10 0 000-20z'/%3E%3C/svg%3E" />
-  <style>
-    :root{
-      --bg: #0b0c10;
-      --card: #12151a;
-      --text:#e6e9ef;
-      --muted:#aab3c5;
-      --accent:#6cf0c2;
-      --accent-2:#7aa2ff;
-      --shadow: 0 10px 30px rgba(0,0,0,.25);
-      --radius: 14px;
-    }
-    @media (prefers-color-scheme: light){
-      :root{
-        --bg:#f7f9fc; --card:#ffffff; --text:#0f172a; --muted:#4b5563;
-        --accent:#0ea5e9; --accent-2:#16a34a; --shadow: 0 8px 24px rgba(2,6,23,.08);
-      }
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 80% -10%, rgba(108,240,194,.08), transparent 60%),
-                  radial-gradient(800px 600px at 0% 110%, rgba(122,162,255,.10), transparent 60%),
-                  var(--bg);
-      color:var(--text);
-      line-height:1.6;
-    }
-    .wrap{max-width:960px;margin:0 auto;padding:48px 20px}
-    .card{
-      background:var(--card); border:1px solid rgba(255,255,255,.07); border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:clamp(20px, 3vw, 36px);
-    }
-    header{display:flex; align-items:center; gap:18px;}
-    .dot{
-      width:14px; height:14px; border-radius:50%; background:linear-gradient(45deg,var(--accent),var(--accent-2));
-      box-shadow:0 0 0 4px rgba(108,240,194,.15), 0 0 30px rgba(122,162,255,.25);
-      flex:0 0 auto; margin-top:8px;
-    }
-    h1{margin:0; font-size:clamp(28px, 4vw, 40px); letter-spacing:.2px}
-    .tagline{margin:.35rem 0 0; font-size:clamp(14px, 2vw, 18px); color:var(--muted)}
-    .lead{margin:18px 0 0; font-size:clamp(15px, 2vw, 18px)}
-    /* Avatar */
-    .avatar{
-      width: clamp(64px, 10vw, 96px);
-      height: clamp(64px, 10vw, 96px);
-      border-radius: 50%;
-      object-fit: cover;
-      flex: 0 0 auto;
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: var(--shadow);
-      background:#ddd;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jean-Benoit Delbrouck</title>
+<meta name="description" content="I work in radiology AI to help radiologists save time. Lead or senior author in Nature, Nature Medicine, Nature Biomedical Engineering, ACL, EMNLP, NeurIPS and ICLR.">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<link rel="canonical" href="https://jbdel.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jbdel.github.io/">
+<meta property="og:title" content="Jean-Benoit Delbrouck">
+<meta property="og:description" content="I work in radiology AI to help radiologists save time.">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck">
+<meta property="og:image" content="https://jbdel.github.io/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Jean-Benoit Delbrouck: radiology AI researcher">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/og.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --ink: #111111; --ink-2: #3a3a3a; --ink-3: #666666; --ink-4: #8c8c8c;
+  --rule: #e7e7e7; --rule-2: #cfcfcf; --panel: #f6f6f6;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--serif); font-size: 18px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
 
-    /* Actions */
-    .actions{display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-top:26px}
-    .action{
-      position:relative; display:flex; align-items:center; gap:12px; padding:14px 14px; border-radius:12px;
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.08); text-decoration:none; color:var(--text);
-      transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    }
-    .action:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.15); border-color:rgba(255,255,255,.18)}
-    .icon{
-      width:36px; height:36px; display:grid; place-items:center; border-radius:10px; flex:0 0 auto;
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.06));
-      border:1px solid rgba(255,255,255,.10);
-    }
-    .label{font-weight:600}
-    .sub{color:var(--muted); font-size:13px}
+.topbar { border-bottom: 1px solid var(--rule); }
+.topbar .in { max-width: 760px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-family: var(--sans); font-size: 13.5px; }
+.brand { font-weight: 600; text-decoration: none; letter-spacing: -.01em; white-space: nowrap; }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
 
-    /* Star badge specifically for GitHub */
-    .badge{
-      position:absolute; top:-10px; right:-10px; background:linear-gradient(45deg,var(--accent),var(--accent-2));
-      color:#0b0c10; font-weight:800; font-size:12px; padding:6px 10px; border-radius:999px; border:2px solid var(--card);
-      box-shadow:0 6px 18px rgba(0,0,0,.25);
-    }
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    footer{margin-top:28px; color:var(--muted); font-size:13px}
-    a.inline{color:inherit; text-decoration-color: rgba(108,240,194,.7); text-underline-offset:2px}
-  </style>
+main { max-width: 760px; margin: 0 auto; padding: 60px 16px 88px; }
+
+.intro { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 36px; align-items: start; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 16px; }
+h1 { font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08; letter-spacing: -.028em; margin: 0 0 16px; }
+.dek { font-size: 21px; line-height: 1.5; color: var(--ink-2); margin: 0 0 14px; }
+.intro p { margin: 0 0 14px; }
+.photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 1px solid var(--rule); margin-top: 6px; }
+.links { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 22px 0 0; font-family: var(--sans); font-size: 13.5px; }
+.links a { display: inline-block; border: 1px solid var(--rule-2); border-radius: 999px; padding: 5px 13px; text-decoration: none; color: var(--ink); }
+.links a:hover { border-color: var(--ink); }
+.links a.primary { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+
+h2 { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+     margin: 64px 0 4px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; }
+h2 a { font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ink); text-decoration: none; }
+h2 a:hover { text-decoration: underline; }
+.section-sub { font-family: var(--sans); font-size: 14px; color: var(--ink-3); margin: 0 0 6px; }
+
+.post-card { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; padding: 20px 0 22px; border-bottom: 1px solid var(--rule); }
+.post-card .thumb img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; }
+.post-card .meta { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; }
+.post-card .meta .k { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.post-card h3 { font-family: var(--sans); font-size: 21px; line-height: 1.25; letter-spacing: -.015em; margin: 0 0 8px; }
+.post-card h3 a { text-decoration: none; }
+.post-card h3 a:hover { text-decoration: underline; text-decoration-color: var(--ink); }
+.post-card .sum { margin: 0; color: var(--ink-2); font-size: 16.5px; line-height: 1.55; }
+
+.cv { list-style: none; padding: 0; margin: 6px 0 0; font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.cv li { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.cv .when { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cv b { font-weight: 600; }
+.cv .org { color: var(--ink-2); }
+.cv .note { color: var(--ink-3); font-size: 14px; margin-top: 3px; }
+
+footer { border-top: 1px solid var(--rule); }
+footer .in { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  main { padding-top: 36px; }
+  .intro { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .photo { order: -1; width: 88px; height: 88px; margin: 0; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 19px; }
+  .topbar nav { display: none; }
+  .post-card { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cv li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+</style>
 </head>
 <body>
-  <main class="wrap">
-    <section class="card" aria-label="Profile">
-      <header>
-        <img class="avatar" src="https://aimi.stanford.edu/sites/g/files/sbiybj20451/files/styles/medium_square/public/media/image/image5_0.png?h=f4e62a0a&itok=euaj9VoF" alt="Jean‑Benoit Delbrouck" loading="lazy"/>
-        <div>
-          <h1>Jean‑Benoit Delbrouck</h1>
-          <p class="tagline"><strong>AI Researcher at HOPPR. Prev: Hugging Face</strong> &nbsp;|&nbsp; <strong>Stanford‑trained AI Researcher</strong> &nbsp;|&nbsp; <strong>Advancing Safe and Robust Medical AI</strong></p>
-        </div>
-      </header>
 
-      <p class="lead">Leading and Senior author in top‑tier AI conferences and journals (ACL, EMNLP, NeurIPS, ICLR, Nature Medicine, Nature Biomedical Engineering).</p>
-      <p class="lead">I'm passionate about robust, open‑source medical foundation models and rigorous evaluations. As a lead and senior author, I have hands‑on experience building, fine‑tuning, and evaluating <strong>medical</strong> large language models from the ground up.</p>
+<header class="topbar">
+  <div class="in">
+    <a class="brand" href="/">Jean-Benoit Delbrouck</a>
+    <nav>
+      <a href="/research-blog/">Research blog</a>
+      <a href="https://scholar.google.com/citations?user=WSpnzd8AAAAJ&amp;hl=en">Scholar</a>
+      <a href="https://github.com/jbdel">GitHub</a>
+      <a href="https://huggingface.co/IAMJB">Hugging Face</a>
+      <a href="https://www.linkedin.com/in/jean-benoit-jb-delbrouck-71681496/">LinkedIn</a>
+    </nav>
+  </div>
+</header>
 
-      <nav class="actions" aria-label="Links">
-        <!-- GitHub -->
-        <a class="action" href="https://github.com/jbdel" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
-          <span class="badge" aria-hidden="true">1000+ ★</span>
-          <span class="icon" aria-hidden="true">
-            <!-- GitHub mark (SVG) -->
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" role="img" aria-label="GitHub">
-              <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.42c.58.11.79-.25.79-.55v-2.1c-3.2.69-3.88-1.38-3.88-1.38-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.72.08-.72 1.18.08 1.8 1.21 1.8 1.21 1.04 1.78 2.73 1.27 3.4.97.11-.77.4-1.28.72-1.57-2.56-.29-5.26-1.28-5.26-5.71 0-1.26.45-2.3 1.2-3.12-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.19a11.04 11.04 0 0 1 5.8 0c2.21-1.5 3.18-1.19 3.18-1.19.63 1.59.23 2.76.11 3.05.75.82 1.2 1.86 1.2 3.12 0 4.45-2.71 5.41-5.29 5.69.41.36.77 1.08.77 2.18v3.24c0 .3.21.67.8.55A11.5 11.5 0 0 0 12 .5z"/>
-            </svg>
-          </span>
-          <span>
-            <div class="label">GitHub</div>
-            <div class="sub">github.com/jbdel</div>
-          </span>
-        </a>
+<main>
+  <section class="intro">
+    <div>
+      <p class="kicker">AI researcher · Palo Alto</p>
+      <h1>Jean-Benoit Delbrouck</h1>
+      <p class="dek">I work in radiology AI to help radiologists save time.</p>
+      <p>Lead or senior author in Nature, Nature Medicine, Nature Biomedical Engineering, ACL, EMNLP, NeurIPS and ICLR.</p>
+      <ul class="links">
+        <li><a class="primary" href="/research-blog/">Research blog</a></li>
+        <li><a href="https://scholar.google.com/citations?user=WSpnzd8AAAAJ&amp;hl=en">Google Scholar</a></li>
+        <li><a href="https://github.com/jbdel">GitHub</a></li>
+        <li><a href="https://huggingface.co/IAMJB">Hugging Face</a></li>
+        <li><a href="https://www.linkedin.com/in/jean-benoit-jb-delbrouck-71681496/">LinkedIn</a></li>
+      </ul>
+    </div>
+    <img class="photo" src="https://aimi.stanford.edu/sites/g/files/sbiybj20451/files/styles/medium_square/public/media/image/image5_0.png?h=f4e62a0a&amp;itok=euaj9VoF"
+         onerror="this.onerror=null;this.src='/img/jb.jpeg'" alt="Portrait of Jean-Benoit Delbrouck" width="120" height="120">
+  </section>
 
-        <!-- Hugging Face -->
-        <a class="action" href="https://huggingface.co/IAMJB" target="_blank" rel="noopener noreferrer" aria-label="Hugging Face profile">
-          <span class="icon" aria-hidden="true">
-            <!-- Simple HF face (SVG) -->
-            <svg viewBox="0 0 48 48" width="24" height="24" fill="none" role="img" aria-label="Hugging Face">
-              <circle cx="24" cy="24" r="18" fill="currentColor" opacity=".1"/>
-              <circle cx="24" cy="22" r="10" fill="currentColor"/>
-              <circle cx="20" cy="20" r="2" fill="#000"/>
-              <circle cx="28" cy="20" r="2" fill="#000"/>
-              <path d="M18 24c2.2 3.5 9.8 3.5 12 0" stroke="#000" stroke-width="2" stroke-linecap="round"/>
-              <path d="M10 30c4.5-2 8.5-2 13.9-2S34 28 38 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span>
-            <div class="label">Hugging Face</div>
-            <div class="sub">huggingface.co/IAMJB</div>
-          </span>
-        </a>
+  <section id="blog">
+    <h2>Research blog <a href="/research-blog/">All posts →</a></h2>
+    <p class="section-sub">Long-form reading notes on radiology AI papers, with a focus on report generation.</p>
+<!-- POSTS:START -->
+<article class="post-card">
+  <a class="thumb" href="/research-blog/nnfoundation-report-generation/" tabindex="-1" aria-hidden="true"><img src="/research-blog/nnfoundation-report-generation/og.png" alt="" width="1200" height="627" loading="lazy"></a>
+  <div class="body">
+    <p class="meta"><span class="k">CT report generation</span><span>25 Sep 2026</span><span>~15 min read</span></p>
+    <h3><a href="/research-blog/nnfoundation-report-generation/">nnFoundation, read for report generation</a></h3>
+    <p class="sum">The report-generation side of DKFZ’s 2.16M-volume radiology foundation model: where the data came from, how a 674M 3D ViT was pretrained without a single report, how it was wired into Qwen2.5-VL-3B, and what the appendix numbers show.</p>
+  </div>
+</article>
+<!-- POSTS:END -->
+  </section>
 
-        <!-- Google Scholar -->
-        <a class="action" href="https://scholar.google.com/citations?user=ylcN1JAAAAAJ&hl=en&authuser=1" target="_blank" rel="noopener noreferrer" aria-label="Google Scholar profile">
-          <span class="icon" aria-hidden="true">
-            <!-- Mortarboard icon (SVG) -->
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" role="img" aria-label="Scholar">
-              <path d="M12 3L1.5 8.2 12 13.4 20 9.6v4.6c0 2.2-3.6 4-8 4s-8-1.8-8-4V9.2" opacity=".9"/>
-              <path d="M20 10l2.5-1.2L12 3 9 4.5"/>
-              <path d="M19 14.4V19l-2 .8V15"/>
-            </svg>
-          </span>
-          <span>
-            <div class="label">Google Scholar</div>
-            <div class="sub">Publications & citations</div>
-          </span>
-        </a>
-      </nav>
+  <section id="experience">
+    <h2>Experience</h2>
+    <ol class="cv">
+      <li><span class="when">Jul 2026 – now</span><span><b>AI Researcher</b> <span class="org">· Eden</span></span></li>
+      <li><span class="when">Mar 2025 – Jul 2026</span><span><b>AI Researcher</b> <span class="org">· HOPPR</span></span></li>
+      <li><span class="when">Jun 2024 – Mar 2025</span><span><b>AI Researcher</b> <span class="org">· Hugging Face</span></span></li>
+      <li><span class="when">Sep 2020 – Mar 2025</span><span><b>Postdoc, then Academic Staff (Research)</b> <span class="org">· Stanford University, AIMI Center</span>
+        <span class="note" style="display:block">Coordinated a research lab: publications, mentoring PhD students and postdocs, funding.</span></span></li>
+    </ol>
+  </section>
+</main>
 
-      <footer>
-        <span class="sr-only">Minimal one‑page personal site.</span>
-        <span>© <span id="y"></span> Jean‑Benoit Delbrouck</span>
-        <!-- · <a class="inline" href="mailto:jbdel@stanford.edu">jbdel@stanford.edu</a> -->
-      </footer>
-    </section>
-  </main>
-
-  <script>
-    // Set current year without any dependencies
-    document.getElementById('y').textContent = new Date().getFullYear();
-  </script>
+<footer>
+  <div class="in">© 2026 Jean-Benoit Delbrouck · Older pages: <a href="/teaching/">Teaching</a></div>
+</footer>
 </body>
 </html>
