@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merlin, read for report generation</title>
+<meta name="description" content="A report-generation reading of Merlin (Nature, 2026): 490 visual tokens, one linear layer and a LoRA-tuned RadLlama writing one organ section at a time, what Supplementary Table 8 shows, and why the released dataset matters more than the scores.">
+<meta property="og:title" content="Merlin, read for report generation">
+<meta property="og:description" content="A report-generation reading of Merlin (Nature, 2026): 490 visual tokens, one linear layer and a LoRA-tuned RadLlama writing one organ section at a time, what Supplementary Table 8 shows, and why the released dataset matters more than the scores.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/merlin-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/merlin-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Merlin, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/merlin-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/merlin-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://doi.org/10.1038/s41586-026-10181-8">Nature</a>
+      <a href="https://arxiv.org/abs/2406.06512">arXiv</a>
+      <a href="https://github.com/StanfordMIMI/Merlin">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · CT report generation</p>
+    <h1>Merlin, read for report generation</h1>
+    <p class="dek">Merlin is the abdominal CT foundation model that later report generators are measured against. Its own report generator is a small, early part of the paper: 490 visual tokens, one linear layer, and a LoRA-tuned language model writing one organ section at a time. What it showed, how it was scored, and why the dataset matters more than the scores.</p>
+    <div class="meta">
+      <span><b>Paper</b> Louis Blankemeier, Ashwin Kumar, … Sergios Gatidis, Akshay S. Chaudhari. <a href="https://doi.org/10.1038/s41586-026-10181-8"><i>Merlin: a computed tomography vision–language foundation model and dataset</i></a>. Nature 652, 1318–1328 (2026), published online 4 March 2026</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 24 Sep 2026</span>
+      <span><b>Reading time</b> ~11 min</span>
+      <span><b>Disclosure</b> I am a co-author of this paper and of the RadGraph-F1 metric it uses.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">25,494</div><div class="l">CT–report pairs released: the abdominal benchmark later models use</div></div>
+    <div class="tile" role="listitem"><div class="v">490</div><div class="l">visual tokens per scan reach the language model<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.10</div><div class="l">recall over 30 findings, when a later paper scored Merlin’s test reports</div></div>
+    <div class="tile" role="listitem"><div class="v">0.293</div><div class="l">full-report RadGraph-F1 in the table; the chart shows about 0.37<sup>*</sup></div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic from the Methods, and our measurement of the paper’s chart (<a href="#results">section 05</a>).</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A proof of concept inside a much larger paper.</strong> Report generation is one of six task types. A frozen Merlin encoder passes 490 visual tokens through one linear layer into RadLlama-7B, tuned with LoRA, and the report is written one organ section at a time.</li>
+      <li><strong>It beats RadFM everywhere, which says little.</strong> RadFM, the only baseline, is near zero on three of the four metrics, and the paper doesn’t say it was fine-tuned on these reports. Merlin’s scores are highest on sections that are usually normal: RadGraph-F1 is 0.88 for the adrenal glands and 0.17 for the gastrointestinal tract.</li>
+      <li><strong>It under-reports, by its own account.</strong> The paper says Merlin misses positive findings, and a later re-scoring of its test reports puts recall over 30 findings at 0.10. The paper itself reports text metrics only.</li>
+      <li><strong>The lasting contribution to report generation is the benchmark.</strong> Jolia and NV-Reason-CT are scored on the released 5,125-scan test split, and nnFoundation uses the dataset as its abdominal benchmark.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>Merlin is a 3D vision–language model for abdominal CT, pretrained on a single GPU with two kinds of supervision that hospitals already have: diagnosis codes and radiology reports. The paper evaluates it on six task types and 752 tasks. Report generation is one of them, and it takes two paragraphs of results, one extended-data figure, and a table and a figure in the supplement. It still deserves a close read. Later CT report generators quote Merlin as their baseline, and the CT–report pairs released with the paper are the public abdominal benchmark they are scored on. The next two posts in this series, on <a href="/research-blog/nnfoundation-report-generation/">nnFoundation</a> and <a href="/research-blog/nv-reason-ct-report-generation/">NV-Reason-CT</a>, both lean on it.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Merlin report generation: CT, crop, frozen 3D ResNet152 encoder, linear adapter, RadLlama-7B with LoRA, one report section per pass">
+      <div class="row">
+        <div class="box"><div class="t1">Abdominal CT</div><div class="t2">The series with the most axial slices; 97% are portal venous phase</div></div>
+        <div class="shape">any size</div>
+      </div>
+      <div class="conn"><div>resample to 1.5 × 1.5 × 3 mm · map −1,000…1,000 HU to 0…1 · pad and centre-crop</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">Merlin image encoder</div><div class="t2">3D ResNet152 inflated from ImageNet weights, pretrained with diagnosis codes and reports; last hidden layer</div></div>
+        <div class="shape">224 × 224 × 160 voxels<br>→ 7 × 7 × 10 × 2,048</div>
+      </div>
+      <div class="conn"><div>flattened to 490 visual tokens</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Linear adapter</div><div class="t2">One linear layer, the only new module</div></div>
+        <div class="shape">→ 490 × 4,096</div>
+      </div>
+      <div class="conn"><div>visual tokens, then “Generate a radiology report for &lt;organ system&gt;###”</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">LoRA</span><div class="t1">RadLlama-7B</div><div class="t2">Llama-2-7B tuned on MIMIC reports and clinical notes; LoRA on 5% of its parameters (rank 512 in the released code)</div></div>
+        <div class="shape">one report section</div>
+      </div>
+      <div class="conn"><div>repeated for each of the 13 sections, then concatenated</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">Findings</div><div class="t2">Compared with the radiologist’s findings: BLEU, ROUGE-2, BERT score, RadGraph-F1</div></div>
+        <div class="shape">13 sections + full report</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen</span>
+        <span><i style="background:var(--ink)"></i>fully trained</span>
+        <span><i style="border:2px solid var(--ink)"></i>LoRA only</span>
+        <span>monospace = tensor shapes, from the Methods</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — A frozen encoder, one linear layer and a LoRA-tuned language model.</b> The Methods don’t say the encoder is frozen; the icon in Extended Data Fig. 3a and the released code do. Sources: Methods; Extended Data Fig. 3a; the <a href="https://github.com/StanfordMIMI/Merlin/blob/main/merlin/models/radiology_report_generation.py">released model code</a>.</figcaption>
+  </figure>
+</section>
+
+<section id="data" data-toc="The data">
+  <h2><span class="n">02</span>The data: 25,528 scans and their findings</h2>
+  <p>The dataset comes from one academic medical centre: consecutive abdominal CT exams from December 2012 to October 2018, 25,528 scans from 18,321 patients, mostly inpatients (37%) and emergency patients (35%). Only the findings section of each report is used. Together the findings hold 10,051,571 tokens, about 394 per report <span class="tag">derived</span>, and 21% of them run past 512 tokens, which is why the text encoder is a Clinical Longformer and not a CLIP text encoder.</p>
+  <p>The reports follow an organ-by-organ template: lower thorax, liver and biliary tree, gallbladder, and so on. That structure does a lot of work in this paper. It lets regular expressions cut a report into anatomical sections, first for pretraining and then for generation.</p>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Split</th><th scope="col" class="num">Scans (paper)</th><th scope="col" class="num">Findings tokens (paper)</th><th scope="col" class="num">Patients (paper)</th><th scope="col" class="num">Scans (release)</th></tr></thead><tbody><tr><th scope="row">Training</th><td class="num">15,331</td><td class="num">6,036,645</td><td class="num">11,010</td><td class="num">15,314</td></tr><tr><th scope="row">Validation</th><td class="num">5,060</td><td class="num">1,985,925</td><td class="num">3,644</td><td class="num">5,055</td></tr><tr><th scope="row">Test</th><td class="num">5,137</td><td class="num">2,029,001</td><td class="num">3,667</td><td class="num">5,125</td></tr><tr class="ours"><th scope="row">Total</th><td class="num">25,528</td><td class="num">10,051,571</td><td class="num">18,321</td><td class="num">25,494</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — The paper’s splits and the released ones.</b> Split by patient, 60/20/20. The release has 34 fewer scans than the paper used <span class="tag">derived</span>. Sources: Supplementary Table 1; Data availability; released split sizes as reported by NV-Reason-CT (arXiv:2609.27511).</p>
+
+  <p>The release is what matters to everyone else: the scans with their findings and a fixed test split, under Stanford’s research-use agreement. The diagnosis codes aren’t part of it yet. The paper’s own report-generation numbers are on its internal 5,137-scan test set; twelve of those exams aren’t in the release, and the maintainers recommend the released 5,125 for evaluation.</p>
+</section>
+
+<section id="pretraining" data-toc="Pretraining">
+  <h2><span class="n">03</span>What the encoder learned from reports</h2>
+  <p>The image encoder is trained with two losses at once: a binary cross-entropy over 1,692 phenotypes derived from the visit’s diagnosis codes, and a contrastive loss against the findings text.</p>
+
+  <dl class="recipe">
+    <dt>Encoders</dt><dd>Image: 3D ResNet152, ImageNet weights inflated to 3D · Text: Clinical Longformer, 4,096-token context</dd>
+    <dt>Losses</dt><dd>Binary cross-entropy on 1,692 phenotypes + InfoNCE on findings, 512-dimensional embeddings, trained jointly</dd>
+    <dt>Optimiser</dt><dd>AdamW · LR 1×10⁻⁵ · cosine schedule · FP16 with gradient checkpointing</dd>
+    <dt>Compute</dt><dd>One 48 GB A6000 · batch 18 · about 160 h</dd>
+  </dl>
+
+  <p>Two results matter for our lens. Reports carry most of the signal: with reports alone, zero-shot F1 on 30 findings is 0.730, against 0.741 with the diagnosis codes added, and the authors say the extra complexity may not be worth it where such data are hard to get. And splitting helps: alternating full reports with a single anatomical section at each training step lifts that F1 from 0.656 to 0.741.</p>
+</section>
+
+<section id="generator" data-toc="The report generator">
+  <h2><span class="n">04</span>The report generator: 490 tokens, one linear layer</h2>
+  <p>For report generation the encoder’s last hidden layer is kept as a 7 × 7 × 10 grid of 2,048-dimensional features, 490 visual tokens <span class="tag">derived</span>. The input covers 33.6 × 33.6 × 48 cm, so each token stands for a cube of about 48 mm <span class="tag">derived</span>. One linear layer (8.4M parameters <span class="tag">derived</span>) maps the tokens to RadLlama-7B’s 4,096-dimensional width, and LoRA adapts 5% of the language model’s parameters.</p>
+  <p>The report is written one organ system at a time. Each pass gets the same 490 tokens and a prompt naming the section, and the 13 outputs are concatenated. Here is the head, condensed from the <a href="https://github.com/StanfordMIMI/Merlin/blob/main/merlin/models/radiology_report_generation.py">released code</a>:</p>
+<pre><code><span class="k">class</span> ReportHead(nn.Module):
+    <span class="k">def</span> __init__(self, encoder, llm):   <span class="c"># RadLLaMA-7b + LoRA, r = 512</span>
+        super().__init__()
+        self.encoder = encoder.requires_grad_(False)    <span class="c"># frozen</span>
+        self.adapter = nn.Linear(2048, 4096)   <span class="c"># the only new layer</span>
+        self.llm = llm
+
+    <span class="k">def</span> forward(self, ct, organ, target=""):
+        feats = self.encoder(ct)                 <span class="c"># (B, 2048, 10, 7, 7)</span>
+        vis = feats.flatten(2).transpose(1, 2)   <span class="c"># (B, 490, 2048)</span>
+        vis = self.adapter(vis)                  <span class="c"># (B, 490, 4096)</span>
+        prompt = f"Generate a radiology report for {organ}###\n"
+        txt = self.llm.embed(prompt + target)
+        <span class="k">return</span> self.llm(torch.cat([vis, txt], dim=1))
+
+<span class="c"># inference: one pass per organ system</span>
+report = " ".join(generate(head, ct, o) <span class="k">for</span> o <span class="k">in</span> ORGAN_SYSTEMS)</code></pre>
+  <p>Training uses AdamW at 1×10⁻⁴ with 500 warm-up steps, a cosine schedule set to decay over 500 epochs, and an effective batch of 48. The released demo decodes greedily, with a repetition penalty of 1.2 and at most 128 new tokens per section. The training split and the number of epochs actually run aren’t given.</p>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th scope="col"></th><th scope="col">Merlin</th><th scope="col">nnFoundation stack</th><th scope="col">NV-Reason-CT</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Input</th><td>1.5 × 1.5 × 3 mm, 33.6 × 33.6 × 48 cm</td><td>1 mm, 19.2 cm cube</td><td>2 mm, 38.4 cm cube</td></tr>
+        <tr><th scope="row">Encoder</th><td>3D ResNet152, frozen</td><td>3D ViT, frozen</td><td>3D ViT, fine-tuned</td></tr>
+        <tr><th scope="row">Tokens to the LLM</th><td>490 · about 48 mm each</td><td>1,728 · 16 mm each</td><td>13,824 · 16 mm each</td></tr>
+        <tr><th scope="row">Bridge</th><td>one linear layer</td><td>3D adapter, 2×2×2 merge</td><td>per-token projector</td></tr>
+        <tr><th scope="row">Language model</th><td>RadLlama-7B, LoRA</td><td>Qwen2.5-VL-3B, LoRA</td><td>Qwen3.5-4B, full fine-tuning</td></tr>
+        <tr><th scope="row">Output</th><td>one section per pass</td><td>whole report</td><td>reasoning, report, finding list</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tcap"><b>Table 2 — What the language model sees, here and in two later systems.</b> Merlin’s tokens are three times coarser along each axis <span class="tag">derived</span>. The nnFoundation column is its chest setting; on Merlin’s data it resizes the whole abdomen into the same 192³ grid, so its tokens are coarser there. This is context, not a controlled comparison. Sources: Methods; our posts on nnFoundation and NV-Reason-CT.</p>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">05</span>Results: every section, four metrics</h2>
+  <p>The comparison is with RadFM, a generalist model whose training data include abdominal CT, on the internal test set, with four text metrics: BLEU, ROUGE-2, BERT score and RadGraph-F1.</p>
+
+  <figure id="fig-sections">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 422" role="img" aria-label="Report generation scores by section: Merlin and RadFM on four metrics" style="min-width:660px" xmlns="http://www.w3.org/2000/svg"><circle cx="6.0" cy="12.0" r="4.6" class="f-emph ring"/><text x="17.0" y="12.0" class="t t-small" text-anchor="start" dominant-baseline="central">Merlin</text><rect x="80.2" y="8.2" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="95.0" y="12.0" class="t t-small" text-anchor="start" dominant-baseline="central">RadFM</text><rect x="0.0" y="369.0" width="760.0" height="23.0" class="band"/><text x="168.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">RadGraph-F1</text><line x1="168.0" y1="56.0" x2="168.0" y2="392.0" class="grid"/><text x="168.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="228.5" y1="56.0" x2="228.5" y2="392.0" class="grid"/><text x="228.5" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="289.0" y1="56.0" x2="289.0" y2="392.0" class="grid"/><text x="289.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1</text><g class="hit" tabindex="0" data-tip="Adrenal glands · RadGraph-F1: Merlin 0.879, RadFM 0.106"><line x1="180.8" y1="73.5" x2="274.4" y2="73.5" class="ci"/><rect x="177.0" y="69.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="274.4" cy="73.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="62.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Spleen · RadGraph-F1: Merlin 0.805, RadFM 0.283"><line x1="202.2" y1="96.5" x2="265.4" y2="96.5" class="ci"/><rect x="198.5" y="92.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="265.4" cy="96.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="85.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pancreas · RadGraph-F1: Merlin 0.748, RadFM 0.091"><line x1="179.0" y1="119.5" x2="258.5" y2="119.5" class="ci"/><rect x="175.2" y="115.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="258.5" cy="119.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="108.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gallbladder · RadGraph-F1: Merlin 0.721, RadFM 0.152"><line x1="186.4" y1="142.5" x2="255.2" y2="142.5" class="ci"/><rect x="182.6" y="138.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="255.2" cy="142.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="131.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Vasculature · RadGraph-F1: Merlin 0.548, RadFM 0.006"><line x1="168.7" y1="165.5" x2="234.3" y2="165.5" class="ci"/><rect x="164.9" y="161.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="234.3" cy="165.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="154.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lymph nodes · RadGraph-F1: Merlin 0.542, RadFM 0.031"><line x1="171.8" y1="188.5" x2="233.6" y2="188.5" class="ci"/><rect x="168.0" y="184.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="233.6" cy="188.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="177.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pelvic organs · RadGraph-F1: Merlin 0.432, RadFM 0.036"><line x1="172.4" y1="211.5" x2="220.3" y2="211.5" class="ci"/><rect x="168.6" y="207.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="220.3" cy="211.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="200.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Kidneys and ureters · RadGraph-F1: Merlin 0.387, RadFM 0.091"><line x1="179.0" y1="234.5" x2="214.8" y2="234.5" class="ci"/><rect x="175.2" y="230.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="214.8" cy="234.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="223.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Liver and biliary tree · RadGraph-F1: Merlin 0.380, RadFM 0.080"><line x1="177.7" y1="257.5" x2="214.0" y2="257.5" class="ci"/><rect x="173.9" y="253.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="214.0" cy="257.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="246.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Peritoneal cavity · RadGraph-F1: Merlin 0.335, RadFM 0.050"><line x1="174.1" y1="280.5" x2="208.5" y2="280.5" class="ci"/><rect x="170.3" y="276.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="208.5" cy="280.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="269.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lower thorax · RadGraph-F1: Merlin 0.319, RadFM 0.020"><line x1="170.4" y1="303.5" x2="206.6" y2="303.5" class="ci"/><rect x="166.6" y="299.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="206.6" cy="303.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="292.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Musculoskeletal · RadGraph-F1: Merlin 0.293, RadFM 0.008"><line x1="169.0" y1="326.5" x2="203.5" y2="326.5" class="ci"/><rect x="165.2" y="322.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="203.5" cy="326.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="315.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gastrointestinal tract · RadGraph-F1: Merlin 0.167, RadFM 0.092"><line x1="179.1" y1="349.5" x2="188.2" y2="349.5" class="ci"/><rect x="175.4" y="345.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="188.2" cy="349.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="338.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Full report · RadGraph-F1: Merlin 0.293, RadFM 0.008"><line x1="169.0" y1="380.5" x2="203.5" y2="380.5" class="ci"/><rect x="165.2" y="376.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="203.5" cy="380.5" r="4.6" class="f-emph ring"/><rect x="164.0" y="369.0" width="129.0" height="23.0" class="hitbox"/></g><text x="315.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">ROUGE-2</text><line x1="315.0" y1="56.0" x2="315.0" y2="392.0" class="grid"/><text x="315.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="375.5" y1="56.0" x2="375.5" y2="392.0" class="grid"/><text x="375.5" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="436.0" y1="56.0" x2="436.0" y2="392.0" class="grid"/><text x="436.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1</text><g class="hit" tabindex="0" data-tip="Adrenal glands · ROUGE-2: Merlin 0.882, RadFM 0.067"><line x1="323.1" y1="73.5" x2="421.7" y2="73.5" class="ci"/><rect x="319.3" y="69.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="421.7" cy="73.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="62.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Spleen · ROUGE-2: Merlin 0.710, RadFM 0.004"><line x1="315.5" y1="96.5" x2="400.9" y2="96.5" class="ci"/><rect x="311.7" y="92.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="400.9" cy="96.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="85.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pancreas · ROUGE-2: Merlin 0.700, RadFM 0.010"><line x1="316.2" y1="119.5" x2="399.7" y2="119.5" class="ci"/><rect x="312.4" y="115.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="399.7" cy="119.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="108.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gallbladder · ROUGE-2: Merlin 0.632, RadFM 0.006"><line x1="315.7" y1="142.5" x2="391.5" y2="142.5" class="ci"/><rect x="311.9" y="138.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="391.5" cy="142.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="131.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Vasculature · ROUGE-2: Merlin 0.485, RadFM 0.004"><line x1="315.5" y1="165.5" x2="373.7" y2="165.5" class="ci"/><rect x="311.7" y="161.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="373.7" cy="165.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="154.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lymph nodes · ROUGE-2: Merlin 0.601, RadFM 0.119"><line x1="329.4" y1="188.5" x2="387.7" y2="188.5" class="ci"/><rect x="325.6" y="184.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="387.7" cy="188.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="177.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pelvic organs · ROUGE-2: Merlin 0.358, RadFM 0.009"><line x1="316.1" y1="211.5" x2="358.3" y2="211.5" class="ci"/><rect x="312.3" y="207.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="358.3" cy="211.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="200.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Kidneys and ureters · ROUGE-2: Merlin 0.385, RadFM 0.040"><line x1="319.8" y1="234.5" x2="361.6" y2="234.5" class="ci"/><rect x="316.1" y="230.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="361.6" cy="234.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="223.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Liver and biliary tree · ROUGE-2: Merlin 0.389, RadFM 0.025"><line x1="318.0" y1="257.5" x2="362.1" y2="257.5" class="ci"/><rect x="314.2" y="253.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="362.1" cy="257.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="246.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Peritoneal cavity · ROUGE-2: Merlin 0.390, RadFM 0.005"><line x1="315.6" y1="280.5" x2="362.2" y2="280.5" class="ci"/><rect x="311.8" y="276.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="362.2" cy="280.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="269.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lower thorax · ROUGE-2: Merlin 0.332, RadFM 0.070"><line x1="323.5" y1="303.5" x2="355.2" y2="303.5" class="ci"/><rect x="319.7" y="299.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="355.2" cy="303.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="292.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Musculoskeletal · ROUGE-2: Merlin 0.303, RadFM 0.018"><line x1="317.2" y1="326.5" x2="351.7" y2="326.5" class="ci"/><rect x="313.4" y="322.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="351.7" cy="326.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="315.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gastrointestinal tract · ROUGE-2: Merlin 0.152, RadFM 0.037"><line x1="319.5" y1="349.5" x2="333.4" y2="349.5" class="ci"/><rect x="315.7" y="345.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="333.4" cy="349.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="338.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Full report · ROUGE-2: Merlin 0.262, RadFM 0.011"><line x1="316.3" y1="380.5" x2="346.7" y2="380.5" class="ci"/><rect x="312.6" y="376.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="346.7" cy="380.5" r="4.6" class="f-emph ring"/><rect x="311.0" y="369.0" width="129.0" height="23.0" class="hitbox"/></g><text x="462.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">BERT score</text><line x1="462.0" y1="56.0" x2="462.0" y2="392.0" class="grid"/><text x="462.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="522.5" y1="56.0" x2="522.5" y2="392.0" class="grid"/><text x="522.5" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="583.0" y1="56.0" x2="583.0" y2="392.0" class="grid"/><text x="583.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1</text><g class="hit" tabindex="0" data-tip="Adrenal glands · BERT score: Merlin 0.942, RadFM 0.490"><line x1="521.3" y1="73.5" x2="576.0" y2="73.5" class="ci"/><rect x="517.5" y="69.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="576.0" cy="73.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="62.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Spleen · BERT score: Merlin 0.853, RadFM 0.382"><line x1="508.2" y1="96.5" x2="565.2" y2="96.5" class="ci"/><rect x="504.4" y="92.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="565.2" cy="96.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="85.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pancreas · BERT score: Merlin 0.849, RadFM 0.447"><line x1="516.1" y1="119.5" x2="564.7" y2="119.5" class="ci"/><rect x="512.3" y="115.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="564.7" cy="119.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="108.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gallbladder · BERT score: Merlin 0.851, RadFM 0.534"><line x1="526.6" y1="142.5" x2="565.0" y2="142.5" class="ci"/><rect x="522.8" y="138.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="565.0" cy="142.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="131.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Vasculature · BERT score: Merlin 0.748, RadFM 0.232"><line x1="490.1" y1="165.5" x2="552.5" y2="165.5" class="ci"/><rect x="486.3" y="161.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="552.5" cy="165.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="154.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lymph nodes · BERT score: Merlin 0.775, RadFM 0.502"><line x1="522.7" y1="188.5" x2="555.8" y2="188.5" class="ci"/><rect x="519.0" y="184.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="555.8" cy="188.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="177.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pelvic organs · BERT score: Merlin 0.656, RadFM 0.328"><line x1="501.7" y1="211.5" x2="541.4" y2="211.5" class="ci"/><rect x="497.9" y="207.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="541.4" cy="211.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="200.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Kidneys and ureters · BERT score: Merlin 0.654, RadFM 0.368"><line x1="506.5" y1="234.5" x2="541.1" y2="234.5" class="ci"/><rect x="502.7" y="230.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="541.1" cy="234.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="223.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Liver and biliary tree · BERT score: Merlin 0.641, RadFM 0.328"><line x1="501.7" y1="257.5" x2="539.6" y2="257.5" class="ci"/><rect x="497.9" y="253.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="539.6" cy="257.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="246.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Peritoneal cavity · BERT score: Merlin 0.702, RadFM 0.387"><line x1="508.8" y1="280.5" x2="546.9" y2="280.5" class="ci"/><rect x="505.0" y="276.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="546.9" cy="280.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="269.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lower thorax · BERT score: Merlin 0.615, RadFM 0.406"><line x1="511.1" y1="303.5" x2="536.4" y2="303.5" class="ci"/><rect x="507.3" y="299.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="536.4" cy="303.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="292.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Musculoskeletal · BERT score: Merlin 0.689, RadFM 0.449"><line x1="516.3" y1="326.5" x2="545.4" y2="326.5" class="ci"/><rect x="512.5" y="322.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="545.4" cy="326.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="315.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gastrointestinal tract · BERT score: Merlin 0.531, RadFM 0.398"><line x1="510.2" y1="349.5" x2="526.3" y2="349.5" class="ci"/><rect x="506.4" y="345.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="526.3" cy="349.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="338.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Full report · BERT score: Merlin 0.588, RadFM 0.224"><line x1="489.1" y1="380.5" x2="533.1" y2="380.5" class="ci"/><rect x="485.3" y="376.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="533.1" cy="380.5" r="4.6" class="f-emph ring"/><rect x="458.0" y="369.0" width="129.0" height="23.0" class="hitbox"/></g><text x="609.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU</text><line x1="609.0" y1="56.0" x2="609.0" y2="392.0" class="grid"/><text x="609.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="669.5" y1="56.0" x2="669.5" y2="392.0" class="grid"/><text x="669.5" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="730.0" y1="56.0" x2="730.0" y2="392.0" class="grid"/><text x="730.0" y="406.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1</text><g class="hit" tabindex="0" data-tip="Adrenal glands · BLEU: Merlin 0.030, RadFM 0.006"><line x1="609.7" y1="73.5" x2="612.6" y2="73.5" class="ci"/><rect x="605.9" y="69.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="612.6" cy="73.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="62.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Spleen · BLEU: Merlin 0.002, RadFM 0.000"><line x1="609.0" y1="96.5" x2="609.2" y2="96.5" class="ci"/><rect x="605.2" y="92.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="609.2" cy="96.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="85.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pancreas · BLEU: Merlin 0.001, RadFM 0.000"><line x1="609.0" y1="119.5" x2="609.1" y2="119.5" class="ci"/><rect x="605.2" y="115.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="609.1" cy="119.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="108.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gallbladder · BLEU: Merlin 0.006, RadFM 0.000"><line x1="609.0" y1="142.5" x2="609.7" y2="142.5" class="ci"/><rect x="605.2" y="138.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="609.7" cy="142.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="131.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Vasculature · BLEU: Merlin 0.026, RadFM 0.000"><line x1="609.0" y1="165.5" x2="612.1" y2="165.5" class="ci"/><rect x="605.2" y="161.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="612.1" cy="165.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="154.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lymph nodes · BLEU: Merlin 0.023, RadFM 0.003"><line x1="609.4" y1="188.5" x2="611.8" y2="188.5" class="ci"/><rect x="605.6" y="184.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="611.8" cy="188.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="177.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Pelvic organs · BLEU: Merlin 0.233, RadFM 0.000"><line x1="609.0" y1="211.5" x2="637.2" y2="211.5" class="ci"/><rect x="605.2" y="207.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="637.2" cy="211.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="200.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Kidneys and ureters · BLEU: Merlin 0.269, RadFM 0.005"><line x1="609.6" y1="234.5" x2="641.5" y2="234.5" class="ci"/><rect x="605.8" y="230.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="641.5" cy="234.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="223.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Liver and biliary tree · BLEU: Merlin 0.269, RadFM 0.001"><line x1="609.1" y1="257.5" x2="641.5" y2="257.5" class="ci"/><rect x="605.3" y="253.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="641.5" cy="257.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="246.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Peritoneal cavity · BLEU: Merlin 0.206, RadFM 0.000"><line x1="609.0" y1="280.5" x2="633.9" y2="280.5" class="ci"/><rect x="605.2" y="276.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="633.9" cy="280.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="269.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Lower thorax · BLEU: Merlin 0.019, RadFM 0.001"><line x1="609.1" y1="303.5" x2="611.3" y2="303.5" class="ci"/><rect x="605.3" y="299.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="611.3" cy="303.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="292.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Musculoskeletal · BLEU: Merlin 0.046, RadFM 0.001"><line x1="609.1" y1="326.5" x2="614.6" y2="326.5" class="ci"/><rect x="605.3" y="322.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="614.6" cy="326.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="315.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Gastrointestinal tract · BLEU: Merlin 0.013, RadFM 0.001"><line x1="609.1" y1="349.5" x2="610.6" y2="349.5" class="ci"/><rect x="605.3" y="345.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="610.6" cy="349.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="338.0" width="129.0" height="23.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Full report · BLEU: Merlin 0.102, RadFM 0.000"><line x1="609.0" y1="380.5" x2="621.3" y2="380.5" class="ci"/><rect x="605.2" y="376.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><circle cx="621.3" cy="380.5" r="4.6" class="f-emph ring"/><rect x="605.0" y="369.0" width="129.0" height="23.0" class="hitbox"/></g><text x="154.0" y="73.5" class="t" text-anchor="end" dominant-baseline="central">Adrenal glands</text><text x="154.0" y="96.5" class="t" text-anchor="end" dominant-baseline="central">Spleen</text><text x="154.0" y="119.5" class="t" text-anchor="end" dominant-baseline="central">Pancreas</text><text x="154.0" y="142.5" class="t" text-anchor="end" dominant-baseline="central">Gallbladder</text><text x="154.0" y="165.5" class="t" text-anchor="end" dominant-baseline="central">Vasculature</text><text x="154.0" y="188.5" class="t" text-anchor="end" dominant-baseline="central">Lymph nodes</text><text x="154.0" y="211.5" class="t" text-anchor="end" dominant-baseline="central">Pelvic organs</text><text x="154.0" y="234.5" class="t" text-anchor="end" dominant-baseline="central">Kidneys and ureters</text><text x="154.0" y="257.5" class="t" text-anchor="end" dominant-baseline="central">Liver and biliary tree</text><text x="154.0" y="280.5" class="t" text-anchor="end" dominant-baseline="central">Peritoneal cavity</text><text x="154.0" y="303.5" class="t" text-anchor="end" dominant-baseline="central">Lower thorax</text><text x="154.0" y="326.5" class="t" text-anchor="end" dominant-baseline="central">Musculoskeletal</text><text x="154.0" y="349.5" class="t" text-anchor="end" dominant-baseline="central">Gastrointestinal tract</text><text x="154.0" y="380.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Full report</text></svg></div>
+    <figcaption><b>Figure 2 — Merlin beats RadFM everywhere, and scores track how routine the section is.</b> One row per report section, sorted by Merlin’s RadGraph-F1; the full findings are the last row. Means on the internal test set (n = 5,137); the table gives no confidence intervals. Source: Supplementary Table 8.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Section</th><th scope="col" class="num">BLEU: RadFM</th><th scope="col" class="num">BLEU: Merlin</th><th scope="col" class="num">ROUGE-2: RadFM</th><th scope="col" class="num">ROUGE-2: Merlin</th><th scope="col" class="num">BERT score: RadFM</th><th scope="col" class="num">BERT score: Merlin</th><th scope="col" class="num">RadGraph-F1: RadFM</th><th scope="col" class="num">RadGraph-F1: Merlin</th></tr></thead><tbody><tr><th scope="row">Lower thorax</th><td class="num">0.001</td><td class="num">0.019</td><td class="num">0.070</td><td class="num">0.332</td><td class="num">0.406</td><td class="num">0.615</td><td class="num">0.020</td><td class="num">0.319</td></tr><tr><th scope="row">Liver and biliary tree</th><td class="num">0.001</td><td class="num">0.269</td><td class="num">0.025</td><td class="num">0.389</td><td class="num">0.328</td><td class="num">0.641</td><td class="num">0.080</td><td class="num">0.380</td></tr><tr><th scope="row">Gallbladder</th><td class="num">0.000</td><td class="num">0.006</td><td class="num">0.006</td><td class="num">0.632</td><td class="num">0.534</td><td class="num">0.851</td><td class="num">0.152</td><td class="num">0.721</td></tr><tr><th scope="row">Spleen</th><td class="num">0.000</td><td class="num">0.002</td><td class="num">0.004</td><td class="num">0.710</td><td class="num">0.382</td><td class="num">0.853</td><td class="num">0.283</td><td class="num">0.805</td></tr><tr><th scope="row">Pancreas</th><td class="num">0.000</td><td class="num">0.001</td><td class="num">0.010</td><td class="num">0.700</td><td class="num">0.447</td><td class="num">0.849</td><td class="num">0.091</td><td class="num">0.748</td></tr><tr><th scope="row">Adrenal glands</th><td class="num">0.006</td><td class="num">0.030</td><td class="num">0.067</td><td class="num">0.882</td><td class="num">0.490</td><td class="num">0.942</td><td class="num">0.106</td><td class="num">0.879</td></tr><tr><th scope="row">Kidneys and ureters</th><td class="num">0.005</td><td class="num">0.269</td><td class="num">0.040</td><td class="num">0.385</td><td class="num">0.368</td><td class="num">0.654</td><td class="num">0.091</td><td class="num">0.387</td></tr><tr><th scope="row">Gastrointestinal tract</th><td class="num">0.001</td><td class="num">0.013</td><td class="num">0.037</td><td class="num">0.152</td><td class="num">0.398</td><td class="num">0.531</td><td class="num">0.092</td><td class="num">0.167</td></tr><tr><th scope="row">Peritoneal cavity</th><td class="num">0.000</td><td class="num">0.206</td><td class="num">0.005</td><td class="num">0.390</td><td class="num">0.387</td><td class="num">0.702</td><td class="num">0.050</td><td class="num">0.335</td></tr><tr><th scope="row">Pelvic organs</th><td class="num">0.000</td><td class="num">0.233</td><td class="num">0.009</td><td class="num">0.358</td><td class="num">0.328</td><td class="num">0.656</td><td class="num">0.036</td><td class="num">0.432</td></tr><tr><th scope="row">Vasculature</th><td class="num">0.000</td><td class="num">0.026</td><td class="num">0.004</td><td class="num">0.485</td><td class="num">0.232</td><td class="num">0.748</td><td class="num">0.006</td><td class="num">0.548</td></tr><tr><th scope="row">Lymph nodes</th><td class="num">0.003</td><td class="num">0.023</td><td class="num">0.119</td><td class="num">0.601</td><td class="num">0.502</td><td class="num">0.775</td><td class="num">0.031</td><td class="num">0.542</td></tr><tr><th scope="row">Musculoskeletal</th><td class="num">0.001</td><td class="num">0.046</td><td class="num">0.018</td><td class="num">0.303</td><td class="num">0.449</td><td class="num">0.689</td><td class="num">0.008</td><td class="num">0.293</td></tr><tr class="ours"><th scope="row">Full report</th><td class="num">0.000</td><td class="num">0.102</td><td class="num">0.011</td><td class="num">0.262</td><td class="num">0.224</td><td class="num">0.588</td><td class="num">0.008</td><td class="num">0.293</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Four things stand out:</p>
+  <ol class="num-list">
+    <li><strong>Merlin wins all 56 comparisons, against a baseline near zero.</strong> On full reports RadFM gets BLEU 0.000, ROUGE-2 0.011 and RadGraph-F1 0.008. The paper doesn’t say whether RadFM was fine-tuned on these reports. Scores this low suggest it was used as released <span class="tag">likely, not confirmed</span>: CT-FineBench gets a similar near-zero overlap from RadFM on this dataset, also without saying how it was run. If so, the gap measures training on this hospital’s report format more than image understanding.</li>
+    <li><strong>Scores are highest where “normal” is the usual answer.</strong> RadGraph-F1 is 0.88 for the adrenal glands, 0.81 for the spleen and 0.75 for the pancreas, three sections that read “normal” in all three reference reports the paper shows <span class="tag">our observation</span>. It is 0.17 for the gastrointestinal tract and about 0.3 for the musculoskeletal system, the lower thorax and the peritoneal cavity.</li>
+    <li><strong>Low BLEU here often means short, not wrong.</strong> BLEU is below 0.05 on 9 of the 13 sections <span class="tag">derived</span>, including the spleen (0.002), where ROUGE-2 is 0.71. The scorer the authors shared is a BLEU-4, and under it a perfect match scores 0.001 on a two-token section and 0.03 on a three-token one <span class="tag">derived</span>. “Spleen: normal” can’t score higher, and the adrenal glands’ 0.030 is close to that ceiling. BERT score has the opposite problem: RadFM stays between 0.22 and 0.53 while its other scores are mostly near zero.</li>
+    <li><strong>The full report scores below most of its parts.</strong> Its RadGraph-F1 is 0.293 in the table, against a mean of 0.504 over the 13 sections <span class="tag">derived</span>. A report-level score isn’t an average of section scores: the long, finding-heavy sections hold most of the entities <span class="tag">our observation</span>.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="label">One value, two versions <span class="tag">our observation</span></span>
+    <p>In Supplementary Table 8, the full-report RadGraph-F1 pair (0.008 for RadFM, 0.293 for Merlin) is identical to the musculoskeletal row above it. In the chart of the same data, Extended Data Fig. 3b, Merlin’s full-report bar is clearly taller than the musculoskeletal one. We measured the bars: the 13 section bars reproduce the table to within 0.003, and the full-report bar comes out at about 0.37. The other three full-report values agree between table and chart, and the pair is already in the June 2024 preprint. Until this is clarified, quote the value with its source.</p>
+  </div>
+</section>
+
+<section id="errors" data-toc="The errors">
+  <h2><span class="n">06</span>What the errors look like</h2>
+  <p>The paper annotates three generated reports phrase by phrase, and states the main weakness itself: Merlin tends to under-report positive findings. The examples show more:</p>
+  <ul>
+    <li><strong>Missed and partial findings:</strong> gallstones that are in the image and in the radiologist’s report; one side of bilateral pleural effusions.</li>
+    <li><strong>Invented references:</strong> series and image numbers, such as “3/297”, that the model has no way to know.</li>
+    <li><strong>Contradictions:</strong> a post-cholecystectomy state in one section and a normal gallbladder in the next; a renal cyst in one section and normal kidneys in another.</li>
+    <li><strong>Length:</strong> 274 words, against 154 for the radiologist, in one case.</li>
+  </ul>
+  <p>The annotations catch the radiologists too. One reference report calls the pancreas normal after a Whipple procedure, a template default that was never edited. Reference reports are noisy, and every metric above inherits that noise.</p>
+
+  <div class="callout soft">
+    <span class="label">What one section at a time costs <span class="tag">our observation</span></span>
+    <p>Two of these errors follow from the design. Each section is generated in its own pass, with no view of what the other passes wrote, so nothing ties the gallbladder section to the biliary one. And a token that summarises a 48 mm cube can’t point to a slice: the series and image numbers are habits copied from the training reports. Removing them from the training targets would fix the second problem at no cost.</p>
+  </div>
+</section>
+
+<section id="after" data-toc="What happened next">
+  <h2><span class="n">07</span>What happened next: the benchmark</h2>
+  <p>Merlin’s test split became the place where abdominal CT report generators are compared. Its baseline numbers travel with it, and they don’t travel unchanged.</p>
+
+  <figure id="fig-after">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 307" role="img" aria-label="RadGraph-F1 on Merlin&#x27;s abdominal test split, by source" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Merlin, four ways</text><rect x="146.5" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="161.5" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Other systems</text><line x1="360.0" y1="30.0" x2="360.0" y2="277.0" class="grid"/><text x="360.0" y="291.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="432.5" y1="30.0" x2="432.5" y2="277.0" class="grid"/><text x="432.5" y="291.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="505.0" y1="30.0" x2="505.0" y2="277.0" class="grid"/><text x="505.0" y="291.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="577.5" y1="30.0" x2="577.5" y2="277.0" class="grid"/><text x="577.5" y="291.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="650.0" y1="30.0" x2="650.0" y2="277.0" class="grid"/><text x="650.0" y="291.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><text x="0.0" y="47.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Merlin, in its own chart</text><text x="220.0" y="47.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">paper · 5,137 scans</text><g class="hit" tabindex="0" data-tip="Merlin, in its own chart: about 0.37 · Extended Data Fig. 3b; our measurement of the bar"><path class="f-emph" d="M360.0,40.5H624.2Q628.2,40.5 628.2,44.5V50.5Q628.2,54.5 624.2,54.5H360.0Z"/><text x="635.2" y="47.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">≈0.37</text><rect x="360.0" y="35.5" width="328.2" height="24.0" class="hitbox"/></g><text x="0.0" y="74.5" class="t" text-anchor="start" dominant-baseline="central">NV-Reason-CT</text><text x="220.0" y="74.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">NV paper · 5,125</text><g class="hit" tabindex="0" data-tip="NV-Reason-CT: RadGraph-F1 0.322 · arXiv:2609.27511, Table 6; after one epoch on Merlin&#x27;s training reports"><path class="f-ctx" d="M360.0,67.5H589.2Q593.2,67.5 593.2,71.5V77.5Q593.2,81.5 589.2,81.5H360.0Z"/><text x="600.2" y="74.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.322</text><rect x="360.0" y="62.5" width="293.2" height="24.0" class="hitbox"/></g><text x="0.0" y="101.5" class="t" text-anchor="start" dominant-baseline="central">Jolia</text><text x="220.0" y="101.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Jolia paper · 5,125</text><g class="hit" tabindex="0" data-tip="Jolia: RadGraph-F1 0.317 · arXiv:2606.24570, Table 4"><path class="f-ctx" d="M360.0,94.5H585.8Q589.8,94.5 589.8,98.5V104.5Q589.8,108.5 585.8,108.5H360.0Z"/><text x="596.8" y="101.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.317</text><rect x="360.0" y="89.5" width="289.8" height="24.0" class="hitbox"/></g><text x="0.0" y="128.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Merlin, in its own table</text><text x="220.0" y="128.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">paper · 5,137 scans</text><g class="hit" tabindex="0" data-tip="Merlin, in its own table: RadGraph-F1 0.293 · Supplementary Table 8"><path class="f-emph" d="M360.0,121.5H568.4Q572.4,121.5 572.4,125.5V131.5Q572.4,135.5 568.4,135.5H360.0Z"/><text x="579.4" y="128.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.293</text><rect x="360.0" y="116.5" width="272.4" height="24.0" class="hitbox"/></g><text x="0.0" y="155.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Merlin, re-run by Jolia</text><text x="220.0" y="155.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Jolia paper · 5,125</text><g class="hit" tabindex="0" data-tip="Merlin, re-run by Jolia: RadGraph-F1 0.237 · arXiv:2606.24570, Table 4"><path class="f-emph" d="M360.0,148.5H527.8Q531.8,148.5 531.8,152.5V158.5Q531.8,162.5 527.8,162.5H360.0Z"/><text x="538.8" y="155.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.237</text><rect x="360.0" y="143.5" width="231.8" height="24.0" class="hitbox"/></g><text x="0.0" y="182.5" class="t t-strong" text-anchor="start" dominant-baseline="central">Merlin, scored by CT-FineBench</text><text x="220.0" y="182.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">CT-FineBench · 5,082</text><g class="hit" tabindex="0" data-tip="Merlin, scored by CT-FineBench: RadGraph-F1 0.187 · arXiv:2604.24001, Table 3"><path class="f-emph" d="M360.0,175.5H491.6Q495.6,175.5 495.6,179.5V185.5Q495.6,189.5 491.6,189.5H360.0Z"/><text x="502.6" y="182.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.187</text><rect x="360.0" y="170.5" width="195.6" height="24.0" class="hitbox"/></g><text x="0.0" y="209.5" class="t" text-anchor="start" dominant-baseline="central">MedGemma 1.5</text><text x="220.0" y="209.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Jolia paper · 5,125</text><g class="hit" tabindex="0" data-tip="MedGemma 1.5: RadGraph-F1 0.032 · arXiv:2606.24570, Table 4"><path class="f-ctx" d="M360.0,202.5H379.2Q383.2,202.5 383.2,206.5V212.5Q383.2,216.5 379.2,216.5H360.0Z"/><text x="390.2" y="209.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.032</text><rect x="360.0" y="197.5" width="83.2" height="24.0" class="hitbox"/></g><text x="0.0" y="236.5" class="t" text-anchor="start" dominant-baseline="central">Med3DVLM</text><text x="220.0" y="236.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Jolia paper · 5,125</text><g class="hit" tabindex="0" data-tip="Med3DVLM: RadGraph-F1 0.010 · arXiv:2606.24570, Table 4"><path class="f-ctx" d="M360.0,229.5H363.2Q367.2,229.5 367.2,233.5V239.5Q367.2,243.5 363.2,243.5H360.0Z"/><text x="374.2" y="236.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.010</text><rect x="360.0" y="224.5" width="67.2" height="24.0" class="hitbox"/></g><text x="0.0" y="263.5" class="t" text-anchor="start" dominant-baseline="central">RadFM</text><text x="220.0" y="263.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">paper · 5,137 scans</text><g class="hit" tabindex="0" data-tip="RadFM: RadGraph-F1 0.008 · Supplementary Table 8"><path class="f-ctx" d="M360.0,256.5H361.8Q365.8,256.5 365.8,260.5V266.5Q365.8,270.5 361.8,270.5H360.0Z"/><text x="372.8" y="263.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.008</text><rect x="360.0" y="251.5" width="65.8" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — One model, four RadGraph-F1 values.</b> RadGraph-F1 for generated findings on Merlin’s test split, by who computed it. NV-Reason-CT was first tuned for one epoch on Merlin’s training reports. Sources: Supplementary Table 8 and Extended Data Fig. 3b; Jolia (arXiv:2606.24570), Table 4; CT-FineBench (arXiv:2604.24001), Table 3; NV-Reason-CT (arXiv:2609.27511), Table 6.</figcaption>
+  </figure>
+
+  <p>How far the later systems lead depends on which Merlin they are compared with. Against the Jolia authors’ re-run (0.237), Jolia and NV-Reason-CT are 0.08 ahead. Against Merlin’s own table they are 0.02 to 0.03 ahead, and against its chart they are behind. Only the first comparison stays within one evaluation setup: the Jolia team scored Merlin and Jolia, and NV-Reason-CT followed that setup for its own score. It is the one to trust. At least two things can move the number: RadGraph-F1 has three levels (simple, partial, complete), which papers rarely name, and two generator checkpoints have been released, in September 2025 and May 2026.</p>
+  <p>RadGraph-F1 is still a text metric. The finding-level score came from DKFZ’s Resolution Meets Reduction paper, which ran a 30-finding classifier over Merlin’s and Jolia’s official test reports. Merlin’s get a macro-F1 of 0.097, with recall 0.096 and precision 0.216, against 0.238 for Jolia and 0.47 to 0.49 for that paper’s own models. That puts a number on the remark about under-reporting.</p>
+  <p>The nnFoundation paper took a different route: it put Merlin’s encoder and eight others behind one fixed language-model stack. That isolates the encoder, which the report experiment in this paper doesn’t.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">08</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>Clinical accuracy:</strong> no finding-level precision or recall for the generated reports, although the paper labels 30 findings on the same test set for its classification task. Others had to supply it (<a href="#after">section 07</a>).</li>
+    <li><strong>A trivial baseline:</strong> no “always normal” output per section, so high section scores can’t be read.</li>
+    <li><strong>The RadFM protocol:</strong> fine-tuned or not, its prompt and its decoding.</li>
+    <li><strong>Generator ablations:</strong> another encoder, an unfrozen one, more tokens, or the whole report in one pass.</li>
+    <li><strong>Uncertainty and scope:</strong> confidence intervals appear only as error bars on the chart’s section bars, the RadGraph-F1 variant isn’t named, and report generation isn’t part of the external validation.</li>
+  </ul>
+  <p>The authors don’t claim otherwise. They call this an early demonstration, and list the adapter and the language model as the parts to tune next.</p>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">09</span>Takeaways for building a CT report generator</h2>
+  <ol class="num-list">
+    <li><strong>Quote Merlin’s report numbers with their source.</strong> The same model has a RadGraph-F1 of 0.187, 0.237, 0.293 or about 0.37, depending on who computed it.</li>
+    <li><strong>Score findings, not only text.</strong> A recall of 0.10 over 30 findings is invisible in BLEU, ROUGE-2, BERT score and RadGraph-F1.</li>
+    <li><strong>Score per section, next to a trivial baseline, and mind section length.</strong> A 0.88 on a section that is nearly always normal says little, and BLEU-4 tops out at 0.03 on a three-token section.</li>
+    <li><strong>Generate the report as a whole, and clean the targets.</strong> Independent passes contradicted each other, and slice numbers in the training reports came back as inventions.</li>
+    <li><strong>Use the dataset.</strong> A public abdominal set with a fixed 5,125-scan test split is this paper’s durable contribution to report generation.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Blankemeier, L., Kumar, A., et al. <a href="https://doi.org/10.1038/s41586-026-10181-8">Merlin: a computed tomography vision–language foundation model and dataset</a>. Nature 652, 1318–1328 (2026). Preprint with the supplement: <a href="https://arxiv.org/abs/2406.06512">arXiv:2406.06512</a>.</li>
+    <li>Merlin <a href="https://github.com/StanfordMIMI/Merlin">code</a> · <a href="https://huggingface.co/stanfordmimi/Merlin">weights</a> · <a href="https://stanfordaimi.azurewebsites.net/datasets/60b9c7ff-877b-48ce-96c3-0194c8205c40">dataset</a> (Stanford AIMI).</li>
+    <li>Jolia: <a href="https://arxiv.org/abs/2606.24570">arXiv:2606.24570</a> (2026), Table 4. CT-FineBench: <a href="https://arxiv.org/abs/2604.24001">arXiv:2604.24001</a> (2026), Table 3. Resolution Meets Reduction: <a href="https://arxiv.org/abs/2608.08713">arXiv:2608.08713</a> (2026), Table 7.</li>
+    <li>NV-Reason-CT: <a href="https://arxiv.org/abs/2609.27511">arXiv:2609.27511</a> (2026), Table 6; our post, <a href="/research-blog/nv-reason-ct-report-generation/">NV-Reason-CT, read for report generation</a>.</li>
+    <li>nnFoundation: <a href="https://arxiv.org/abs/2609.26924">arXiv:2609.26924</a> (2026); our post, <a href="/research-blog/nnfoundation-report-generation/">nnFoundation, read for report generation</a>.</li>
+    <li>Wu, C., et al. RadFM: <a href="https://arxiv.org/abs/2308.02463">arXiv:2308.02463</a> (2023).</li>
+    <li>Delbrouck, J.-B., et al. RadGraph-F1: <a href="https://arxiv.org/abs/2210.12186">arXiv:2210.12186</a> (2022).</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Merlin (Nature 652, 1318–1328, 2026). All numbers come from the paper and its Supplementary Information, or from the source cited beside them, unless marked <em>derived</em> or <em>our observation</em>. Figures were generated with Python from those numbers. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
