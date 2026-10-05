@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PET/CT lesion captioning, read for report generation</title>
+<meta name="description" content="A report-generation reading of a MICCAI 2025 paper that captions lesions on whole-body PET/CT: nine captioners score BLEU-4 between 70.1 and 76.9, two location-guided modules add under 2 points, and CT-finding accuracy is 67.3%.">
+<meta property="og:title" content="PET/CT lesion captioning, read for report generation">
+<meta property="og:description" content="A report-generation reading of a MICCAI 2025 paper that captions lesions on whole-body PET/CT: nine captioners score BLEU-4 between 70.1 and 76.9, two location-guided modules add under 2 points, and CT-finding accuracy is 67.3%.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/petct-lesion-captioning-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/petct-lesion-captioning-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="PET/CT lesion captioning, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/petct-lesion-captioning-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/petct-lesion-captioning-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0508-Paper0248.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/0248_paper.pdf">PDF</a>
+      <a href="https://doi.org/10.1007/978-3-032-04971-1_33">DOI</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · PET/CT report generation</p>
+    <h1>PET/CT lesion captioning, read for report generation</h1>
+    <p class="dek">A MICCAI 2025 paper writes one sentence per lesion on whole-body PET/CT, helped by a predicted anatomical location. Its captions reach a BLEU-4 of 76.9, while its own word-matching check puts CT-finding accuracy at 67.3%: a lesson in how to score lesion-level reports.</p>
+    <div class="meta">
+      <span><b>Paper</b> Mingyang Yu, Yaozong Gao, … Meixin Zhao, Dinggang Shen. <a href="https://papers.miccai.org/miccai-2025/0508-Paper0248.html"><i>Location-Guided Automated Lesion Captioning in Whole-body PET/CT Images</i></a>. MICCAI 2025, LNCS 15964, pp. 348–357</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 5 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">5,159</div><div class="l">test lesions from 120 patients, about 43 each<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">76.9</div><div class="l">BLEU-4 of the full model; a plain CNN-LSTM scores 70.1</div></div>
+    <div class="tile" role="listitem"><div class="v">+1.9</div><div class="l">points of location accuracy from the two location-guided modules: 81.0 → 82.9</div></div>
+    <div class="tile" role="listitem"><div class="v">67.3%</div><div class="l">CT-finding accuracy by word matching, the full model’s lowest score</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic: 5,159 / 120.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>One sentence per lesion, with the lesion given.</strong> Masks come from an nnU-Net and are cleaned by radiologists. The model writes what the CT shows and where; no caption printed in the paper mentions tracer uptake.</li>
+      <li><strong>The location reaches the decoder as words and as a CT window.</strong> A CLIP-style model names the region from a wider crop. The two modules add 1.2 BLEU-4, 1.9 points of location accuracy and 1.8 of CT-finding accuracy to an X-Transformer baseline.</li>
+      <li><strong>BLEU-4 is a poor ruler for these sentences.</strong> Nine captioners score between 70.1 and 76.9. By our arithmetic on the paper’s own examples, a caption with the wrong neck node level scores 82.7 and one with a harmless synonym 78.3; with punctuation counted, they tie.</li>
+      <li><strong>What we can’t tell.</strong> Data and code are private, and no result is split by scanner maker. No reader rated the captions, and the significance test doesn’t say whether it counts lesions or patients.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>This is the blog’s first PET/CT post. For readers who work on CT or chest X-ray reports, three things change:</p>
+  <ul>
+    <li><strong>Two volumes per exam.</strong> PET shows where an injected tracer accumulates, here FDG or a PSMA tracer; CT shows anatomy and density. A report sentence usually joins the two: where the lesion is, what the CT shows, how strong the uptake is.</li>
+    <li><strong>The whole body.</strong> A scan typically runs from the skull base to the thighs. Neither the location model nor the captioner in this paper sees it whole.</li>
+    <li><strong>A sentence, not a report.</strong> The model takes one lesion mask at a time and writes one sentence about it. The authors present it as the first lesion captioner for whole-body PET/CT.</li>
+  </ul>
+  <p>So the experiment asks a narrow question: given a confirmed lesion, can a model name its location and its CT appearance? Detection is outside the score, because the masks are given (Figure 1). Unlike the CT systems read so far <a href="/research-blog/">in this series</a>, the model has no LLM. A 3D CNN encoder feeds the X-Transformer, a captioning model from 2020; the rebuttal counts about 400M parameters.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Pipeline: a lesion mask on a whole-body PET/CT; a wide crop goes to a location model that ranks 130 location names; a rule turns its answer into a text prompt and a CT window; a close-up goes through a 3D CNN encoder; an X-Transformer decoder writes one sentence; the sentence is scored against a reference caption">
+      <div class="row">
+        <div class="box"><div class="t1">Whole-body PET/CT and one lesion mask</div><div class="t2">Mask from an nnU-Net; false positives removed by radiologists</div></div>
+        <div class="shape">one lesion at a time</div>
+      </div>
+      <div class="conn"><div>wide crop around the lesion</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">Stage 1: location model</div><div class="t2">CLIP-style: ranks 130 location names. Trained first</div></div>
+        <div class="shape">96 × 96 × 128 voxels, 2 mm<br>≈ 19 × 19 × 26 cm<br>→ top 5 names + confidence</div>
+      </div>
+      <div class="conn"><div>top confidence above 0.95: one name and that region’s CT window · otherwise: three names and the soft-tissue window</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Stage 2: image encoder</div><div class="t2">3D CNN on a close-up, CT windowed by the rule above</div></div>
+        <div class="shape">64³ voxels, 1.5 mm<br>= 9.6 cm cube</div>
+      </div>
+      <div class="conn"><div>location names embedded as words and concatenated with the image features</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Text decoder: X-Transformer</div><div class="t2">Writes one sentence: a CT finding and where it is</div></div>
+        <div class="shape">one caption per lesion</div>
+      </div>
+      <div class="conn"><div>compared with one reference caption</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">Scores</div><div class="t2">BLEU, METEOR, ROUGE-L, CIDEr, SPICE. In the ablation only: word-matching accuracy for location and CT finding</div></div>
+        <div class="shape">5,159 test lesions<br>120 patients</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen</span>
+        <span><i style="background:var(--ink)"></i>trained</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The lesion is given; its location arrives as words and as a CT window.</b> Sizes are printed in the paper’s Figure 2; the centimetres are our arithmetic. Sources: Sections 2 and 3.</figcaption>
+  </figure>
+</section>
+
+<section id="data" data-toc="Data and captions">
+  <h2><span class="n">02</span>The data and the captions</h2>
+  <p>The dataset holds 1,867 whole-body scans of patients with lymphoma or with nasopharyngeal, lung, prostate or liver cancer. The paper doesn’t say where they were acquired. Its authors are at ShanghaiTech University, United Imaging Intelligence and two nuclear medicine departments, in Beijing and Guangzhou, and its acknowledgments thank the Guangzhou one for “validation data”.</p>
+
+  <figure id="fig-data">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 246" role="img" aria-label="The 1,867 scans by scanner maker, tracer and split" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><text x="0.0" y="21.0" class="t t-head" text-anchor="start" dominant-baseline="central">Scanner maker</text><g class="hit" tabindex="0" data-tip="United Imaging: 1,276 scans (68.3%)"><rect x="130.0" y="10.0" width="428.6" height="22.0" class="f-emph"/><text x="138.0" y="21.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">United Imaging 68.3%</text><rect x="130.0" y="6.0" width="428.6" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Siemens: 301 scans (16.1%)"><rect x="560.6" y="10.0" width="99.6" height="22.0" class="f-mid"/><text x="568.6" y="21.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Siemens 16.1%</text><rect x="560.6" y="6.0" width="99.6" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GE: 290 scans (15.5%)"><rect x="662.1" y="10.0" width="97.9" height="22.0" class="f-ctx"/><text x="670.1" y="21.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">GE 15.5%</text><rect x="662.1" y="6.0" width="97.9" height="30.0" class="hitbox"/></g><rect x="130.0" y="46.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="145.0" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">United Imaging 1,276</text><rect x="289.5" y="46.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="304.5" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Siemens 301</text><rect x="392.1" y="46.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="407.1" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">GE 290</text><text x="0.0" y="105.0" class="t t-head" text-anchor="start" dominant-baseline="central">Tracer</text><g class="hit" tabindex="0" data-tip="FDG: 1,292 scans (69.2%)"><rect x="130.0" y="94.0" width="434.0" height="22.0" class="f-emph"/><text x="138.0" y="105.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">FDG 69.2%</text><rect x="130.0" y="90.0" width="434.0" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="PSMA: 575 scans (30.8%)"><rect x="566.0" y="94.0" width="194.0" height="22.0" class="f-ctx"/><text x="574.0" y="105.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">PSMA 30.8%</text><rect x="566.0" y="90.0" width="194.0" height="30.0" class="hitbox"/></g><rect x="130.0" y="130.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="145.0" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">FDG 1,292</text><rect x="219.9" y="130.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="234.9" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">PSMA 575</text><text x="0.0" y="189.0" class="t t-head" text-anchor="start" dominant-baseline="central">Split, by patient</text><g class="hit" tabindex="0" data-tip="Training: 1,647 scans (88.2%), 46,434 lesions"><rect x="130.0" y="178.0" width="553.8" height="22.0" class="f-emph"/><text x="138.0" y="189.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Training 88.2%</text><rect x="130.0" y="174.0" width="553.8" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Validation: 100 scans (5.4%), 4,482 lesions"><rect x="685.8" y="178.0" width="31.7" height="22.0" class="f-mid"/><rect x="685.8" y="174.0" width="31.7" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Test: 120 scans (6.4%), 5,159 lesions"><rect x="719.5" y="178.0" width="40.5" height="22.0" class="f-ctx"/><text x="739.8" y="189.0" class="t t-small t-strong" text-anchor="middle" dominant-baseline="central">6.4%</text><rect x="719.5" y="174.0" width="40.5" height="30.0" class="hitbox"/></g><rect x="130.0" y="214.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="145.0" y="219.0" class="t t-small" text-anchor="start" dominant-baseline="central">Training 1,647 scans · 46,434 lesions</text><rect x="397.0" y="214.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="412.0" y="219.0" class="t t-small" text-anchor="start" dominant-baseline="central">Validation 100 · 4,482</text><rect x="569.2" y="214.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="584.2" y="219.0" class="t t-small" text-anchor="start" dominant-baseline="central">Test 120 · 5,159</text></svg></div>
+    <figcaption><b>Figure 2 — One maker supplies two thirds of the scans, and the test set is 120 patients.</b> Each bar divides the 1,867 scans one way; the counts are in the legend. Source: Section 3.1.</figcaption>
+  </figure>
+
+  <p>The split is by patient ID, which a reviewer had asked about. How patients were assigned isn’t described. Test and validation patients carry about 43 and 45 lesions each, against 28 in training <span class="tag">derived</span>, which suggests the draw was not random <span class="tag">our observation</span>.</p>
+  <p>A reference caption reads: “A lymph node is noted in the left neck (level Va) region.” It is probably not dictated text: for the training set, the paper says an LLM turned the original reports into structured ones and radiologists refined the result. The paper names neither the LLM nor the language of the reports; its examples are printed in English.</p>
+
+  <div class="callout">
+    <span class="label">Where is the PET? <span class="tag">our observation</span></span>
+    <p>The paper prints 24 captions, references and model outputs together. They describe CT findings and locations; none mentions uptake or an SUV. The two accuracy measures cover the same two fields, and no run removes the PET input.</p>
+    <p>So the score is for a CT description of a lesion that PET presumably helped to find.</p>
+  </div>
+</section>
+
+<section id="method" data-toc="The location">
+  <h2><span class="n">03</span>How the location reaches the decoder</h2>
+  <p>Naming a location takes context that a close-up lacks: which rib, which vertebra. So the paper crops each lesion twice. The captioner reads 64³ voxels at 1.5 mm, a 9.6 cm cube. The location model reads 96 × 96 × 128 voxels at 2 mm, about 19 × 19 × 26 cm, over ten times the volume <span class="tag">derived</span>.</p>
+  <p>The paper calls stage 1 CLIP-based lesion localisation, but it doesn’t find lesions. It matches the wide crop against the names of 130 anatomical locations, such as right lung, hilum or mediastinum, and returns the five best, each with a confidence. With a closed list, this is in effect a 130-way classifier trained with a contrastive loss.</p>
+  <p>Two rules pass its answer to the captioner, both with a threshold of 0.95. Our reconstruction from the paper’s Sections 2.2–2.3 and Figure 2, not the authors’ code; the windowing formula, the HU unit and the encoder’s inputs are our assumptions:</p>
+<pre><code>SOFT_TISSUE = (40, 350)            <span class="c"># CT window: (level, width) in HU</span>
+<span class="c"># also named in the paper: lung (-600, 1500), bone (800, 2600)</span>
+<span class="c"># window_of: location name -&gt; window; the table isn't published</span>
+
+<span class="k">def</span> guide(names, conf, window_of, thr=0.95):
+    <span class="c">"""names, conf: stage-1 answers, best first."""</span>
+    <span class="k">if</span> conf[0] &gt; thr:              <span class="c"># confident: trust the top answer</span>
+        <span class="k">return</span> names[:1], window_of[names[0]]
+    <span class="k">return</span> names[:3], SOFT_TISSUE  <span class="c"># unsure: 3 names, default window</span>
+
+<span class="k">def</span> caption(ct, pet, mask, names, conf, window_of):
+    prompt, (level, width) = guide(names, conf, window_of)
+    ct = ((ct - level) / width + 0.5).clip(0, 1)   <span class="c"># window to [0, 1]</span>
+    feats = encoder(ct, pet, mask)        <span class="c"># close-up: 64³ at 1.5 mm</span>
+    words = embed(pad(tokenize(prompt)))  <span class="c"># location names as tokens</span>
+    <span class="k">return</span> decoder(concat(feats, words))  <span class="c"># one sentence</span></code></pre>
+  <p>A reviewer asked whether the window was a lookup table. The rebuttal doesn’t say no: it calls the pairing of region and window clinical prior knowledge, and puts the contribution in choosing it automatically. It also explains 0.95: above it, the top answer was right more than 90% of the time on validation data.</p>
+  <p>The paper gives no accuracy for stage 1 as a whole. A <a href="https://pubmed.ncbi.nlm.nih.gov/40824976/">companion paper</a> by the same team reports 84.13% on an internal test set and 80.42% on an external one, for a finer localiser with 387 locations. The label set and the test data differ, so read it as an order of magnitude.</p>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">04</span>Results: nine captioners, seven points</h2>
+  <p>The main table sets the full model against eight captioning models from the natural-image literature, the newest from 2020. The paper doesn’t say how they were adapted to 3D PET/CT or trained. The X-Transformer row is the authors’ own baseline: it matches the first row of the ablation to the decimal.</p>
+
+  <figure id="fig-decoders">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 283" role="img" aria-label="BLEU-4 of nine captioners on the PET/CT lesion test set" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><line x1="162.0" y1="6.0" x2="162.0" y2="253.0" class="grid"/><text x="162.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="406.0" y1="6.0" x2="406.0" y2="253.0" class="grid"/><text x="406.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50</text><line x1="650.0" y1="6.0" x2="650.0" y2="253.0" class="grid"/><text x="650.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100</text><text x="150.0" y="23.5" class="t t-strong" text-anchor="end" dominant-baseline="central">This paper’s model</text><g class="hit" tabindex="0" data-tip="This paper · BLEU-3 80.1 · BLEU-4 76.9 · METEOR 85.8 · ROUGE-L 88.3 · CIDEr 7.92 · SPICE 88.7"><path class="f-emph" d="M162.0,16.5H533.3Q537.3,16.5 537.3,20.5V26.5Q537.3,30.5 533.3,30.5H162.0Z"/><text x="544.3" y="23.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">76.9</text><rect x="162.0" y="11.5" width="435.3" height="24.0" class="hitbox"/></g><text x="150.0" y="50.5" class="t" text-anchor="end" dominant-baseline="central">X-Transformer</text><g class="hit" tabindex="0" data-tip="X-Transformer · BLEU-3 78.9 · BLEU-4 75.7 · METEOR 84.9 · ROUGE-L 87.5 · CIDEr 7.80 · SPICE 87.9"><path class="f-ctx" d="M162.0,43.5H527.4Q531.4,43.5 531.4,47.5V53.5Q531.4,57.5 527.4,57.5H162.0Z"/><text x="538.4" y="50.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">75.7</text><rect x="162.0" y="38.5" width="429.4" height="24.0" class="hitbox"/></g><text x="150.0" y="77.5" class="t" text-anchor="end" dominant-baseline="central">Up-Down</text><g class="hit" tabindex="0" data-tip="Up-Down · BLEU-3 78.6 · BLEU-4 75.1 · METEOR 85.0 · ROUGE-L 87.7 · CIDEr 7.76 · SPICE 88.1"><path class="f-ctx" d="M162.0,70.5H524.5Q528.5,70.5 528.5,74.5V80.5Q528.5,84.5 524.5,84.5H162.0Z"/><text x="535.5" y="77.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">75.1</text><rect x="162.0" y="65.5" width="426.5" height="24.0" class="hitbox"/></g><text x="150.0" y="104.5" class="t" text-anchor="end" dominant-baseline="central">X-LAN</text><g class="hit" tabindex="0" data-tip="X-LAN · BLEU-3 78.4 · BLEU-4 74.8 · METEOR 84.8 · ROUGE-L 87.4 · CIDEr 7.76 · SPICE 87.7"><path class="f-ctx" d="M162.0,97.5H523.0Q527.0,97.5 527.0,101.5V107.5Q527.0,111.5 523.0,111.5H162.0Z"/><text x="534.0" y="104.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">74.8</text><rect x="162.0" y="92.5" width="425.0" height="24.0" class="hitbox"/></g><text x="150.0" y="131.5" class="t" text-anchor="end" dominant-baseline="central">Transformer</text><g class="hit" tabindex="0" data-tip="Transformer · BLEU-3 78.1 · BLEU-4 74.6 · METEOR 84.5 · ROUGE-L 87.2 · CIDEr 7.71 · SPICE 87.6"><path class="f-ctx" d="M162.0,124.5H522.0Q526.0,124.5 526.0,128.5V134.5Q526.0,138.5 522.0,138.5H162.0Z"/><text x="533.0" y="131.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">74.6</text><rect x="162.0" y="119.5" width="424.0" height="24.0" class="hitbox"/></g><text x="150.0" y="158.5" class="t" text-anchor="end" dominant-baseline="central">LSTM-A</text><g class="hit" tabindex="0" data-tip="LSTM-A · BLEU-3 77.6 · BLEU-4 74.1 · METEOR 84.5 · ROUGE-L 87.3 · CIDEr 7.67 · SPICE 87.7"><path class="f-ctx" d="M162.0,151.5H519.6Q523.6,151.5 523.6,155.5V161.5Q523.6,165.5 519.6,165.5H162.0Z"/><text x="530.6" y="158.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">74.1</text><rect x="162.0" y="146.5" width="421.6" height="24.0" class="hitbox"/></g><text x="150.0" y="185.5" class="t" text-anchor="end" dominant-baseline="central">AoANet</text><g class="hit" tabindex="0" data-tip="AoANet · BLEU-3 77.3 · BLEU-4 73.4 · METEOR 84.5 · ROUGE-L 87.2 · CIDEr 7.62 · SPICE 87.6"><path class="f-ctx" d="M162.0,178.5H516.2Q520.2,178.5 520.2,182.5V188.5Q520.2,192.5 516.2,192.5H162.0Z"/><text x="527.2" y="185.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">73.4</text><rect x="162.0" y="173.5" width="418.2" height="24.0" class="hitbox"/></g><text x="150.0" y="212.5" class="t" text-anchor="end" dominant-baseline="central">SCST</text><g class="hit" tabindex="0" data-tip="SCST · BLEU-3 77.0 · BLEU-4 73.3 · METEOR 83.9 · ROUGE-L 86.7 · CIDEr 7.60 · SPICE 87.1"><path class="f-ctx" d="M162.0,205.5H515.7Q519.7,205.5 519.7,209.5V215.5Q519.7,219.5 515.7,219.5H162.0Z"/><text x="526.7" y="212.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">73.3</text><rect x="162.0" y="200.5" width="417.7" height="24.0" class="hitbox"/></g><text x="150.0" y="239.5" class="t" text-anchor="end" dominant-baseline="central">LSTM</text><g class="hit" tabindex="0" data-tip="LSTM · BLEU-3 73.8 · BLEU-4 70.1 · METEOR 81.7 · ROUGE-L 85.0 · CIDEr 7.31 · SPICE 85.4"><path class="f-ctx" d="M162.0,232.5H500.1Q504.1,232.5 504.1,236.5V242.5Q504.1,246.5 500.1,246.5H162.0Z"/><text x="511.1" y="239.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">70.1</text><rect x="162.0" y="227.5" width="402.1" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — Nine captioners within 7 BLEU-4 points, a plain CNN-LSTM included.</b> BLEU-4 in percent, on an axis that starts at zero; the paper’s model is in black. One reference caption per lesion; no intervals are reported. Source: the paper’s Table 1.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Model</th><th scope="col" class="num">BLEU-3</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE-L</th><th scope="col" class="num">CIDEr</th><th scope="col" class="num">SPICE</th></tr></thead><tbody><tr class="ours"><th scope="row">This paper’s model</th><td class="num">80.1</td><td class="num">76.9</td><td class="num">85.8</td><td class="num">88.3</td><td class="num">7.92</td><td class="num">88.7</td></tr><tr><th scope="row">X-Transformer</th><td class="num">78.9</td><td class="num">75.7</td><td class="num">84.9</td><td class="num">87.5</td><td class="num">7.80</td><td class="num">87.9</td></tr><tr><th scope="row">Up-Down</th><td class="num">78.6</td><td class="num">75.1</td><td class="num">85.0</td><td class="num">87.7</td><td class="num">7.76</td><td class="num">88.1</td></tr><tr><th scope="row">X-LAN</th><td class="num">78.4</td><td class="num">74.8</td><td class="num">84.8</td><td class="num">87.4</td><td class="num">7.76</td><td class="num">87.7</td></tr><tr><th scope="row">Transformer</th><td class="num">78.1</td><td class="num">74.6</td><td class="num">84.5</td><td class="num">87.2</td><td class="num">7.71</td><td class="num">87.6</td></tr><tr><th scope="row">LSTM-A</th><td class="num">77.6</td><td class="num">74.1</td><td class="num">84.5</td><td class="num">87.3</td><td class="num">7.67</td><td class="num">87.7</td></tr><tr><th scope="row">AoANet</th><td class="num">77.3</td><td class="num">73.4</td><td class="num">84.5</td><td class="num">87.2</td><td class="num">7.62</td><td class="num">87.6</td></tr><tr><th scope="row">SCST</th><td class="num">77.0</td><td class="num">73.3</td><td class="num">83.9</td><td class="num">86.7</td><td class="num">7.60</td><td class="num">87.1</td></tr><tr><th scope="row">LSTM</th><td class="num">73.8</td><td class="num">70.1</td><td class="num">81.7</td><td class="num">85.0</td><td class="num">7.31</td><td class="num">85.4</td></tr></tbody></table></div><p class="sm" style="margin:8px 0 0">Percent, except CIDEr, a raw score that tops out at 10 in the COCO toolkit.</p></details>
+  </figure>
+
+  <p>Three things stand out:</p>
+  <ol class="num-list">
+    <li><strong>Every captioner lands close.</strong> A plain CNN-LSTM scores 70.1, and the seven other baselines sit within 2.4 points of each other; which one comes second depends on the metric. The full model’s lead over the best of them is 1.2.</li>
+    <li><strong>The text is formulaic.</strong> On COCO, with five references per image, the X-Transformer’s own paper reports a BLEU-4 of 39.7. Here, with a single reference, it scores 75.7.</li>
+    <li><strong>The test’s unit is missing.</strong> The paper reports p &lt; 0.05 on all six metrics, from a paired t-test against the second-best method. If the unit is the lesion, the 5,159 lesions are not independent: they sit in 120 patients. No interval or repeat run is reported.</li>
+  </ol>
+</section>
+
+<section id="metrics" data-toc="Two rulers">
+  <h2><span class="n">05</span>Two rulers: BLEU-4 and word matching</h2>
+  <p>What does a BLEU-4 in the high 70s reward? Here are three outputs from the paper’s own examples, each scored against its reference:</p>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Output</th><th scope="col">Differs from its reference by</th><th scope="col">Error</th><th scope="col" class="num">BLEU-4</th></tr></thead><tbody><tr><th scope="row">X-Transformer, example 1</th><td>neck level IIb for Va</td><td>wrong location</td><td class="num">82.7</td></tr><tr><th scope="row">X-Transformer, example 4</th><td>pulmonary nodule for pleural thickening</td><td>wrong finding</td><td class="num">77.6</td></tr><tr><th scope="row">Full model, example 4</th><td><i>observed</i> for <i>noted</i></td><td>none: a synonym</td><td class="num">78.3</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — BLEU-4 can’t tell a wrong nodal level from a harmless synonym.</b> Sentence-level BLEU-4 × 100, on the English text printed in the paper’s Figure 3, lower-cased and without punctuation. With punctuation kept as tokens, the three rows score 80.0, 79.2 and 80.0. Our arithmetic.</p>
+  <p>BLEU counts broken word sequences, so where a changed word sits matters more than what it means. A wrong nodal level near the end of a sentence costs less than a synonym inside it, and a wrong finding costs about the same as the synonym. All three sit at or above the full model’s test-set score of 76.9.</p>
+  <p>To its credit, the paper’s ablation adds a second ruler: accuracy on location words and on CT-finding words, by word matching, presumably against the reference.</p>
+
+  <figure id="fig-ablation">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 184" role="img" aria-label="Change from the baseline when the window, the prompts or both are added" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><text x="132.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU-4</text><text x="132.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">baseline 75.7</text><line x1="132.0" y1="52.0" x2="132.0" y2="154.0" class="zero"/><text x="132.0" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="205.3" y1="52.0" x2="205.3" y2="154.0" class="grid"/><text x="205.3" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+1</text><line x1="278.7" y1="52.0" x2="278.7" y2="154.0" class="grid"/><text x="278.7" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+2</text><g class="hit" tabindex="0" data-tip="BLEU-4 · + window (DWS): 75.7 → 76.0 (+0.3)"><path class="f-ctx" d="M132.0,69.0H150.0Q154.0,69.0 154.0,73.0V79.0Q154.0,83.0 150.0,83.0H132.0Z"/><text x="161.0" y="76.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+0.3</text><rect x="132.0" y="64.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BLEU-4 · + prompts (CGLP): 75.7 → 76.5 (+0.8)"><path class="f-ctx" d="M132.0,99.0H186.7Q190.7,99.0 190.7,103.0V109.0Q190.7,113.0 186.7,113.0H132.0Z"/><text x="197.7" y="106.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+0.8</text><rect x="132.0" y="94.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BLEU-4 · + both: 75.7 → 76.9 (+1.2)"><path class="f-emph" d="M132.0,129.0H216.0Q220.0,129.0 220.0,133.0V139.0Q220.0,143.0 216.0,143.0H132.0Z"/><text x="227.0" y="136.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+1.2</text><rect x="132.0" y="124.0" width="190.7" height="24.0" class="hitbox"/></g><text x="348.7" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Location accuracy</text><text x="348.7" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">baseline 81.0</text><line x1="348.7" y1="52.0" x2="348.7" y2="154.0" class="zero"/><text x="348.7" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="422.0" y1="52.0" x2="422.0" y2="154.0" class="grid"/><text x="422.0" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+1</text><line x1="495.3" y1="52.0" x2="495.3" y2="154.0" class="grid"/><text x="495.3" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+2</text><g class="hit" tabindex="0" data-tip="Location accuracy · + window (DWS): 81.0 → 81.2 (+0.2)"><path class="f-ctx" d="M348.7,69.0H359.3Q363.3,69.0 363.3,73.0V79.0Q363.3,83.0 359.3,83.0H348.7Z"/><text x="370.3" y="76.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+0.2</text><rect x="348.7" y="64.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Location accuracy · + prompts (CGLP): 81.0 → 82.2 (+1.2)"><path class="f-ctx" d="M348.7,99.0H432.7Q436.7,99.0 436.7,103.0V109.0Q436.7,113.0 432.7,113.0H348.7Z"/><text x="443.7" y="106.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+1.2</text><rect x="348.7" y="94.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Location accuracy · + both: 81.0 → 82.9 (+1.9)"><path class="f-emph" d="M348.7,129.0H484.0Q488.0,129.0 488.0,133.0V139.0Q488.0,143.0 484.0,143.0H348.7Z"/><text x="495.0" y="136.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+1.9</text><rect x="348.7" y="124.0" width="190.7" height="24.0" class="hitbox"/></g><text x="565.3" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">CT-finding accuracy</text><text x="565.3" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">baseline 65.5</text><line x1="565.3" y1="52.0" x2="565.3" y2="154.0" class="zero"/><text x="565.3" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="638.7" y1="52.0" x2="638.7" y2="154.0" class="grid"/><text x="638.7" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+1</text><line x1="712.0" y1="52.0" x2="712.0" y2="154.0" class="grid"/><text x="712.0" y="168.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+2</text><g class="hit" tabindex="0" data-tip="CT-finding accuracy · + window (DWS): 65.5 → 67.3 (+1.8)"><path class="f-ctx" d="M565.3,69.0H693.3Q697.3,69.0 697.3,73.0V79.0Q697.3,83.0 693.3,83.0H565.3Z"/><text x="704.3" y="76.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+1.8</text><rect x="565.3" y="64.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-finding accuracy · + prompts (CGLP): 65.5 → 66.2 (+0.7)"><path class="f-ctx" d="M565.3,99.0H612.7Q616.7,99.0 616.7,103.0V109.0Q616.7,113.0 612.7,113.0H565.3Z"/><text x="623.7" y="106.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+0.7</text><rect x="565.3" y="94.0" width="190.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CT-finding accuracy · + both: 65.5 → 67.3 (+1.8)"><path class="f-emph" d="M565.3,129.0H693.3Q697.3,129.0 697.3,133.0V139.0Q697.3,143.0 693.3,143.0H565.3Z"/><text x="704.3" y="136.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central" style="paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round">+1.8</text><rect x="565.3" y="124.0" width="190.7" height="24.0" class="hitbox"/></g><text x="118.0" y="76.0" class="t" text-anchor="end" dominant-baseline="central">+ window (DWS)</text><text x="118.0" y="106.0" class="t" text-anchor="end" dominant-baseline="central">+ prompts (CGLP)</text><text x="118.0" y="136.0" class="t t-strong" text-anchor="end" dominant-baseline="central">+ both</text></svg></div>
+    <figcaption><b>Figure 4 — The window moves the CT finding and the prompts move the location; nothing moves by 2 points.</b> Each bar is the change from the X-Transformer baseline when a module is added; the baseline’s value is under each title. Source: the paper’s Table 2.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Setting</th><th scope="col" class="num">BLEU-1</th><th scope="col" class="num">BLEU-2</th><th scope="col" class="num">BLEU-3</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">Location acc.</th><th scope="col" class="num">CT-finding acc.</th></tr></thead><tbody><tr><th scope="row">Baseline (X-Transformer)</th><td class="num">86.3</td><td class="num">82.3</td><td class="num">78.9</td><td class="num">75.7</td><td class="num">81.0</td><td class="num">65.5</td></tr><tr><th scope="row">+ window (DWS)</th><td class="num">86.5</td><td class="num">82.6</td><td class="num">79.3</td><td class="num">76.0</td><td class="num">81.2</td><td class="num">67.3</td></tr><tr><th scope="row">+ prompts (CGLP)</th><td class="num">86.8</td><td class="num">83.0</td><td class="num">79.7</td><td class="num">76.5</td><td class="num">82.2</td><td class="num">66.2</td></tr><tr class="ours"><th scope="row">+ both</th><td class="num">87.1</td><td class="num">83.3</td><td class="num">80.1</td><td class="num">76.9</td><td class="num">82.9</td><td class="num">67.3</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>In error terms, the two modules together remove one location error in ten and one finding error in twenty <span class="tag">derived</span>.</p>
+  <p>Two cautions. The baseline reads only the close-up and already scores 81.0 on location, so most locations can be named from a 9.6 cm cube. And the two measures are defined in one sentence, with no vocabulary and no matching rule. In the paper’s third example the authors call their output the same anatomical area as the reference, yet the two share no location word.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>Scanner makers:</strong> the abstract says the gains hold across makers, but no table or figure splits a result by maker, and the maker mix of the test set isn’t given.</li>
+    <li><strong>The baselines:</strong> only the four ablation rows get the two accuracies. No medical report generator or 3D vision–language model is compared.</li>
+    <li><strong>Promised, or never done:</strong> the rebuttal promises cross-validation and a failure-case analysis. Neither is in the final paper, and a reviewer’s request for an external test set went unanswered. No reader rated the captions, though the rebuttal says the system already runs in reading software at several centres.</li>
+    <li><strong>What can’t be re-run:</strong> there is no code, no data, no list of the 130 locations or their windows, and no detail on the encoders.</li>
+    <li><strong>What can be reused:</strong> the two crops, the 0.95 rule and three window settings. The decoder has public code: the <a href="https://github.com/JDAI-CV/image-captioning">X-Transformer’s repository</a> implements the three baselines shown in the paper’s example figure. For data, <a href="https://huggingface.co/datasets/UW-Madison-Dept-Radiology/PETARSeg-11K">PETARSeg-11K</a> pairs 11,356 lesion descriptions with masks, with access on request.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">07</span>Takeaways for building a PET/CT report generator</h2>
+  <ol class="num-list">
+    <li><strong>Score lesion sentences as fields.</strong> Location and finding, each with a published vocabulary. By our arithmetic, a wrong nodal level still earns a sentence BLEU-4 of 82.7.</li>
+    <li><strong>Count patients, not lesions.</strong> With 43 lesions per test patient, resample by patient, and report each scanner maker.</li>
+    <li><strong>Use the cheap tricks, and expect small gains.</strong> A window chosen by region added 1.8 points of CT-finding accuracy, and location names as a prompt added 1.2 of location accuracy. Gate both on confidence.</li>
+    <li><strong>Decide what the PET is for.</strong> If the sentence leaves out uptake, measure SUVmax from the mask. If it should state uptake, the reference captions must state it too.</li>
+    <li><strong>A sentence per lesion isn’t a report.</strong> Forty-three sentences per patient still have to be merged, compared with the previous scan and summed up in an impression.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Yu, M., Gao, Y., Shu, Y., et al. <a href="https://papers.miccai.org/miccai-2025/0508-Paper0248.html">Location-Guided Automated Lesion Captioning in Whole-body PET/CT Images</a>. MICCAI 2025, LNCS 15964, pp. 348–357. The page holds the three reviews and the rebuttal. <a href="https://papers.miccai.org/miccai-2025/paper/0248_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04971-1_33">doi</a>. No code or data is released, and we found no preprint.</li>
+    <li>Gao, Y., Shu, Y., Yu, M., et al. Hierarchical Contrastive Learning for Precise Whole-Body Anatomical Localization in PET/CT Imaging. IEEE Trans. Med. Imaging 45(1), 391–405 (2026): <a href="https://pubmed.ncbi.nlm.nih.gov/40824976/">abstract</a>. A related conference paper by the same team: Yu, M., et al., IPMI 2025, LNCS 15830, pp. 234–246, <a href="https://doi.org/10.1007/978-3-031-96625-5_16">doi</a>.</li>
+    <li>Pan, Y., Yao, T., Li, Y., Mei, T. X-Linear Attention Networks for Image Captioning. CVPR 2020: <a href="https://arxiv.org/abs/2003.14080">arXiv:2003.14080</a> (Table 1 for the COCO scores); <a href="https://github.com/JDAI-CV/image-captioning">code</a>.</li>
+    <li>COCO caption evaluation toolkit: <a href="https://github.com/tylin/coco-caption">tylin/coco-caption</a> (BLEU, METEOR, ROUGE-L, CIDEr and SPICE).</li>
+    <li>Maqbool, D., et al. PETAR: <a href="https://arxiv.org/abs/2510.27680">arXiv:2510.27680</a> (CVPR 2026); <a href="https://huggingface.co/datasets/UW-Madison-Dept-Radiology/PETARSeg-11K">PETARSeg-11K</a> on Hugging Face, checked on 5 Oct 2026.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Yu et al., MICCAI 2025 (LNCS 15964, pp. 348–357). All numbers come from the paper, or are simple arithmetic on its tables, unless marked <em>derived</em> or <em>our observation</em>, or attributed to the rebuttal or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
