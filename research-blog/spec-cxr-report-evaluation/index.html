@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPEC-CXR, read for report-generation evaluation</title>
+<meta name="description" content="A report-generation evaluation reading of SPEC-CXR (MICCAI 2025): an LLM scores chest X-ray reports over 122 fixed entities. What that adds to report-level metrics, how the scorer was validated, and what it shows about MAIRA-2, CXRReportGen and Med-Gemini.">
+<meta property="og:title" content="SPEC-CXR, read for report-generation evaluation">
+<meta property="og:description" content="A report-generation evaluation reading of SPEC-CXR (MICCAI 2025): an LLM scores chest X-ray reports over 122 fixed entities. What that adds to report-level metrics, how the scorer was validated, and what it shows about MAIRA-2, CXRReportGen and Med-Gemini.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/spec-cxr-report-evaluation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/spec-cxr-report-evaluation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="SPEC-CXR, read for report-generation evaluation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/spec-cxr-report-evaluation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/spec-cxr-report-evaluation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0856-Paper3344.html">Paper page</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/3344_paper.pdf">PDF</a>
+      <a href="https://github.com/lunit-io/spec-cxr">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Report-generation evaluation</p>
+    <h1>SPEC-CXR, read for report-generation evaluation</h1>
+    <p class="dek">SPEC-CXR scores a generated chest X-ray report finding by finding: an LLM maps it and its reference onto 122 fixed entities and checks presence, location, severity and comparison with priors. What that adds to report-level metrics, how the scorer was validated, and what it says about three leading generators.</p>
+    <div class="meta">
+      <span><b>Paper</b> Jung Oh Lee, Junwoo Cho, … Donggeun Yoo, Taesoo Kim (Lunit). <a href="https://papers.miccai.org/miccai-2025/0856-Paper3344.html"><i>SPEC-CXR: Advancing Clinical Safety through Entity-Level Performance Evaluation of Chest X-ray Report Generation</i></a>. MICCAI 2025, LNCS 15966, pp. 594–604</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 5 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+      <span><b>Disclosure</b> I am a co-author of GREEN and RadGraph-F1, two of the metrics this paper positions itself against.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">122</div><div class="l">entities scored one by one: 89 findings and 33 diagnoses</div></div>
+    <div class="tile" role="listitem"><div class="v">0.60–0.78</div><div class="l">agreement with radiologists’ error counts (tau-b), depending on the LLM judge</div></div>
+    <div class="tile" role="listitem"><div class="v">50</div><div class="l">report pairs behind the entity-level validation</div></div>
+    <div class="tile" role="listitem"><div class="v">≈0.2</div><div class="l">presence F1 of three leading generators, averaged over finding groups</div></div>
+  </div>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A confusion matrix per finding.</strong> An LLM maps both reports onto 122 fixed entities, labels each one it finds as matched, missed or invented, and judges the location, severity and comparison of the matches. That gives an F1 per finding, which GREEN, FineRadScore and RadGraph-F1 don’t.</li>
+      <li><strong>At report level it ties the best error counts.</strong> Agreement with radiologists is 0.777 (tau-b) with the best of eight LLM judges and 0.597 with the worst. The paper compares that with GREEN’s score (0.64); GREEN’s error count is at 0.79 in the GREEN paper, under an inter-expert bound of 0.81.</li>
+      <li><strong>The new part is the least validated.</strong> The entity-level scores rest on a manual check of 50 report pairs, and the released code runs a two-step variant of the validated pipeline.</li>
+      <li><strong>Three leading generators average about 0.2.</strong> Presence F1 is 0.19 to 0.22 for CXRReportGen, MAIRA-2 and Med-Gemini, and below 0.2 in 9 of 15 finding groups for the best. These averages are over groups, and not the same groups for each model.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why per-finding scores">
+  <h2><span class="n">01</span>Why score findings one by one</h2>
+  <p>The CT posts in this series kept hitting the same wall: BLEU, RadGraph-F1 and the like give one number per report, which can’t say which findings a generator misses. For <a href="/research-blog/merlin-report-generation/">Merlin</a>, the finding-level score had to come from a later paper: a recall of 0.10 over 30 findings. Chest X-ray has long had a per-finding score, the CheXbert F1 over 14 observations. Its newer metrics, GREEN and FineRadScore, are LLM judges that list the errors of each report and still return one score per report. SPEC-CXR, from Lunit, joins the two ideas: an LLM judge with a fixed vocabulary of 122 entities, and three attributes on top of presence.</p>
+</section>
+
+<section id="method" data-toc="How a pair is scored">
+  <h2><span class="n">02</span>How a report pair is scored</h2>
+  <p>Three radiologists drew up the vocabulary, meant to be mutually exclusive: 89 findings in 11 categories, from 23 lung and pleura entries to 2 for the abdomen, and 33 differential diagnoses. Rib fracture and tracheostomy tube have their own entries, and every anatomical region has an “other” entry for the rest.</p>
+
+  <figure id="fig-flow">
+    <div class="flow" role="img" aria-label="SPEC-CXR scoring: a reference and a candidate report go to an LLM whose output is constrained to a schema; the entity records give an error count per report and, pooled over all pairs, a confusion matrix per entity">
+      <div class="row">
+        <div class="box"><div class="t1">Reference and candidate report</div><div class="t2">The paper’s example. Reference: stable small right pneumothorax, normal heart size, right rib fracture. Candidate: small left pneumothorax, mild cardiomegaly, no effusion or skeletal finding.</div></div>
+        <div class="shape">2 texts</div>
+      </div>
+      <div class="conn"><div>one prompt: instructions, the 122 entity names, both reports</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">LLM</span><div class="t1">LLM judge with a constrained output</div><div class="t2">It can only name listed entities and choose fixed labels.</div></div>
+        <div class="shape">one record per entity<br>found in either report</div>
+      </div>
+      <div class="conn"><div>the example’s records</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">Entity records</div><div class="t2">Pneumothorax: matched, location wrong, comparison missing · Enlarged cardiac contour: invented · Rib fracture: missed</div></div>
+        <div class="shape">3 records</div>
+      </div>
+      <div class="conn"><div>counted per report</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">per report</span><div class="t1">Error count</div><div class="t2">1 invented + 1 missed + 1 location + 1 comparison</div></div>
+        <div class="shape">4 errors</div>
+      </div>
+      <div class="conn"><div>pooled over all report pairs</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">per entity</span><div class="t1">Confusion matrix per entity</div><div class="t2">Presence F1; location, severity and comparison accuracy on the matches</div></div>
+        <div class="shape">122 × 4 scores</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>the LLM call</span>
+        <span><i style="border:2px solid var(--ink)"></i>arithmetic on its records</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — One constrained LLM output, two read-outs.</b> The paper’s worked example: three records, four errors. Sources: Section 2; Figure 2.</figcaption>
+  </figure>
+
+  <p>The scoring is then arithmetic. Our reconstruction from Section 2.2 and Figure 2, not the authors’ code:</p>
+<pre><code><span class="c"># a record: entity, presence, location, severity, comparison</span>
+
+<span class="k">def</span> report_errors(records):       <span class="c"># report level: lower is better</span>
+    <span class="k">return</span> sum((r.presence <span class="k">in</span> ("FP", "FN"))
+               + (r.location == "not-aligned")
+               + (r.severity == "not-aligned")
+               + (r.comparison != "other") <span class="k">for</span> r <span class="k">in</span> records)
+
+<span class="k">def</span> entity_f1(pairs, entity):     <span class="c"># entity level, over a test set</span>
+    n = Counter(r.presence <span class="k">for</span> records <span class="k">in</span> pairs
+                <span class="k">for</span> r <span class="k">in</span> records <span class="k">if</span> r.entity == entity)
+    <span class="k">return</span> 2 * n["TP"] / (2 * n["TP"] + n["FP"] + n["FN"])</code></pre>
+  <p>Attributes are scored on matched findings only, so a miss isn’t penalised twice. Two consequences of the design <span class="tag">our observation</span>: a finding that neither report mentions leaves no record, so there is an F1 but no specificity; and matching ignores attributes, so in the example a left pneumothorax matches a right one and costs one location error, not a miss plus an invention.</p>
+</section>
+
+<section id="validation" data-toc="Is the scorer right?">
+  <h2><span class="n">03</span>Is the scorer right?</h2>
+  <p>The report-level score was tested on ReXVal: 200 MIMIC-CXR report pairs on which six radiologists counted errors in six categories, the same six SPEC-CXR counts. The measure is Kendall’s tau-b between a metric and the radiologists’ mean total error count. The candidates aren’t model outputs: each is another patient’s report, retrieved because it scores well on BLEU, BERTScore, CheXbert or RadGraph, and only impressions were compared.</p>
+
+  <figure id="fig-rexval">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 508" role="img" aria-label="Agreement with radiologists&#x27; error counts on ReXVal, by metric and LLM judge" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><circle cx="6.0" cy="11.0" r="4.6" class="f-emph ring"/><text x="17.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">SPEC-CXR error count, by LLM judge</text><rect x="258.2" y="7.2" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="273.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">other metrics in the paper’s Table 1</text><polygon points="6.0,23.7 11.8,34.3 0.2,34.3" class="f-mid ring"/><text x="17.0" y="30.0" class="t t-small" text-anchor="start" dominant-baseline="central">error counts in the GREEN paper, not in that table</text><line x1="352.0" y1="30.0" x2="374.0" y2="30.0" class="ci"/><text x="381.0" y="30.0" class="t t-small" text-anchor="start" dominant-baseline="central">95% CI, where the source gives one</text><line x1="304.0" y1="74.0" x2="304.0" y2="478.0" class="grid"/><text x="304.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="384.0" y1="74.0" x2="384.0" y2="478.0" class="grid"/><text x="384.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="464.0" y1="74.0" x2="464.0" y2="478.0" class="grid"/><text x="464.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="544.0" y1="74.0" x2="544.0" y2="478.0" class="grid"/><text x="544.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.7</text><line x1="624.0" y1="74.0" x2="624.0" y2="478.0" class="grid"/><text x="624.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.8</text><line x1="704.0" y1="74.0" x2="704.0" y2="478.0" class="grid"/><text x="704.0" y="492.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.9</text><line x1="632.0" y1="66.0" x2="632.0" y2="478.0" class="floor"/><text x="626.0" y="64.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">inter-expert, 0.81</text><text x="0.0" y="90.5" class="t" text-anchor="start" dominant-baseline="central">GREEN error count</text><text x="128.0" y="90.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GREEN model</text><g class="hit" tabindex="0" data-tip="GREEN error count · GREEN model: tau-b 0.79 · 95% CI 0.74–0.83 · GREEN paper, Table 6; not in the paper’s Table 1"><line x1="576.0" y1="90.5" x2="648.0" y2="90.5" class="ci"/><polygon points="616.0,84.2 621.8,94.8 610.2,94.8" class="f-mid ring"/><text x="760.0" y="90.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.79</text><rect x="300.0" y="78.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="115.5" class="t" text-anchor="start" dominant-baseline="central">GREEN error count</text><text x="128.0" y="115.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GPT-4</text><g class="hit" tabindex="0" data-tip="GREEN error count · GPT-4: tau-b 0.79 · 95% CI 0.75–0.83 · GREEN paper, Table 6; not in the paper’s Table 1"><line x1="584.0" y1="115.5" x2="648.0" y2="115.5" class="ci"/><polygon points="616.0,109.2 621.8,119.8 610.2,119.8" class="f-mid ring"/><text x="760.0" y="115.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.79</text><rect x="300.0" y="103.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="140.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="140.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Claude 3.5 Sonnet</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · Claude 3.5 Sonnet: tau-b 0.777 · ± 0.004 (SD of five runs) · the paper, Table 1"><circle cx="605.6" cy="140.5" r="4.6" class="f-emph ring"/><text x="760.0" y="140.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.777</text><rect x="300.0" y="128.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="165.5" class="t" text-anchor="start" dominant-baseline="central">G-Rad error count</text><text x="128.0" y="165.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GPT-4</text><g class="hit" tabindex="0" data-tip="G-Rad error count · GPT-4: tau-b 0.76 · 95% CI 0.70–0.80 · GREEN paper, Table 6; not in the paper’s Table 1"><line x1="544.0" y1="165.5" x2="624.0" y2="165.5" class="ci"/><polygon points="592.0,159.2 597.8,169.8 586.2,169.8" class="f-mid ring"/><text x="760.0" y="165.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.76</text><rect x="300.0" y="153.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="190.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="190.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">o1</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · o1: tau-b 0.758 · ± 0.006 (SD of five runs) · the paper, Table 1"><circle cx="590.4" cy="190.5" r="4.6" class="f-emph ring"/><text x="760.0" y="190.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.758</text><rect x="300.0" y="178.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="215.5" class="t" text-anchor="start" dominant-baseline="central">FineRadScore</text><text x="128.0" y="215.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Claude 3 Opus</text><g class="hit" tabindex="0" data-tip="FineRadScore · Claude 3 Opus: tau-b 0.738 · 95% CI 0.680–0.788 · FineRadScore paper, Table 11; quoted in the paper’s Table 1"><line x1="528.0" y1="215.5" x2="614.4" y2="215.5" class="ci"/><rect x="570.6" y="211.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="760.0" y="215.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.738</text><rect x="300.0" y="203.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="240.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="240.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">o3-mini</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · o3-mini: tau-b 0.734 · ± 0.004 (SD of five runs) · the paper, Table 1"><circle cx="571.2" cy="240.5" r="4.6" class="f-emph ring"/><text x="760.0" y="240.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.734</text><rect x="300.0" y="228.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="265.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="265.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Llama 3.1 8B*</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · Llama 3.1 8B*: tau-b 0.721 · ± 0.008 (SD of five runs) · the paper, Table 1"><circle cx="560.8" cy="265.5" r="4.6" class="f-emph ring"/><text x="760.0" y="265.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.721</text><rect x="300.0" y="253.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="290.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="290.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">DeepSeek-R1-Distill 32B*</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · DeepSeek-R1-Distill 32B*: tau-b 0.715 · ± 0.009 (SD of five runs) · the paper, Table 1"><circle cx="556.0" cy="290.5" r="4.6" class="f-emph ring"/><text x="760.0" y="290.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.715</text><rect x="300.0" y="278.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="315.5" class="t" text-anchor="start" dominant-baseline="central">FineRadScore</text><text x="128.0" y="315.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">o3-mini</text><g class="hit" tabindex="0" data-tip="FineRadScore · o3-mini: tau-b 0.692 · ± 0.028 (SD of five runs) · run by the SPEC-CXR authors, Table 1"><rect x="533.8" y="311.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="760.0" y="315.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.692</text><rect x="300.0" y="303.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="340.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="340.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GPT-4o</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · GPT-4o: tau-b 0.656 · ± 0.014 (SD of five runs) · the paper, Table 1"><circle cx="508.8" cy="340.5" r="4.6" class="f-emph ring"/><text x="760.0" y="340.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.656</text><rect x="300.0" y="328.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="365.5" class="t" text-anchor="start" dominant-baseline="central">GREEN score</text><text x="128.0" y="365.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GPT-4</text><g class="hit" tabindex="0" data-tip="GREEN score · GPT-4: tau-b 0.640 · 95% CI 0.57–0.70 · GREEN paper, Table 6; quoted in the paper’s Table 1"><line x1="440.0" y1="365.5" x2="544.0" y2="365.5" class="ci"/><rect x="492.2" y="361.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="760.0" y="365.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.640</text><rect x="300.0" y="353.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="390.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="390.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Claude 3.5 Haiku</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · Claude 3.5 Haiku: tau-b 0.619 · ± 0.014 (SD of five runs) · the paper, Table 1"><circle cx="479.2" cy="390.5" r="4.6" class="f-emph ring"/><text x="760.0" y="390.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.619</text><rect x="300.0" y="378.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="415.5" class="t" text-anchor="start" dominant-baseline="central">RadCliQ</text><text x="128.0" y="415.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">no LLM</text><g class="hit" tabindex="0" data-tip="RadCliQ · no LLM: tau-b 0.615 · 95% CI 0.450–0.749 on 40 held-out pairs · Yu et al. 2023; quoted in the paper’s Table 1"><line x1="344.0" y1="415.5" x2="583.2" y2="415.5" class="ci"/><rect x="472.2" y="411.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="760.0" y="415.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.615</text><rect x="300.0" y="403.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="440.5" class="t t-strong" text-anchor="start" dominant-baseline="central">SPEC-CXR</text><text x="128.0" y="440.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">GPT-4o-mini</text><g class="hit" tabindex="0" data-tip="SPEC-CXR · GPT-4o-mini: tau-b 0.597 · ± 0.035 (SD of five runs) · the paper, Table 1"><circle cx="461.6" cy="440.5" r="4.6" class="f-emph ring"/><text x="760.0" y="440.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.597</text><rect x="300.0" y="428.5" width="460.0" height="24.0" class="hitbox"/></g><text x="0.0" y="465.5" class="t" text-anchor="start" dominant-baseline="central">RaTEScore</text><text x="128.0" y="465.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">no LLM</text><g class="hit" tabindex="0" data-tip="RaTEScore · no LLM: tau-b 0.527 · RaTEScore paper; quoted in the paper’s Table 1"><rect x="401.8" y="461.7" width="7.6" height="7.6" rx="1.5" class="f-ctx ring"/><text x="760.0" y="465.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.527</text><rect x="300.0" y="453.5" width="460.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 2 — With its best judge, SPEC-CXR joins the best existing error counts; with its worst, it does no better than a 2023 metric that uses no LLM.</b> Kendall tau-b; the axis starts at 0.4. Lines are the 95% intervals printed in the source papers; SPEC-CXR gives only the spread of five runs (±0.004 to ±0.035). RadCliQ’s value is on 40 held-out pairs. * fine-tuned by the authors. Sources: Table 1; GREEN paper, Table 6; FineRadScore paper, Tables 10 and 11.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Metric</th><th scope="col">LLM judge</th><th scope="col" class="num">Tau-b</th><th scope="col">Interval or spread, and source</th></tr></thead><tbody><tr><th scope="row">GREEN error count</th><td>GREEN model</td><td class="num">0.79</td><td style="white-space:normal">95% CI 0.74–0.83 · GREEN paper, Table 6; not in the paper’s Table 1</td></tr><tr><th scope="row">GREEN error count</th><td>GPT-4</td><td class="num">0.79</td><td style="white-space:normal">95% CI 0.75–0.83 · GREEN paper, Table 6; not in the paper’s Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>Claude 3.5 Sonnet</td><td class="num">0.777</td><td style="white-space:normal">± 0.004 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">G-Rad error count</th><td>GPT-4</td><td class="num">0.76</td><td style="white-space:normal">95% CI 0.70–0.80 · GREEN paper, Table 6; not in the paper’s Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>o1</td><td class="num">0.758</td><td style="white-space:normal">± 0.006 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">FineRadScore</th><td>Claude 3 Opus</td><td class="num">0.738</td><td style="white-space:normal">95% CI 0.680–0.788 · FineRadScore paper, Table 11; quoted in the paper’s Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>o3-mini</td><td class="num">0.734</td><td style="white-space:normal">± 0.004 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>Llama 3.1 8B*</td><td class="num">0.721</td><td style="white-space:normal">± 0.008 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>DeepSeek-R1-Distill 32B*</td><td class="num">0.715</td><td style="white-space:normal">± 0.009 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">FineRadScore</th><td>o3-mini</td><td class="num">0.692</td><td style="white-space:normal">± 0.028 (SD of five runs) · run by the SPEC-CXR authors, Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>GPT-4o</td><td class="num">0.656</td><td style="white-space:normal">± 0.014 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">GREEN score</th><td>GPT-4</td><td class="num">0.640</td><td style="white-space:normal">95% CI 0.57–0.70 · GREEN paper, Table 6; quoted in the paper’s Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>Claude 3.5 Haiku</td><td class="num">0.619</td><td style="white-space:normal">± 0.014 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">RadCliQ</th><td>no LLM</td><td class="num">0.615</td><td style="white-space:normal">95% CI 0.450–0.749 on 40 held-out pairs · Yu et al. 2023; quoted in the paper’s Table 1</td></tr><tr><th scope="row">SPEC-CXR</th><td>GPT-4o-mini</td><td class="num">0.597</td><td style="white-space:normal">± 0.035 (SD of five runs) · the paper, Table 1</td></tr><tr><th scope="row">RaTEScore</th><td>no LLM</td><td class="num">0.527</td><td style="white-space:normal">RaTEScore paper; quoted in the paper’s Table 1</td></tr><tr><th scope="row">Inter-expert</th><td>–</td><td class="num">0.81</td><td style="white-space:normal">95% CI 0.78–0.83 · GREEN paper, Table 6</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Three things to read off it:</p>
+  <ol class="num-list">
+    <li><strong>The judge matters more than the vocabulary.</strong> The same metric moves from 0.597 with GPT-4o-mini to 0.777 with Claude 3.5 Sonnet. With one judge, o3-mini, going from CheXpert’s 14 labels to the 122 entities adds 0.06 (the paper’s Table 2).</li>
+    <li><strong>One comparison holds the judge fixed.</strong> With o3-mini, SPEC-CXR reaches 0.734 and FineRadScore 0.692.</li>
+    <li><strong>The ± isn’t a confidence interval.</strong> It is the spread of five runs of one judge. The 95% intervals other papers print on these 200 pairs span about 0.1 (0.680 to 0.788 for FineRadScore’s 0.738), enough to hold SPEC-CXR’s best value.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="label">The rows the table leaves out <span class="tag">external</span></span>
+    <p>The paper’s table lists GREEN at 0.640. That is the GREEN <em>score</em>, which keeps only clinically significant errors and normalises by matched findings. The GREEN paper’s table also gives the model’s plain error count, 0.79, and an inter-expert row, 0.81, which it treats as an upper bound. Against those rows, 0.777 is a tie, not a lead.</p>
+    <p>It also explains the gap the paper credits to its scoring: ReXVal’s target counts every error once, so an unweighted count fits it best <span class="tag">our observation</span>. One reviewer objected to exactly that, a missed pneumothorax costing the same as mild atelectasis; the authors replied that useful weights need the exam’s clinical context.</p>
+  </div>
+
+  <p>The entity-level scores, the new part, got a much smaller check: a manual assessment of 50 randomly sampled pairs. The scorer’s labels agreed with it 91.8% of the time on presence, 87.2% on location, 84.5% on severity and 75.3% on comparison. Fifty pairs can’t test 122 entities one by one, and the paper gives no per-entity agreement.</p>
+</section>
+
+<section id="generators" data-toc="Three generators">
+  <h2><span class="n">04</span>What it shows about three generators</h2>
+  <p>The paper then scores three generators on the 2,347 studies of ReXrank’s MIMIC-CXR test split: Microsoft’s MAIRA-2 and CXRReportGen, and Google’s Med-Gemini. The results are two radar charts over 15 groups of entities, with no table, so we read the values off the image <span class="tag">our measurement</span>.</p>
+
+  <figure id="fig-groups">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 482" role="img" aria-label="Presence F1 by finding group for Med-Gemini, MAIRA-2 and CXRReportGen" style="min-width:660px" xmlns="http://www.w3.org/2000/svg"><circle cx="6.0" cy="11.0" r="4.6" class="f-emph ring"/><text x="17.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Med-Gemini</text><rect x="106.5" y="7.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><text x="121.2" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">MAIRA-2</text><polygon points="195.5,4.7 201.3,15.3 189.8,15.3" class="f-ctx ring"/><text x="206.5" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">CXRReportGen</text><text x="202.0" y="44.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">entities · extracted</text><text x="760.0" y="44.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">Med-Gemini</text><line x1="316.0" y1="58.0" x2="316.0" y2="452.0" class="grid"/><text x="316.0" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="367.4" y1="58.0" x2="367.4" y2="452.0" class="grid"/><text x="367.4" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="418.9" y1="58.0" x2="418.9" y2="452.0" class="floor"/><text x="418.9" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="470.3" y1="58.0" x2="470.3" y2="452.0" class="grid"/><text x="470.3" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="521.7" y1="58.0" x2="521.7" y2="452.0" class="grid"/><text x="521.7" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="573.1" y1="58.0" x2="573.1" y2="452.0" class="grid"/><text x="573.1" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="624.6" y1="58.0" x2="624.6" y2="452.0" class="grid"/><text x="624.6" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="676.0" y1="58.0" x2="676.0" y2="452.0" class="grid"/><text x="676.0" y="466.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.7</text><text x="423.9" y="44.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">0.2, the paper’s bar</text><text x="190.0" y="75.0" class="t" text-anchor="end" dominant-baseline="central">Foreign body – medical</text><text x="202.0" y="75.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">11 · ≈1,800</text><g class="hit" tabindex="0" data-tip="Foreign body – medical · Med-Gemini 0.63, MAIRA-2 0.53, CXRReportGen 0.53 · 11 entities, about 1,800 extractions"><line x1="588.1" y1="75.0" x2="640.0" y2="75.0" class="ci"/><polygon points="588.1,68.7 593.8,79.3 582.3,79.3" class="f-ctx ring"/><rect x="586.8" y="71.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="640.0" cy="75.0" r="4.6" class="f-emph ring"/><text x="760.0" y="75.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.63</text><rect x="312.0" y="63.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="101.0" class="t" text-anchor="end" dominant-baseline="central">Neck/chest wall soft tissue</text><text x="202.0" y="101.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">2 · ≈60</text><g class="hit" tabindex="0" data-tip="Neck/chest wall soft tissue · Med-Gemini 0.41, MAIRA-2 0.28, CXRReportGen 0.32 · 2 entities, about 60 extractions"><line x1="458.5" y1="101.0" x2="526.9" y2="101.0" class="ci"/><polygon points="480.1,94.7 485.8,105.3 474.3,105.3" class="f-ctx ring"/><rect x="454.7" y="97.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="526.9" cy="101.0" r="4.6" class="f-emph ring"/><text x="760.0" y="101.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.41</text><rect x="312.0" y="89.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="127.0" class="t" text-anchor="end" dominant-baseline="central">Heart</text><text x="202.0" y="127.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">3 · ≈910</text><g class="hit" tabindex="0" data-tip="Heart · Med-Gemini 0.35, MAIRA-2 0.31, CXRReportGen 0.26 · 3 entities, about 910 extractions"><line x1="449.7" y1="127.0" x2="497.5" y2="127.0" class="ci"/><polygon points="449.7,120.7 455.5,131.3 444.0,131.3" class="f-ctx ring"/><rect x="472.2" y="123.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="497.5" cy="127.0" r="4.6" class="f-emph ring"/><text x="760.0" y="127.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.35</text><rect x="312.0" y="115.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="153.0" class="t" text-anchor="end" dominant-baseline="central">Lung and pleura – opacity</text><text x="202.0" y="153.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">8 · ≈3,000</text><g class="hit" tabindex="0" data-tip="Lung and pleura – opacity · Med-Gemini 0.34, MAIRA-2 0.38, CXRReportGen 0.35 · 8 entities, about 3,000 extractions"><line x1="491.4" y1="153.0" x2="513.0" y2="153.0" class="ci"/><polygon points="494.5,146.7 500.2,157.3 488.7,157.3" class="f-ctx ring"/><rect x="509.2" y="149.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="491.4" cy="153.0" r="4.6" class="f-emph ring"/><text x="760.0" y="153.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.34</text><rect x="312.0" y="141.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="179.0" class="t" text-anchor="end" dominant-baseline="central">Diaphragm</text><text x="202.0" y="179.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">5 · ≈150</text><g class="hit" tabindex="0" data-tip="Diaphragm · Med-Gemini 0.24, MAIRA-2 0.19, CXRReportGen 0.13 · 5 entities, about 150 extractions"><line x1="384.9" y1="179.0" x2="439.9" y2="179.0" class="ci"/><polygon points="384.9,172.7 390.7,183.3 379.2,183.3" class="f-ctx ring"/><rect x="411.0" y="175.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="439.9" cy="179.0" r="4.6" class="f-emph ring"/><text x="760.0" y="179.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.24</text><rect x="312.0" y="167.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="205.0" class="t" text-anchor="end" dominant-baseline="central">Lung and pleura – other</text><text x="202.0" y="205.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">10 · ≈840</text><g class="hit" tabindex="0" data-tip="Lung and pleura – other · Med-Gemini 0.22, MAIRA-2 0.17, CXRReportGen 0.18 · 10 entities, about 840 extractions"><line x1="405.0" y1="205.0" x2="429.7" y2="205.0" class="ci"/><polygon points="409.1,198.7 414.8,209.3 403.3,209.3" class="f-ctx ring"/><rect x="401.2" y="201.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="429.7" cy="205.0" r="4.6" class="f-emph ring"/><text x="760.0" y="205.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.22</text><rect x="312.0" y="193.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="231.0" class="t" text-anchor="end" dominant-baseline="central">Abdomen</text><text x="202.0" y="231.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">2 · ≈30</text><g class="hit" tabindex="0" data-tip="Abdomen · Med-Gemini 0.20, MAIRA-2 0.08, CXRReportGen 0.19 · 2 entities, about 30 extractions"><line x1="357.1" y1="231.0" x2="416.8" y2="231.0" class="ci"/><polygon points="414.7,224.7 420.5,235.3 409.0,235.3" class="f-ctx ring"/><rect x="353.4" y="227.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="416.8" cy="231.0" r="4.6" class="f-emph ring"/><text x="760.0" y="231.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.20</text><rect x="312.0" y="219.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="257.0" class="t" text-anchor="end" dominant-baseline="central">Mediastinum</text><text x="202.0" y="257.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">5 · ≈130</text><g class="hit" tabindex="0" data-tip="Mediastinum · Med-Gemini 0.19, MAIRA-2 0.13, CXRReportGen 0.11 · 5 entities, about 130 extractions"><line x1="372.1" y1="257.0" x2="411.7" y2="257.0" class="ci"/><polygon points="372.1,250.7 377.8,261.3 366.3,261.3" class="f-ctx ring"/><rect x="379.1" y="253.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="411.7" cy="257.0" r="4.6" class="f-emph ring"/><text x="760.0" y="257.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.19</text><rect x="312.0" y="245.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="283.0" class="t" text-anchor="end" dominant-baseline="central">Foreign body – non-medical</text><text x="202.0" y="283.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">2 · ≈5</text><g class="hit" tabindex="0" data-tip="Foreign body – non-medical · Med-Gemini 0.17, MAIRA-2 left out (line at zero), CXRReportGen left out (line at zero) · 2 entities, about 5 extractions"><line x1="401.9" y1="283.0" x2="401.9" y2="283.0" class="ci"/><circle cx="401.9" cy="283.0" r="4.6" class="f-emph ring"/><text x="760.0" y="283.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.17</text><rect x="312.0" y="271.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="309.0" class="t" text-anchor="end" dominant-baseline="central">Quality of exams</text><text x="202.0" y="309.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">5 · ≈90</text><g class="hit" tabindex="0" data-tip="Quality of exams · Med-Gemini 0.14, MAIRA-2 0.07, CXRReportGen 0.09 · 5 entities, about 90 extractions"><line x1="354.1" y1="309.0" x2="385.9" y2="309.0" class="ci"/><polygon points="359.7,302.7 365.5,313.3 354.0,313.3" class="f-ctx ring"/><rect x="350.3" y="305.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="385.9" cy="309.0" r="4.6" class="f-emph ring"/><text x="760.0" y="309.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.14</text><rect x="312.0" y="297.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="335.0" class="t" text-anchor="end" dominant-baseline="central">Lung and pleura – lucency</text><text x="202.0" y="335.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">5 · ≈140</text><g class="hit" tabindex="0" data-tip="Lung and pleura – lucency · Med-Gemini 0.13, MAIRA-2 0.21, CXRReportGen 0.17 · 5 entities, about 140 extractions"><line x1="384.4" y1="335.0" x2="422.5" y2="335.0" class="ci"/><polygon points="403.4,328.7 409.2,339.3 397.7,339.3" class="f-ctx ring"/><rect x="418.7" y="331.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="384.4" cy="335.0" r="4.6" class="f-emph ring"/><text x="760.0" y="335.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.13</text><rect x="312.0" y="323.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="361.0" class="t" text-anchor="end" dominant-baseline="central">Differential diagnosis</text><text x="202.0" y="361.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">33 · ≈1,200</text><g class="hit" tabindex="0" data-tip="Differential diagnosis · Med-Gemini 0.09, MAIRA-2 0.10, CXRReportGen 0.07 · 33 entities, about 1,200 extractions"><line x1="354.6" y1="361.0" x2="367.9" y2="361.0" class="ci"/><polygon points="354.6,354.7 360.3,365.3 348.8,365.3" class="f-ctx ring"/><rect x="364.2" y="357.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="360.7" cy="361.0" r="4.6" class="f-emph ring"/><text x="760.0" y="361.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.09</text><rect x="312.0" y="349.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="387.0" class="t" text-anchor="end" dominant-baseline="central">Airway</text><text x="202.0" y="387.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">4 · ≈30</text><g class="hit" tabindex="0" data-tip="Airway · Med-Gemini 0.08, MAIRA-2 left out (line at zero), CXRReportGen 0.01 · 4 entities, about 30 extractions"><line x1="322.7" y1="387.0" x2="358.7" y2="387.0" class="ci"/><polygon points="322.7,380.7 328.4,391.3 316.9,391.3" class="f-ctx ring"/><circle cx="358.7" cy="387.0" r="4.6" class="f-emph ring"/><text x="760.0" y="387.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.08</text><rect x="312.0" y="375.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="413.0" class="t" text-anchor="end" dominant-baseline="central">Aorta and other vessel</text><text x="202.0" y="413.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">5 · ≈310</text><g class="hit" tabindex="0" data-tip="Aorta and other vessel · Med-Gemini 0.08, MAIRA-2 0.05, CXRReportGen 0.08 · 5 entities, about 310 extractions"><line x1="341.7" y1="413.0" x2="358.7" y2="413.0" class="ci"/><polygon points="357.7,406.7 363.4,417.3 351.9,417.3" class="f-ctx ring"/><rect x="337.9" y="409.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="358.7" cy="413.0" r="4.6" class="f-emph ring"/><text x="760.0" y="413.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.08</text><rect x="312.0" y="401.0" width="448.0" height="24.0" class="hitbox"/></g><text x="190.0" y="439.0" class="t" text-anchor="end" dominant-baseline="central">Bone and joint</text><text x="202.0" y="439.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">22 · ≈410</text><g class="hit" tabindex="0" data-tip="Bone and joint · Med-Gemini 0.07, MAIRA-2 0.16, CXRReportGen 0.16 · 22 entities, about 410 extractions"><line x1="351.5" y1="439.0" x2="398.3" y2="439.0" class="ci"/><polygon points="396.7,432.7 402.5,443.3 391.0,443.3" class="f-ctx ring"/><rect x="394.5" y="435.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="351.5" cy="439.0" r="4.6" class="f-emph ring"/><text x="760.0" y="439.0" class="t t-small t-strong t-num" text-anchor="end" dominant-baseline="central">0.07</text><rect x="312.0" y="427.0" width="448.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — Tubes, lines and devices are found; most other groups stay below 0.2.</b> Presence F1 per group, sorted by Med-Gemini (its value is in the right-hand column); a missing marker means the paper’s line sits at zero there and its average leaves the group out. Beside each name: entities in the group (our mapping of the released list) and how often the scorer extracted them (the chart’s log scale). Our reading of the radar chart, about ±0.01. Source: Figure 4.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Finding group</th><th scope="col" class="num">Entities</th><th scope="col" class="num">≈ Extracted</th><th scope="col" class="num">CXRReportGen</th><th scope="col" class="num">MAIRA-2</th><th scope="col" class="num">Med-Gemini</th></tr></thead><tbody><tr><th scope="row">Foreign body – medical</th><td class="num">11</td><td class="num">1,800</td><td class="num">0.53</td><td class="num">0.53</td><td class="num">0.63</td></tr><tr><th scope="row">Neck/chest wall soft tissue</th><td class="num">2</td><td class="num">60</td><td class="num">0.32</td><td class="num">0.28</td><td class="num">0.41</td></tr><tr><th scope="row">Heart</th><td class="num">3</td><td class="num">910</td><td class="num">0.26</td><td class="num">0.31</td><td class="num">0.35</td></tr><tr><th scope="row">Lung and pleura – opacity</th><td class="num">8</td><td class="num">3,000</td><td class="num">0.35</td><td class="num">0.38</td><td class="num">0.34</td></tr><tr><th scope="row">Diaphragm</th><td class="num">5</td><td class="num">150</td><td class="num">0.13</td><td class="num">0.19</td><td class="num">0.24</td></tr><tr><th scope="row">Lung and pleura – other</th><td class="num">10</td><td class="num">840</td><td class="num">0.18</td><td class="num">0.17</td><td class="num">0.22</td></tr><tr><th scope="row">Abdomen</th><td class="num">2</td><td class="num">30</td><td class="num">0.19</td><td class="num">0.08</td><td class="num">0.20</td></tr><tr><th scope="row">Mediastinum</th><td class="num">5</td><td class="num">130</td><td class="num">0.11</td><td class="num">0.13</td><td class="num">0.19</td></tr><tr><th scope="row">Foreign body – non-medical</th><td class="num">2</td><td class="num">5</td><td class="num">–</td><td class="num">–</td><td class="num">0.17</td></tr><tr><th scope="row">Quality of exams</th><td class="num">5</td><td class="num">90</td><td class="num">0.09</td><td class="num">0.07</td><td class="num">0.14</td></tr><tr><th scope="row">Lung and pleura – lucency</th><td class="num">5</td><td class="num">140</td><td class="num">0.17</td><td class="num">0.21</td><td class="num">0.13</td></tr><tr><th scope="row">Differential diagnosis</th><td class="num">33</td><td class="num">1,200</td><td class="num">0.07</td><td class="num">0.10</td><td class="num">0.09</td></tr><tr><th scope="row">Airway</th><td class="num">4</td><td class="num">30</td><td class="num">0.01</td><td class="num">–</td><td class="num">0.08</td></tr><tr><th scope="row">Aorta and other vessel</th><td class="num">5</td><td class="num">310</td><td class="num">0.08</td><td class="num">0.05</td><td class="num">0.08</td></tr><tr><th scope="row">Bone and joint</th><td class="num">22</td><td class="num">410</td><td class="num">0.16</td><td class="num">0.16</td><td class="num">0.07</td></tr><tr><th scope="row">Mean of the values shown</th><td class="num"></td><td class="num"></td><td class="num">0.189</td><td class="num">0.206</td><td class="num">0.222</td></tr><tr class="ours"><th scope="row">Average in the paper’s legend</th><td class="num"></td><td class="num"></td><td class="num">0.189</td><td class="num">0.205</td><td class="num">0.223</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Three things stand out:</p>
+  <ol class="num-list">
+    <li><strong>Devices are found, most other things aren’t.</strong> Tubes, lines and implanted devices score 0.53, 0.53 and 0.63; no other group passes 0.5. Med-Gemini, the best model, is below 0.2 in 9 of the 15 groups, as the paper states; the ninth, the abdomen, sits at 0.196.</li>
+    <li><strong>The weak groups aren’t only the rare ones.</strong> Differential diagnoses were extracted about 1,200 times, third among the groups, and all three models stay near 0.1 or below. The paper doesn’t say why. One candidate: diagnoses are usually written in the impression, and MAIRA-2 generates only findings <span class="tag">our observation</span>.</li>
+    <li><strong>Matched findings are described well, with two cautions.</strong> The legends give 0.86 to 0.92 for location, 0.81 to 0.91 for severity and 0.94 to 0.95 for comparison. But on lung opacities, the most frequent group, Med-Gemini’s location and severity accuracies are 0.77 and 0.78 <span class="tag">our measurement</span>. And on comparison the scorer disagrees with the manual check 24.7% of the time, while it reports a 5 to 6% error rate for the generators <span class="tag">derived</span>.</li>
+  </ol>
+
+  <div class="callout soft">
+    <span class="label">How the averages were taken <span class="tag">our measurement</span></span>
+    <p>The caption says the legend averages are means over all 122 entities. All twelve equal, within 0.001, the plain mean of the plotted group values, leaving out the groups where the model’s line drops to zero or breaks off. That keeps 15 for Med-Gemini’s presence F1, 13 for MAIRA-2, 14 for CXRReportGen. So a group of 2 entities weighs as much as one of 33, and the three averages don’t cover the same groups. On the 13 groups all three share, they are 0.24, 0.21 and 0.20 <span class="tag">derived</span>: MAIRA-2 and CXRReportGen are level.</p>
+  </div>
+</section>
+
+<section id="gaps" data-toc="What’s missing">
+  <h2><span class="n">05</span>What the paper and the release leave out</h2>
+  <ul>
+    <li><strong>The validated pipeline.</strong> The <a href="https://github.com/lunit-io/spec-cxr">released code</a> (January 2026) extracts entities from each report separately, derives presence by comparing the two lists, and asks the LLM only for the attributes. The repository’s first README names the single-prompt version as the paper’s method, so the agreement figures above belong to a pipeline the release no longer contains. The default judge is GPT-4o (0.656 in the paper’s Table 1); the fine-tuned open judges, at 0.72, aren’t included; the licence is non-commercial.</li>
+    <li><strong>Entity-level detail.</strong> No per-entity support and no confidence intervals; nor who annotated the 50 pairs, which judge produced Figure 4, which report sections were compared, or how the generators were run.</li>
+    <li><strong>Coverage.</strong> By the authors’ LLM-based test, the 122 entities fully express 81.9% of test reports, against 56.8% for CheXpert’s labels. About one report in five holds a statement the set can’t represent <span class="tag">derived</span>.</li>
+    <li><strong>Scope.</strong> One reference dataset and one 200-pair benchmark, both from MIMIC-CXR. Reviewers asked for wider validation and a bias analysis of the LLM; the authors agreed to state the first as a limitation.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">06</span>Takeaways for evaluating a report generator</h2>
+  <ol class="num-list">
+    <li><strong>Put a per-finding table next to every report-level score.</strong> No report-level number shows that the best of three leading generators is below 0.2 in 9 of 15 finding groups.</li>
+    <li><strong>Name the LLM judge and keep it fixed.</strong> One metric, eight judges: 0.597 to 0.777. The release’s default, GPT-4o, is at 0.656 in the paper.</li>
+    <li><strong>Extract the reference once.</strong> The released code re-extracts it on every call. Cache it, or two models can be scored against different reference entities.</li>
+    <li><strong>Publish the averaging rule and the support.</strong> CXRReportGen’s 0.189 becomes 0.203 on the 13 groups behind MAIRA-2’s 0.205.</li>
+    <li><strong>Don’t rank LLM error counts on ReXVal alone.</strong> The best five sit between 0.76 and 0.79, under an inter-expert bound of 0.81, and 200 pairs don’t separate them.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Lee, J. O., Cho, J., et al. SPEC-CXR. MICCAI 2025, LNCS 15966, pp. 594–604: <a href="https://papers.miccai.org/miccai-2025/0856-Paper3344.html">paper page</a> with the reviews and the rebuttal · <a href="https://papers.miccai.org/miccai-2025/paper/3344_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04981-0_56">DOI</a>.</li>
+    <li>SPEC-CXR <a href="https://github.com/lunit-io/spec-cxr">code</a>, read at commit <a href="https://github.com/lunit-io/spec-cxr/tree/0cb653f9a69c04361008c6f214ddcdc8119e0a8f">0cb653f</a> (14 Jan 2026); its first README, of 15 Jul 2025, is in the repository’s history.</li>
+    <li>Ostmeier, S., et al. GREEN: <a href="https://arxiv.org/abs/2405.03595">arXiv:2405.03595</a> (2024), Table 6. Huang, A., et al. FineRadScore: <a href="https://arxiv.org/abs/2405.20613">arXiv:2405.20613</a> (2024), Tables 10 and 11.</li>
+    <li>Yu, F., et al. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10499844/">RadCliQ</a>: Patterns 4(9), 2023; <a href="https://physionet.org/content/rexval-dataset/1.0.0/">ReXVal</a> on PhysioNet. Zhao, W., et al. RaTEScore: <a href="https://arxiv.org/abs/2406.16845">arXiv:2406.16845</a> (2024).</li>
+    <li>Zhang, X., et al. ReXrank: <a href="https://arxiv.org/abs/2411.15122">arXiv:2411.15122</a> (2024). Bannur, S., et al. MAIRA-2: <a href="https://arxiv.org/abs/2406.04449">arXiv:2406.04449</a> (2024) and its <a href="https://huggingface.co/microsoft/maira-2">model card</a>.</li>
+    <li>Smit, A., et al. CheXbert: <a href="https://arxiv.org/abs/2004.09167">arXiv:2004.09167</a> (2020). Delbrouck, J.-B., et al. RadGraph-F1: <a href="https://arxiv.org/abs/2210.12186">arXiv:2210.12186</a> (2022).</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on SPEC-CXR (MICCAI 2025, LNCS 15966). All numbers come from the paper, or from the source cited beside them, unless marked <em>derived</em>, <em>our measurement</em> or <em>our observation</em>. Figures were generated with Python from those numbers. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
