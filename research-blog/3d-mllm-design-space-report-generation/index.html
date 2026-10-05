@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The 3D MLLM design space, read for report generation</title>
+<meta name="description" content="A report-generation reading of a MICCAI 2025 design-space study of 3D CT report generators: on 1,287 training scans no change to the model adds more than 0.006 GREEN, a frozen LLM beats fine-tuning, and canned normal sentences add 0.078.">
+<meta property="og:title" content="The 3D MLLM design space, read for report generation">
+<meta property="og:description" content="A report-generation reading of a MICCAI 2025 design-space study of 3D CT report generators: on 1,287 training scans no change to the model adds more than 0.006 GREEN, a frozen LLM beats fine-tuning, and canned normal sentences add 0.078.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/3d-mllm-design-space-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/3d-mllm-design-space-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="The 3D MLLM design space, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/3d-mllm-design-space-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/3d-mllm-design-space-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0316-Paper2261.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/2261_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2506.21535">arXiv</a>
+      <a href="https://github.com/bowang-lab/AMOS-MM-Solution">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · CT report generation</p>
+    <h1>The 3D MLLM design space, read for report generation</h1>
+    <p class="dek">A MICCAI 2025 study swaps the language model, the projector, the fine-tuning method and the input size of a 3D CT report generator, one at a time, on 1,287 training scans. No change to the model lifts its GREEN score by more than 0.006, while adding canned “normal” sentences to its output lifts it by 0.078. What that says about small-data training, and about the metric.</p>
+    <div class="meta">
+      <span><b>Paper</b> Mohammed Baharoon, Jun Ma, … Augustin Toma, Bo Wang. <a href="https://papers.miccai.org/miccai-2025/0316-Paper2261.html"><i>Exploring the Design Space of 3D MLLMs for CT Report Generation</i></a>. MICCAI 2025, LNCS 15965, pp. 237–246</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 5 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+      <span><b>Disclosure</b> I am a co-author of GREEN, the metric this paper optimises and this post examines.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">1,287</div><div class="l">training scans, each seen 150 times; 400 more for testing</div></div>
+    <div class="tile" role="listitem"><div class="v">256</div><div class="l">visual tokens per scan reach the language model<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">+0.006</div><div class="l">GREEN: the most any change to the model adds to the baseline’s 0.366</div></div>
+    <div class="tile" role="listitem"><div class="v">+0.078</div><div class="l">GREEN from canned “normal” sentences added to the output, after the yes/no answers</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* From the M3D paper and the released code.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>One stack, one change at a time, no repeat runs reported.</strong> A 3D ViT, a projector and an LLM, 1,287 AMOS-MM training scans, and 400 test scans scored by GREEN, an LLM judge.</li>
+      <li><strong>No change to the model beats the baseline by more than 0.006.</strong> LLMs from 2B to 14B land within 0.029 GREEN of each other, larger inputs lower every metric, and a frozen LLM beats LoRA, DoRA and full fine-tuning.</li>
+      <li><strong>The big gain is post-processing, and mostly one metric sees it.</strong> A yes/no model’s answers and canned normal sentences lift GREEN from 0.366 to 0.470. The canned sentences give 0.078 of that, while RaTEScore moves 0.002 and BLEU falls 0.057.</li>
+      <li><strong>What we can’t tell.</strong> There are no seeds or intervals, and no radiologist read the augmented reports. In the authors’ own examples, two of them call the uterus normal for patients whose reference reports describe a prostate.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>The systems read so far in this series were built on datasets of 25,000 scans or more. Many teams start with a thousand or so. This paper works at that scale and asks their first questions: which language model, which projector, whether to fine-tune it, and what input size.</p>
+  <p>The design is one stack, M3D’s, with one change at a time. Every table repeats the same baseline row, so nearly every other row differs from it in one thing. The work began as an entry to the MICCAI 2024 AMOS-MM challenge, where the authors report second place on the hidden test set. The code and the reviews are public, and this post uses both.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Baseline pipeline: CT scan, soft-tissue window and resize, 3D ViT, pooling projector, frozen LLM writing one region, optional post-processing, GREEN judge">
+      <div class="row">
+        <div class="box"><div class="t1">CT scan</div><div class="t2">AMOS-MM: chest, abdomen and pelvis, two hospitals in Shenzhen</div></div>
+        <div class="shape">any size</div>
+      </div>
+      <div class="conn"><div>clip to −160…240 HU · resize the whole scan</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">3D ViT from M3D</div><div class="t2">12 layers, pretrained by image–text contrast on Radiopaedia CTs</div></div>
+        <div class="shape">32 × 256 × 256 voxels<br>→ 2,048 × 768</div>
+      </div>
+      <div class="conn"><div>patch tokens on an 8 × 16 × 16 grid</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Projector</div><div class="t2">M3D’s: average-pool each 2 × 2 × 2 block, then a two-layer MLP</div></div>
+        <div class="shape">→ 256 tokens<br>(a 4 × 8 × 8 grid)</div>
+      </div>
+      <div class="conn"><div>then a short prompt naming the region</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">LLM: Phi-3 mini in the baseline</div><div class="t2">Transformer blocks frozen; token embeddings and output head still train</div></div>
+        <div class="shape">findings for one region</div>
+      </div>
+      <div class="conn"><div>optional: add a yes/no model’s answers (BQ), then canned normal sentences (NN)</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">GREEN</div><div class="t2">An LLM judge compares each region’s findings with the reference</div></div>
+        <div class="shape">score, 0 to 1</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen</span>
+        <span><i style="background:var(--ink)"></i>trained</span>
+        <span>monospace = tensor shapes (M3D paper and our arithmetic)</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The baseline: 256 visual tokens into a frozen LLM.</b> The paper gives the volume and patch sizes. Which weights train, the HU window, the per-region prompt and the token count come from the released code (<a href="https://github.com/bowang-lab/AMOS-MM-Solution/blob/main/LaMed/src/train/amos_train.py">training</a>, <a href="https://github.com/bowang-lab/AMOS-MM-Solution/blob/main/scripts/prepare_data.py">preprocessing</a>) and the M3D paper. Sources: Sections 2 and 3.2.</figcaption>
+  </figure>
+
+  <p>Three things in it are easy to miss:</p>
+  <ul>
+    <li><strong>A 4 × 8 × 8 grid.</strong> Each of the 256 tokens stands for an eighth of the scan’s width and height and a quarter of its length <span class="tag">derived</span>. It is the smallest budget in this series: <a href="/research-blog/merlin-report-generation/">Merlin</a> passes 490 tokens, the <a href="/research-blog/nnfoundation-report-generation/">nnFoundation</a> stack 1,728 and <a href="/research-blog/nv-reason-ct-report-generation/">NV-Reason-CT</a> 13,824.</li>
+    <li><strong>One window for every region.</strong> −160…240 HU is the abdominal soft-tissue window, which saturates air-filled lung, chest scans included <span class="tag">our observation</span>.</li>
+    <li><strong>“Frozen” is not untouched.</strong> The embeddings and output head that keep training hold about 0.2B parameters in Phi-3 mini <span class="tag">derived</span>.</li>
+  </ul>
+</section>
+
+<section id="setup" data-toc="Data and metric">
+  <h2><span class="n">02</span>The data, the recipe and the judge</h2>
+  <p>AMOS-MM pairs CT scans with findings written per region. Nearly every case has abdominal findings (99.8%), most have pelvic ones (86.9%) and fewer than a third have chest findings (30.3%). The paper trains on the challenge’s 1,287 training cases and tests on its 400 validation cases, because the test reports were never released. There is no third split for development.</p>
+  <p>Every row gets the same recipe: 150 epochs, batch size 4, a learning rate of 5×10⁻⁵ with a cosine schedule and, in the released code, one region’s findings per pass.</p>
+  <p>The score is GREEN, the challenge’s metric. A fine-tuned LLM reads the reference and the generated findings, lists the findings they share and the clinically significant errors, and returns:</p>
+  <div class="eq">GREEN = matched / (matched + significant errors)<br><span class="c"># matched: findings in both reports · Ostmeier et al., 2024, Eq. 1</span></div>
+  <p>Normal findings count as matches: the GREEN paper’s own training example counts a clear costophrenic sinus. The judge the challenge prescribes is a 7B checkpoint whose model card describes it as tuned for chest X-ray reports; the GREEN paper tests abdominal CT on 15 report pairs.</p>
+  <p>The paper’s average is the plain mean of the three regions <span class="tag">derived</span>, so the chest weighs a third although only 30% of cases have chest findings. It also reports RaTEScore, an entity-level metric, and BLEU, ROUGE and METEOR (BLEU-2 and ROUGE-L in the released code).</p>
+</section>
+
+<section id="results" data-toc="The design space">
+  <h2><span class="n">03</span>Results: the design space on one axis</h2>
+  <p>Since all four tables share the baseline row, every setting can be drawn as a change from it.</p>
+
+  <figure id="fig-design">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 622" role="img" aria-label="Change in GREEN from the baseline for every setting in the paper" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Change to the model or its training</text><rect x="262.4" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="277.4" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Post-processing of the generated report</text><text x="391.4" y="40.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">baseline 0.366</text><text x="668.0" y="40.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">GREEN</text><text x="754.0" y="40.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">Change</text><line x1="219.2" y1="52.0" x2="219.2" y2="590.0" class="grid"/><text x="219.2" y="604.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">−0.1</text><line x1="305.3" y1="52.0" x2="305.3" y2="590.0" class="grid"/><text x="305.3" y="604.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">−0.05</text><line x1="391.4" y1="52.0" x2="391.4" y2="590.0" class="zero"/><text x="391.4" y="604.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="477.5" y1="52.0" x2="477.5" y2="590.0" class="grid"/><text x="477.5" y="604.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.05</text><line x1="563.6" y1="52.0" x2="563.6" y2="590.0" class="grid"/><text x="563.6" y="604.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.1</text><text x="0" y="76.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">LLM</tspan><tspan dx="8" class="t-muted">baseline: Phi-3 mini 4B</tspan></text><text x="190.0" y="97.0" class="t" text-anchor="end" dominant-baseline="central">Phi-3 medium 14B</text><g class="hit" tabindex="0" data-tip="LLM: Phi-3 medium 14B · GREEN 0.370 (+0.004) · RaTEScore 0.572 · BLEU 0.269 · ROUGE 0.382 · METEOR 0.356"><path class="f-ctx" d="M391.4,91.0H394.3Q398.3,91.0 398.3,95.0V99.0Q398.3,103.0 394.3,103.0H391.4Z"/><rect x="202.0" y="86.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="97.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.370</text><text x="754.0" y="97.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.004</text><text x="190.0" y="119.0" class="t" text-anchor="end" dominant-baseline="central">M3D Phi-3</text><g class="hit" tabindex="0" data-tip="LLM: M3D Phi-3 · GREEN 0.365 (−0.001) · RaTEScore 0.571 · BLEU 0.276 · ROUGE 0.394 · METEOR 0.360"><path class="f-ctx" d="M391.4,113.0H391.4Q389.7,113.0 389.7,114.7V123.3Q389.7,125.0 391.4,125.0H391.4Z"/><rect x="202.0" y="108.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="119.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.365</text><text x="754.0" y="119.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.001</text><text x="190.0" y="141.0" class="t" text-anchor="end" dominant-baseline="central">Gemma 2B</text><g class="hit" tabindex="0" data-tip="LLM: Gemma 2B · GREEN 0.359 (−0.007) · RaTEScore 0.572 · BLEU 0.274 · ROUGE 0.392 · METEOR 0.365"><path class="f-ctx" d="M391.4,135.0H383.3Q379.3,135.0 379.3,139.0V143.0Q379.3,147.0 383.3,147.0H391.4Z"/><rect x="202.0" y="130.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="141.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.359</text><text x="754.0" y="141.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.007</text><text x="190.0" y="163.0" class="t" text-anchor="end" dominant-baseline="central">Llama 3.1 8B</text><g class="hit" tabindex="0" data-tip="LLM: Llama 3.1 8B · GREEN 0.359 (−0.007) · RaTEScore 0.570 · BLEU 0.264 · ROUGE 0.379 · METEOR 0.355"><path class="f-ctx" d="M391.4,157.0H383.3Q379.3,157.0 379.3,161.0V165.0Q379.3,169.0 383.3,169.0H391.4Z"/><rect x="202.0" y="152.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="163.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.359</text><text x="754.0" y="163.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.007</text><text x="190.0" y="185.0" class="t" text-anchor="end" dominant-baseline="central">Mistral v0.3 7B</text><g class="hit" tabindex="0" data-tip="LLM: Mistral v0.3 7B · GREEN 0.353 (−0.013) · RaTEScore 0.569 · BLEU 0.258 · ROUGE 0.374 · METEOR 0.346"><path class="f-ctx" d="M391.4,179.0H373.0Q369.0,179.0 369.0,183.0V187.0Q369.0,191.0 373.0,191.0H391.4Z"/><rect x="202.0" y="174.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="185.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.353</text><text x="754.0" y="185.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.013</text><text x="190.0" y="207.0" class="t" text-anchor="end" dominant-baseline="central">Qwen2.5 3B</text><g class="hit" tabindex="0" data-tip="LLM: Qwen2.5 3B · GREEN 0.341 (−0.025) · RaTEScore 0.554 · BLEU 0.252 · ROUGE 0.378 · METEOR 0.342"><path class="f-ctx" d="M391.4,201.0H352.3Q348.3,201.0 348.3,205.0V209.0Q348.3,213.0 352.3,213.0H391.4Z"/><rect x="202.0" y="196.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="207.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.341</text><text x="754.0" y="207.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.025</text><text x="0" y="234.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Projector</tspan><tspan dx="8" class="t-muted">baseline: M3D pooling</tspan></text><text x="190.0" y="255.0" class="t" text-anchor="end" dominant-baseline="central">MLP</text><g class="hit" tabindex="0" data-tip="Projector: MLP · GREEN 0.346 (−0.020) · RaTEScore 0.563 · BLEU 0.268 · ROUGE 0.386 · METEOR 0.359"><path class="f-ctx" d="M391.4,249.0H361.0Q357.0,249.0 357.0,253.0V257.0Q357.0,261.0 361.0,261.0H391.4Z"/><rect x="202.0" y="244.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="255.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.346</text><text x="754.0" y="255.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.020</text><text x="190.0" y="277.0" class="t" text-anchor="end" dominant-baseline="central">TokenPacker</text><g class="hit" tabindex="0" data-tip="Projector: TokenPacker · GREEN 0.343 (−0.023) · RaTEScore 0.551 · BLEU 0.259 · ROUGE 0.372 · METEOR 0.349"><path class="f-ctx" d="M391.4,271.0H355.8Q351.8,271.0 351.8,275.0V279.0Q351.8,283.0 355.8,283.0H391.4Z"/><rect x="202.0" y="266.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="277.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.343</text><text x="754.0" y="277.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.023</text><text x="0" y="304.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">LLM tuning</tspan><tspan dx="8" class="t-muted">baseline: frozen</tspan></text><text x="190.0" y="325.0" class="t" text-anchor="end" dominant-baseline="central">LoRA</text><g class="hit" tabindex="0" data-tip="LLM tuning: LoRA · GREEN 0.336 (−0.030) · RaTEScore 0.549 · BLEU 0.253 · ROUGE 0.361 · METEOR 0.343"><path class="f-ctx" d="M391.4,319.0H343.7Q339.7,319.0 339.7,323.0V327.0Q339.7,331.0 343.7,331.0H391.4Z"/><rect x="202.0" y="314.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="325.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.336</text><text x="754.0" y="325.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.030</text><text x="190.0" y="347.0" class="t" text-anchor="end" dominant-baseline="central">DoRA</text><g class="hit" tabindex="0" data-tip="LLM tuning: DoRA · GREEN 0.321 (−0.045) · RaTEScore 0.546 · BLEU 0.251 · ROUGE 0.360 · METEOR 0.343"><path class="f-ctx" d="M391.4,341.0H317.9Q313.9,341.0 313.9,345.0V349.0Q313.9,353.0 317.9,353.0H391.4Z"/><rect x="202.0" y="336.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="347.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.321</text><text x="754.0" y="347.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.045</text><text x="190.0" y="369.0" class="t" text-anchor="end" dominant-baseline="central">Full fine-tuning</text><g class="hit" tabindex="0" data-tip="LLM tuning: Full fine-tuning · GREEN 0.271 (−0.095) · RaTEScore 0.528 · BLEU 0.232 · ROUGE 0.341 · METEOR 0.323"><path class="f-ctx" d="M391.4,363.0H231.8Q227.8,363.0 227.8,367.0V371.0Q227.8,375.0 231.8,375.0H391.4Z"/><rect x="202.0" y="358.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="369.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.271</text><text x="754.0" y="369.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.095</text><text x="0" y="396.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Input volume</tspan><tspan dx="8" class="t-muted">baseline: 32 × 256²</tspan></text><text x="190.0" y="417.0" class="t" text-anchor="end" dominant-baseline="central">64 × 512², AnyRes</text><g class="hit" tabindex="0" data-tip="Input volume: 64 × 512², AnyRes · GREEN 0.344 (−0.022) · RaTEScore 0.560 · BLEU 0.256 · ROUGE 0.379 · METEOR 0.344"><path class="f-ctx" d="M391.4,411.0H357.5Q353.5,411.0 353.5,415.0V419.0Q353.5,423.0 357.5,423.0H391.4Z"/><rect x="202.0" y="406.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="417.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.344</text><text x="754.0" y="417.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.022</text><text x="190.0" y="439.0" class="t" text-anchor="end" dominant-baseline="central">32 × 512²</text><g class="hit" tabindex="0" data-tip="Input volume: 32 × 512² · GREEN 0.328 (−0.038) · RaTEScore 0.551 · BLEU 0.250 · ROUGE 0.370 · METEOR 0.339"><path class="f-ctx" d="M391.4,433.0H330.0Q326.0,433.0 326.0,437.0V441.0Q326.0,445.0 330.0,445.0H391.4Z"/><rect x="202.0" y="428.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="439.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.328</text><text x="754.0" y="439.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.038</text><text x="0" y="466.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Additions</tspan><tspan dx="8" class="t-muted">baseline: none</tspan></text><text x="190.0" y="487.0" class="t" text-anchor="end" dominant-baseline="central">+ segmentation mask</text><g class="hit" tabindex="0" data-tip="Additions: + segmentation mask · GREEN 0.372 (+0.006) · RaTEScore 0.581 · BLEU 0.271 · ROUGE 0.392 · METEOR 0.357"><path class="f-ctx" d="M391.4,481.0H397.7Q401.7,481.0 401.7,485.0V489.0Q401.7,493.0 397.7,493.0H391.4Z"/><rect x="202.0" y="476.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="487.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.372</text><text x="754.0" y="487.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.006</text><text x="190.0" y="509.0" class="t" text-anchor="end" dominant-baseline="central">+ impressions as target</text><g class="hit" tabindex="0" data-tip="Additions: + impressions as target · GREEN 0.356 (−0.010) · RaTEScore 0.571 · BLEU 0.273 · ROUGE 0.388 · METEOR 0.366"><path class="f-ctx" d="M391.4,503.0H378.2Q374.2,503.0 374.2,507.0V511.0Q374.2,515.0 378.2,515.0H391.4Z"/><rect x="202.0" y="498.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="509.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.356</text><text x="754.0" y="509.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.010</text><text x="0" y="536.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Post-processing</tspan><tspan dx="8" class="t-muted">baseline: none</tspan></text><text x="190.0" y="557.0" class="t t-strong" text-anchor="end" dominant-baseline="central">+ BQ</text><g class="hit" tabindex="0" data-tip="Post-processing: + BQ · GREEN 0.392 (+0.026) · RaTEScore 0.599 · BLEU 0.264 · ROUGE 0.410 · METEOR 0.384"><path class="f-emph" d="M391.4,551.0H432.2Q436.2,551.0 436.2,555.0V559.0Q436.2,563.0 432.2,563.0H391.4Z"/><rect x="202.0" y="546.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="557.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.392</text><text x="754.0" y="557.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">+0.026</text><text x="190.0" y="579.0" class="t t-strong" text-anchor="end" dominant-baseline="central">+ BQ + naive normality</text><g class="hit" tabindex="0" data-tip="Post-processing: + BQ + naive normality · GREEN 0.470 (+0.104) · RaTEScore 0.601 · BLEU 0.207 · ROUGE 0.390 · METEOR 0.384"><path class="f-emph" d="M391.4,573.0H566.5Q570.5,573.0 570.5,577.0V581.0Q570.5,585.0 566.5,585.0H391.4Z"/><rect x="202.0" y="568.0" width="396.0" height="22.0" class="hitbox"/></g><text x="668.0" y="579.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.470</text><text x="754.0" y="579.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">+0.104</text></svg></div>
+    <figcaption><b>Figure 2 — No change to the model beats the baseline by more than 0.006; post-processing adds 0.104.</b> Each bar is the change in GREEN when one thing is changed in the baseline. The two post-processing rows are cumulative. No repeat runs or intervals are reported; 400 test cases. Sources: Tables 1–4.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Setting</th><th scope="col" class="num">GREEN</th><th scope="col" class="num">Change</th><th scope="col" class="num">RaTEScore</th><th scope="col" class="num">BLEU</th><th scope="col" class="num">ROUGE</th><th scope="col" class="num">METEOR</th></tr></thead><tbody><tr class="ours"><th scope="row">Baseline</th><td class="num">0.366</td><td class="num">–</td><td class="num">0.573</td><td class="num">0.272</td><td class="num">0.384</td><td class="num">0.357</td></tr><tr><th scope="row">LLM: Phi-3 medium 14B</th><td class="num">0.370</td><td class="num">+0.004</td><td class="num">0.572</td><td class="num">0.269</td><td class="num">0.382</td><td class="num">0.356</td></tr><tr><th scope="row">LLM: M3D Phi-3</th><td class="num">0.365</td><td class="num">−0.001</td><td class="num">0.571</td><td class="num">0.276</td><td class="num">0.394</td><td class="num">0.360</td></tr><tr><th scope="row">LLM: Gemma 2B</th><td class="num">0.359</td><td class="num">−0.007</td><td class="num">0.572</td><td class="num">0.274</td><td class="num">0.392</td><td class="num">0.365</td></tr><tr><th scope="row">LLM: Llama 3.1 8B</th><td class="num">0.359</td><td class="num">−0.007</td><td class="num">0.570</td><td class="num">0.264</td><td class="num">0.379</td><td class="num">0.355</td></tr><tr><th scope="row">LLM: Mistral v0.3 7B</th><td class="num">0.353</td><td class="num">−0.013</td><td class="num">0.569</td><td class="num">0.258</td><td class="num">0.374</td><td class="num">0.346</td></tr><tr><th scope="row">LLM: Qwen2.5 3B</th><td class="num">0.341</td><td class="num">−0.025</td><td class="num">0.554</td><td class="num">0.252</td><td class="num">0.378</td><td class="num">0.342</td></tr><tr><th scope="row">Projector: MLP</th><td class="num">0.346</td><td class="num">−0.020</td><td class="num">0.563</td><td class="num">0.268</td><td class="num">0.386</td><td class="num">0.359</td></tr><tr><th scope="row">Projector: TokenPacker</th><td class="num">0.343</td><td class="num">−0.023</td><td class="num">0.551</td><td class="num">0.259</td><td class="num">0.372</td><td class="num">0.349</td></tr><tr><th scope="row">LLM tuning: LoRA</th><td class="num">0.336</td><td class="num">−0.030</td><td class="num">0.549</td><td class="num">0.253</td><td class="num">0.361</td><td class="num">0.343</td></tr><tr><th scope="row">LLM tuning: DoRA</th><td class="num">0.321</td><td class="num">−0.045</td><td class="num">0.546</td><td class="num">0.251</td><td class="num">0.360</td><td class="num">0.343</td></tr><tr><th scope="row">LLM tuning: Full fine-tuning</th><td class="num">0.271</td><td class="num">−0.095</td><td class="num">0.528</td><td class="num">0.232</td><td class="num">0.341</td><td class="num">0.323</td></tr><tr><th scope="row">Input volume: 64 × 512², AnyRes</th><td class="num">0.344</td><td class="num">−0.022</td><td class="num">0.560</td><td class="num">0.256</td><td class="num">0.379</td><td class="num">0.344</td></tr><tr><th scope="row">Input volume: 32 × 512²</th><td class="num">0.328</td><td class="num">−0.038</td><td class="num">0.551</td><td class="num">0.250</td><td class="num">0.370</td><td class="num">0.339</td></tr><tr><th scope="row">Additions: + segmentation mask</th><td class="num">0.372</td><td class="num">+0.006</td><td class="num">0.581</td><td class="num">0.271</td><td class="num">0.392</td><td class="num">0.357</td></tr><tr><th scope="row">Additions: + impressions as target</th><td class="num">0.356</td><td class="num">−0.010</td><td class="num">0.571</td><td class="num">0.273</td><td class="num">0.388</td><td class="num">0.366</td></tr><tr><th scope="row">Post-processing: + BQ</th><td class="num">0.392</td><td class="num">+0.026</td><td class="num">0.599</td><td class="num">0.264</td><td class="num">0.410</td><td class="num">0.384</td></tr><tr><th scope="row">Post-processing: + BQ + naive normality</th><td class="num">0.470</td><td class="num">+0.104</td><td class="num">0.601</td><td class="num">0.207</td><td class="num">0.390</td><td class="num">0.384</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Five things stand out:</p>
+  <ol class="num-list">
+    <li><strong>The LLM hardly matters, while it is frozen.</strong> Seven LLMs from 2B to 14B span 0.029 GREEN. The cleanest pair is in one family: Phi-3 medium (14B) gains 0.004 over Phi-3 mini (4B), a row added after a reviewer asked for it. M3D’s Phi-3, already trained on 3D medical image–text pairs, scores 0.365 against 0.366. All seven are frozen, so this says nothing about fine-tuned LLMs with more data.</li>
+    <li><strong>Freezing beats tuning, on every metric.</strong> LoRA costs 0.030 GREEN, DoRA 0.045 and full fine-tuning 0.095, and no metric reverses that order. The four settings share one schedule, and the authors point to overfitting. For scale, the nnFoundation stack tunes LoRA for about 11 epochs on CT-RATE, a dataset of 25,692 scans.</li>
+    <li><strong>More voxels made it worse.</strong> Four times the patches (32 × 512²) cost 0.038 GREEN. AnyRes at 64 × 512², eight crops plus a downsized overview, stays 0.022 below. All five metrics drop in both. The authors point to the mismatch with a ViT pretrained at 32 × 256².</li>
+    <li><strong>The projectors compress differently, not more.</strong> In the released code all three hand the LLM 256 tokens. M3D’s average pooling beats a learned mix over token positions (the “MLP”, −0.020) and TokenPacker (−0.023) on GREEN.</li>
+    <li><strong>The mask result is too small to call.</strong> A TotalSegmentator mask, encoded by the same ViT in the released code, adds 0.006 GREEN and 0.008 RaTEScore. The abstract lists it as a finding, but with no repeat runs reported it can’t be told from noise.</li>
+  </ol>
+</section>
+
+<section id="augmentation" data-toc="The augmentation">
+  <h2><span class="n">04</span>The augmentation: where +0.104 comes from</h2>
+  <p>Two steps run on the generated text, in this order. <strong>Binary questioning (BQ)</strong> asks a second Phi-3 model, which also sees the scan, a fixed list of yes/no questions about common findings, 22 in the released code. Each answer becomes a fixed sentence, unless the report already mentions the finding. <strong>Naive normality (NN)</strong> uses no model. A list pairs keywords with a canned normal sentence, 45 in the release (13 chest, 15 abdomen, 17 pelvis), and every sentence whose keywords are missing is added. Condensed from the <a href="https://github.com/bowang-lab/AMOS-MM-Solution/blob/main/utils/postprocessor.py">released code</a>:</p>
+<pre><code><span class="k">def</span> naive_normality(report, knowledge_base):
+    <span class="c"># knowledge_base: {keywords: canned normal sentence}</span>
+    parts = report.split(".")
+    <span class="k">for</span> keywords, sentence <span class="k">in</span> knowledge_base.items():
+        mentioned = any(all(k <span class="k">in</span> p.lower() <span class="k">for</span> k <span class="k">in</span> keywords)
+                        <span class="k">for</span> p <span class="k">in</span> parts)
+        <span class="k">if not</span> mentioned:
+            parts.insert(0, " " + sentence)   <span class="c"># the scan is never read</span>
+    <span class="k">return</span> ".".join(parts).strip()</code></pre>
+
+  <figure id="fig-aug">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 314" role="img" aria-label="Change in each metric from the two report-augmentation steps" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><line x1="0.0" y1="171.0" x2="760.0" y2="171.0" class="rule"/><text x="176.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Step 1: binary questioning (BQ)</text><text x="176.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">change from the baseline</text><line x1="194.3" y1="52.0" x2="194.3" y2="284.0" class="grid"/><text x="194.3" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">−0.05</text><line x1="239.9" y1="52.0" x2="239.9" y2="284.0" class="zero"/><text x="239.9" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="285.6" y1="52.0" x2="285.6" y2="284.0" class="grid"/><text x="285.6" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.05</text><line x1="331.3" y1="52.0" x2="331.3" y2="284.0" class="grid"/><text x="331.3" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.1</text><line x1="376.9" y1="52.0" x2="376.9" y2="284.0" class="grid"/><text x="376.9" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.15</text><line x1="422.6" y1="52.0" x2="422.6" y2="284.0" class="grid"/><text x="422.6" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.2</text><g class="hit" tabindex="0" data-tip="GREEN · chest · binary questioning (BQ): 0.243 → 0.260 (+0.017)"><path class="f-ctx" d="M239.9,64.5H251.5Q255.5,64.5 255.5,68.5V74.5Q255.5,78.5 251.5,78.5H239.9Z"/><text x="262.5" y="71.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.017</text><rect x="176.0" y="59.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · abdomen · binary questioning (BQ): 0.358 → 0.391 (+0.033)"><path class="f-ctx" d="M239.9,91.5H266.1Q270.1,91.5 270.1,95.5V101.5Q270.1,105.5 266.1,105.5H239.9Z"/><text x="277.1" y="98.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.033</text><rect x="176.0" y="86.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · pelvis · binary questioning (BQ): 0.499 → 0.526 (+0.027)"><path class="f-ctx" d="M239.9,118.5H260.6Q264.6,118.5 264.6,122.5V128.5Q264.6,132.5 260.6,132.5H239.9Z"/><text x="271.6" y="125.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.027</text><rect x="176.0" y="113.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · mean of regions · binary questioning (BQ): 0.366 → 0.392 (+0.026)"><path class="f-ctx" d="M239.9,145.5H259.7Q263.7,145.5 263.7,149.5V155.5Q263.7,159.5 259.7,159.5H239.9Z"/><text x="270.7" y="152.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">+0.026</text><rect x="176.0" y="140.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="RaTEScore · binary questioning (BQ): 0.573 → 0.599 (+0.026)"><path class="f-ctx" d="M239.9,182.5H259.7Q263.7,182.5 263.7,186.5V192.5Q263.7,196.5 259.7,196.5H239.9Z"/><text x="270.7" y="189.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.026</text><rect x="176.0" y="177.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ROUGE · binary questioning (BQ): 0.384 → 0.410 (+0.026)"><path class="f-ctx" d="M239.9,209.5H259.7Q263.7,209.5 263.7,213.5V219.5Q263.7,223.5 259.7,223.5H239.9Z"/><text x="270.7" y="216.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.026</text><rect x="176.0" y="204.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="METEOR · binary questioning (BQ): 0.357 → 0.384 (+0.027)"><path class="f-ctx" d="M239.9,236.5H260.6Q264.6,236.5 264.6,240.5V246.5Q264.6,250.5 260.6,250.5H239.9Z"/><text x="271.6" y="243.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.027</text><rect x="176.0" y="231.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BLEU · binary questioning (BQ): 0.272 → 0.264 (−0.008)"><path class="f-ctx" d="M239.9,263.5H236.6Q232.6,263.5 232.6,267.5V273.5Q232.6,277.5 236.6,277.5H239.9Z"/><text x="246.9" y="270.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">−0.008</text><rect x="176.0" y="258.5" width="274.0" height="24.0" class="hitbox"/></g><text x="480.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Step 2: naive normality (NN)</text><text x="480.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">change from step 1</text><line x1="498.3" y1="52.0" x2="498.3" y2="284.0" class="grid"/><text x="498.3" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">−0.05</text><line x1="543.9" y1="52.0" x2="543.9" y2="284.0" class="zero"/><text x="543.9" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="589.6" y1="52.0" x2="589.6" y2="284.0" class="grid"/><text x="589.6" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.05</text><line x1="635.3" y1="52.0" x2="635.3" y2="284.0" class="grid"/><text x="635.3" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.1</text><line x1="680.9" y1="52.0" x2="680.9" y2="284.0" class="grid"/><text x="680.9" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.15</text><line x1="726.6" y1="52.0" x2="726.6" y2="284.0" class="grid"/><text x="726.6" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.2</text><g class="hit" tabindex="0" data-tip="GREEN · chest · naive normality (NN): 0.260 → 0.287 (+0.027)"><path class="f-emph" d="M543.9,64.5H564.6Q568.6,64.5 568.6,68.5V74.5Q568.6,78.5 564.6,78.5H543.9Z"/><text x="575.6" y="71.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.027</text><rect x="480.0" y="59.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · abdomen · naive normality (NN): 0.391 → 0.415 (+0.024)"><path class="f-emph" d="M543.9,91.5H561.9Q565.9,91.5 565.9,95.5V101.5Q565.9,105.5 561.9,105.5H543.9Z"/><text x="572.9" y="98.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.024</text><rect x="480.0" y="86.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · pelvis · naive normality (NN): 0.526 → 0.708 (+0.182)"><path class="f-emph" d="M543.9,118.5H706.2Q710.2,118.5 710.2,122.5V128.5Q710.2,132.5 706.2,132.5H543.9Z"/><text x="717.2" y="125.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.182</text><rect x="480.0" y="113.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GREEN · mean of regions · naive normality (NN): 0.392 → 0.470 (+0.078)"><path class="f-emph" d="M543.9,145.5H611.2Q615.2,145.5 615.2,149.5V155.5Q615.2,159.5 611.2,159.5H543.9Z"/><text x="622.2" y="152.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">+0.078</text><rect x="480.0" y="140.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="RaTEScore · naive normality (NN): 0.599 → 0.601 (+0.002)"><path class="f-emph" d="M543.9,182.5H543.9Q545.8,182.5 545.8,184.3V194.7Q545.8,196.5 543.9,196.5H543.9Z"/><text x="552.8" y="189.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.002</text><rect x="480.0" y="177.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ROUGE · naive normality (NN): 0.410 → 0.390 (−0.020)"><path class="f-emph" d="M543.9,209.5H529.7Q525.7,209.5 525.7,213.5V219.5Q525.7,223.5 529.7,223.5H543.9Z"/><text x="550.9" y="216.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">−0.020</text><rect x="480.0" y="204.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="METEOR · naive normality (NN): 0.384 → 0.384 (0.000)"><text x="550.9" y="243.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.000</text><rect x="480.0" y="231.5" width="274.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BLEU · naive normality (NN): 0.264 → 0.207 (−0.057)"><path class="f-emph" d="M543.9,263.5H495.9Q491.9,263.5 491.9,267.5V273.5Q491.9,277.5 495.9,277.5H543.9Z"/><text x="550.9" y="270.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">−0.057</text><rect x="480.0" y="258.5" width="274.0" height="24.0" class="hitbox"/></g><text x="162.0" y="71.5" class="t" text-anchor="end" dominant-baseline="central">GREEN · chest</text><text x="162.0" y="98.5" class="t" text-anchor="end" dominant-baseline="central">GREEN · abdomen</text><text x="162.0" y="125.5" class="t" text-anchor="end" dominant-baseline="central">GREEN · pelvis</text><text x="162.0" y="152.5" class="t t-strong" text-anchor="end" dominant-baseline="central">GREEN · mean of regions</text><text x="162.0" y="189.5" class="t" text-anchor="end" dominant-baseline="central">RaTEScore</text><text x="162.0" y="216.5" class="t" text-anchor="end" dominant-baseline="central">ROUGE</text><text x="162.0" y="243.5" class="t" text-anchor="end" dominant-baseline="central">METEOR</text><text x="162.0" y="270.5" class="t" text-anchor="end" dominant-baseline="central">BLEU</text></svg></div>
+    <figcaption><b>Figure 3 — Binary questioning lifts four of five metrics; naive normality lifts GREEN, mostly in the pelvis.</b> Both panels share one scale. The paper reports p &lt; 0.05 for GREEN and RaTEScore, baseline against both steps together; the steps are not tested separately. Source: Table 4.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th style="border-bottom:0"></th><th colspan="4" style="border-bottom:0">GREEN</th><th colspan="4" style="border-bottom:0"></th></tr><tr><th scope="col">Stage</th><th scope="col" class="num">Chest</th><th scope="col" class="num">Abdomen</th><th scope="col" class="num">Pelvis</th><th scope="col" class="num">Mean</th><th scope="col" class="num">RaTEScore</th><th scope="col" class="num">BLEU</th><th scope="col" class="num">ROUGE</th><th scope="col" class="num">METEOR</th></tr></thead><tbody><tr><th scope="row">Baseline</th><td class="num">0.243</td><td class="num">0.358</td><td class="num">0.499</td><td class="num">0.366</td><td class="num">0.573</td><td class="num">0.272</td><td class="num">0.384</td><td class="num">0.357</td></tr><tr><th scope="row">+ BQ</th><td class="num">0.260</td><td class="num">0.391</td><td class="num">0.526</td><td class="num">0.392</td><td class="num">0.599</td><td class="num">0.264</td><td class="num">0.410</td><td class="num">0.384</td></tr><tr><th scope="row">+ BQ + NN</th><td class="num">0.287</td><td class="num">0.415</td><td class="num">0.708</td><td class="num">0.470</td><td class="num">0.601</td><td class="num">0.207</td><td class="num">0.390</td><td class="num">0.384</td></tr><tr class="ours"><th scope="row">Step 1 (BQ), change</th><td class="num">+0.017</td><td class="num">+0.033</td><td class="num">+0.027</td><td class="num">+0.026</td><td class="num">+0.026</td><td class="num">−0.008</td><td class="num">+0.026</td><td class="num">+0.027</td></tr><tr class="ours"><th scope="row">Step 2 (NN), change</th><td class="num">+0.027</td><td class="num">+0.024</td><td class="num">+0.182</td><td class="num">+0.078</td><td class="num">+0.002</td><td class="num">−0.057</td><td class="num">−0.020</td><td class="num">0.000</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>The pelvis supplies 78% of naive normality’s 0.078, and naive normality three quarters of the headline gain <span class="tag">derived</span>. The abstract’s 10% is ten points, 0.366 to 0.470, a 28% relative gain.</p>
+  <p>The formula in section 02 can explain it. A canned sentence that the reference also contains adds a match and removes no error: a report with 2 matches and 3 errors scores 0.40, and four shared normal sentences take it to 0.67 <span class="tag">derived</span>. The authors suspect that pelvic reports hold more normal findings, and the pelvis list is the longest. They see the problem themselves: RaTEScore’s stability, they write, may show its robustness to “these types of tricks”.</p>
+
+  <div class="callout">
+    <span class="label">The authors’ own examples <span class="tag">our observation</span></span>
+    <p>The MICCAI version has no examples of generated reports; the arXiv version adds three. In both pelvis examples the reference describes the prostate, and the augmented report also declares the uterus and the adnexal regions normal. The chest example opens with a sentence about the seminal vesicles. The released lists explain it: the pelvis list holds a normal prostate and a normal uterus with no check of the patient’s sex, and the chest list has a seminal-vesicle entry.</p>
+    <p>BQ earns its place in the first example: it adds the enlarged, calcified prostate that the generator had missed.</p>
+  </div>
+
+  <p>All three reviewers asked whether the GREEN gain means better reports; one warned that added sentences could contradict the model’s own text. The authors replied that lexical metrics miss clinical meaning and that clinical templates list every organ. But RaTEScore isn’t lexical: the paper’s tables file it under clinical metrics, and naive normality didn’t move it.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">05</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>Uncertainty:</strong> no seeds or intervals for the design-space tables. A reviewer asked for tests; the final version adds the single p-value quoted under Figure 3.</li>
+    <li><strong>Training length:</strong> every setting gets 150 epochs. An <a href="https://github.com/bowang-lab/AMOS-MM-Solution/issues/3">open issue</a> on the repository reports GREEN 0.448 for the Llama setting after 10 epochs, against 0.359 in the paper’s table, and adds that the reports may not be very good. Nobody has answered or confirmed it. If it holds, training length moves GREEN more than the choice of LLM or projector.</li>
+    <li><strong>The yes/no model:</strong> no accuracy for its 22 answers, although they are written into the report as findings.</li>
+    <li><strong>Readers and other data:</strong> no radiologist read the augmented reports, and everything comes from two hospitals in one city. The rebuttal cites compute limits for leaving out CT-RATE.</li>
+    <li><strong>The challenge result:</strong> no test-set score is given, and the public leaderboards still show placeholders (5 Oct 2026).</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">06</span>Takeaways for building a CT report generator</h2>
+  <ol class="num-list">
+    <li><strong>With about a thousand scans, start with the LLM frozen.</strong> LoRA cost 0.030 GREEN and full fine-tuning 0.095 under one schedule. Train the encoder, the projector, the embeddings and the output head, as the released code does.</li>
+    <li><strong>Don’t pay for a bigger LLM at this scale.</strong> 14B against 4B in one family: +0.004.</li>
+    <li><strong>Match the input to the encoder’s pretraining size.</strong> Four times the patches cost 0.038. If you need resolution, plan to retrain the encoder.</li>
+    <li><strong>Stress-test a metric before optimising it.</strong> Pad a baseline with canned normal sentences. If one metric jumps (GREEN, +0.078) while an entity-level one stays put (RaTEScore, +0.002), report both.</li>
+    <li><strong>For completeness, ask a model, and gate the answers.</strong> BQ’s checklist lifted four of five metrics. Canned normals need at least the patient’s sex, the scanned region and what the report already says.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Baharoon, M., Ma, J., Fang, C., Toma, A., Wang, B. <a href="https://papers.miccai.org/miccai-2025/0316-Paper2261.html">Exploring the Design Space of 3D MLLMs for CT Report Generation</a>. MICCAI 2025, LNCS 15965, pp. 237–246. The page holds the reviews and the rebuttal. <a href="https://papers.miccai.org/miccai-2025/paper/2261_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04978-0_23">doi</a> · <a href="https://arxiv.org/abs/2506.21535">arXiv:2506.21535</a> (same tables; adds the example reports as Figure 3).</li>
+    <li>Code: <a href="https://github.com/bowang-lab/AMOS-MM-Solution">bowang-lab/AMOS-MM-Solution</a> (MIT), read on 5 Oct 2026.</li>
+    <li>AMOS-MM challenge: <a href="https://www.codabench.org/competitions/3137/">Codabench competition 3137</a> (data, evaluation, rules) and the <a href="https://era-ai-biomed.github.io/amos/">AMOS site</a>.</li>
+    <li>Ostmeier, S., et al. GREEN: <a href="https://arxiv.org/abs/2405.03595">arXiv:2405.03595</a> (2024); <a href="https://huggingface.co/StanfordAIMI/GREEN-radllama2-7b">GREEN-RadLlama2-7b model card</a>.</li>
+    <li>Zhao, W., et al. RaTEScore: <a href="https://arxiv.org/abs/2406.16845">arXiv:2406.16845</a> (2024).</li>
+    <li>Bai, F., et al. M3D: <a href="https://arxiv.org/abs/2404.00578">arXiv:2404.00578</a> (2024).</li>
+    <li>Our posts on <a href="/research-blog/merlin-report-generation/">Merlin</a>, <a href="/research-blog/nnfoundation-report-generation/">nnFoundation</a> and <a href="/research-blog/nv-reason-ct-report-generation/">NV-Reason-CT</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Baharoon et al., MICCAI 2025 (LNCS 15965, pp. 237–246). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the released code or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
