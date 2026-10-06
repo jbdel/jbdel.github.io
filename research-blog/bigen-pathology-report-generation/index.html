@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BiGen, read for pathology report generation</title>
+<meta name="description" content="A report-generation reading of BiGen (MICCAI 2025), which retrieves past reports to write breast pathology reports: it tops seven re-run baselines on 93 test cases, three quarters of its BLEU-4 gain over a plain Transformer comes before any retrieval, and the paper’s example gets tumour size and stage wrong yet scores close to the test-set BLEU-4.">
+<meta property="og:title" content="BiGen, read for pathology report generation">
+<meta property="og:description" content="A report-generation reading of BiGen (MICCAI 2025), which retrieves past reports to write breast pathology reports: it tops seven re-run baselines on 93 test cases, three quarters of its BLEU-4 gain over a plain Transformer comes before any retrieval, and the paper’s example gets tumour size and stage wrong yet scores close to the test-set BLEU-4.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/bigen-pathology-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/bigen-pathology-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="BiGen, read for pathology report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/bigen-pathology-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/bigen-pathology-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0418-Paper2364.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/2364_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2506.18658">arXiv</a>
+      <a href="https://github.com/DeepMed-Lab-ECNU/BiGen">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Pathology report generation</p>
+    <h1>BiGen, read for pathology report generation</h1>
+    <p class="dek">BiGen, a MICCAI 2025 model, writes a breast pathology report from two vectors, one for the slide and one for sentences retrieved from past reports, and tops seven baselines on a public benchmark. This post reads how much the retrieved reports explain, and what the scores can see.</p>
+    <div class="meta">
+      <span><b>Paper</b> Ling Zhang, Boxiang Yun, Qingli Li, Yan Wang. <a href="https://papers.miccai.org/miccai-2025/0418-Paper2364.html"><i>Historical Report Guided Bi-modal Concurrent Learning for Pathology Report Generation</i></a>. MICCAI 2025, LNCS 15965, pp. 343–352</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 6 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">93</div><div class="l">test reports, one slide per patient; 796 reports to train on</div></div>
+    <div class="tile" role="listitem"><div class="v">2</div><div class="l">vectors are all the decoder sees of a slide and its retrieved text</div></div>
+    <div class="tile" role="listitem"><div class="v">0.135</div><div class="l">BLEU-4, against 0.118 for the best of seven baselines; no intervals</div></div>
+    <div class="tile" role="listitem"><div class="v">75%<sup>*</sup></div><div class="l">of the BLEU-4 gained over a plain Transformer comes before any report is retrieved</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic on the paper’s ablation table: 0.024 of the 0.032 gained. The paper’s own average over seven scores gives the same share.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A small captioner on a small benchmark.</strong> A three-layer Transformer decoder, trained from scratch on 796 LLM-written summaries of TCGA breast pathology reports, is scored mainly by word overlap on 93 test cases. No pathologist read its output.</li>
+      <li><strong>First in every column, without error bars.</strong> BLEU-4 is 0.135 against 0.118 for HistGen. All seven baselines are evidently the authors’ own runs, and no intervals, repeat runs or tests are reported.</li>
+      <li><strong>Most of the gain over a plain Transformer is not the retrieved reports.</strong> With no retrieval, the model that pools the slide into one learned vector already has 0.024 of the 0.032 BLEU-4 gained over a plain Transformer. Retrieval on its own lowers the score; the full knowledge branch adds 0.008.</li>
+      <li><strong>What the scores can’t see.</strong> The paper’s own example gets tumour size, grade and stage wrong and still earns a BLEU-4 close to the test set’s. The HER2 lead looks like five cases out of 35 over HistGen, and two over the best baseline.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>The blog’s <a href="/research-blog/melanocytic-pathology-report-generation/">first pathology post</a> read a paper that scored 50 generated reports with a blinded pathologist and no automatic metric. This one brings the opposite evidence: a public benchmark, automatic metrics, seven baselines, and no reader.</p>
+  <p>Its idea is retrieval: as a pathologist recalls similar cases, BiGen looks up sentences from past reports for the patches it attends to most. The code and the reviews (scores of 3, 4 and 5; no rebuttal round) are public, and this post uses both.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="BiGen pipeline: one slide cut into patches, two frozen patch encoders, a visual token that pools the patches, a lookup of training-report sentence embeddings for the most attended patches, a textual token that pools them, and a three-layer decoder that reads the two tokens">
+      <div class="row">
+        <div class="box"><div class="t1">One slide per patient</div><div class="t2">TCGA breast cancer, H&amp;E, cut into 256 × 256 px patches at 10×</div></div>
+        <div class="shape">M patches<br>(≤ 10,000 in the release)</div>
+      </div>
+      <div class="conn"><div>two frozen encoders, run once</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">UNI and PLIP patch encoders</div><div class="t2">UNI: a ViT-L pretrained without TCGA. PLIP: a CLIP tuned on pathology image–text pairs from Twitter</div></div>
+        <div class="shape">M × 1,024 (UNI)<br>M × 512 (PLIP)</div>
+      </div>
+      <div class="conn"><div>UNI vectors, through a linear layer</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Visual token</div><div class="t2">One learned vector queries every patch by cross-attention: three passes, one set of weights</div></div>
+        <div class="shape">M × 512 → 1 × 512</div>
+      </div>
+      <div class="conn"><div>the first pass ranks the patches · the top 40% go to retrieval, in groups of 20</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">Knowledge bank</div><div class="t2">PLIP embeddings of the training reports’ sentences. Each group’s mean PLIP vector pulls its 3 nearest sentences, and their embeddings are averaged</div></div>
+        <div class="shape">→ M/50 × 512</div>
+      </div>
+      <div class="conn"><div>a linear layer, then the same cross-attention weights, two passes</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Textual token</div><div class="t2">A second learned vector queries the retrieved vectors</div></div>
+        <div class="shape">→ 1 × 512</div>
+      </div>
+      <div class="conn"><div>the two tokens, side by side</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Decoder</div><div class="t2">Three Transformer layers of width 512, trained from scratch; beam search of width 3</div></div>
+        <div class="shape">2 × 512 → report</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen</span>
+        <span><i style="background:var(--ink)"></i>trained</span>
+        <span>monospace = sizes (paper, released code, our arithmetic)</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The decoder sees a slide as two vectors.</b> With 40% of the patches in groups of 20, there is one retrieved vector per 50 patches <span class="tag">derived</span>. The encoders’ output sizes and the patch cap come from the released code. Sources: Sections 2.2–2.4 and 3.1, Fig. 1.</figcaption>
+  </figure>
+
+  <p>Three things in it are easy to miss:</p>
+  <ul>
+    <li><strong>No retrieved word reaches the decoder.</strong> A lookup returns the mean of three sentence embeddings, and all lookups are pooled into one vector.</li>
+    <li><strong>There is no pretrained language model.</strong> The decoder is trained from scratch: about 7.9M parameters in its three blocks, counted from the release <span class="tag">derived</span>, against the 347M-parameter BioGPT of the first pathology post.</li>
+    <li><strong>Retrieval isn’t trained.</strong> PLIP is frozen on both sides; the model learns only which patches ask. In the released code the bank is the same during training, so a training slide can pull sentences from its own report <span class="tag">our observation</span>.</li>
+  </ul>
+  <p>The mechanism, condensed from the <a href="https://github.com/DeepMed-Lab-ECNU/BiGen/blob/main/modules/encoder_decoder.py">released code</a> (helper names are ours):</p>
+<pre><code><span class="k">def</span> retrieve(plip, attn, bank, ratio=0.4, m=10, top=3):
+    <span class="c"># plip: M x 512 patches · bank: T x 512 sentences</span>
+    order = attn.argsort(descending=True)  <span class="c"># first pass</span>
+    kept = plip[order][: int(len(order) * ratio)]
+    groups = pad(kept, m).view(-1, m, 512).mean(1)
+    sim = cosine(groups[:, None], bank[None])
+    nearest = sim.topk(top, dim=1).indices
+    <span class="k">return</span> bank[nearest].mean(1)           <span class="c"># groups x 512</span>
+
+v1, attn = layer(v0, patches)      <span class="c"># visual token, pass 1</span>
+k = proj(retrieve(plip, attn, bank))
+v2, _ = layer(v1, patches); t1, _ = layer(t0, k)
+v3, _ = layer(v2, patches); t2, _ = layer(t1, k)
+memory = cat([v1 + v2 + v3, t1 + t2])      <span class="c"># 2 x 512</span>
+report = decoder(memory)           <span class="c"># beam search, width 3</span></code></pre>
+</section>
+
+<section id="benchmark" data-toc="The benchmark">
+  <h2><span class="n">02</span>The benchmark: PathText (BRCA)</h2>
+  <p>PathText comes from the MI-Gen paper (MICCAI 2024): 9,009 slide–text pairs built from TCGA. The text is not the pathologist’s report. The scanned report goes through OCR, an LLM is asked to summarise it, and a classifier trained on 88 hand-labelled pairs removes flawed summaries.</p>
+  <p>The breast subset holds 1,041 slides of 977 patients, by our count on the released split file. In that split, 12 of the 98 test patients also have a slide in the training set, and the benchmark’s loader pairs both with the same report. BiGen keeps one slide per patient, which leaves 796 training, 88 validation and 93 test cases, so a test patient’s report is in neither the training set nor, by the paper’s account, the knowledge bank. That is a real fix, and no number can be carried over from MI-Gen’s paper.</p>
+  <p>The reference summarises the report of a whole surgical case, tumour size and lymph nodes included, while the input is one slide; MI-Gen’s authors themselves suggest that a two-dimensional slide can’t give a three-dimensional size.</p>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">03</span>Results: where the gain comes from</h2>
+  <p>BiGen is first in all ten columns of the paper’s main table, seven text scores and three for HER2: BLEU-4 is 0.135 against 0.118 for HistGen, and 0.293 ROUGE-L against 0.279 for the next best. The ablation table starts from the same row, a plain Transformer (the paper’s vanilla Transformer), so both tables fit on one axis as gains over it.</p>
+
+  <figure id="fig-gains">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 376" role="img" aria-label="BLEU-4 gained over the plain Transformer by other methods and by each part of BiGen" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Other methods</text><rect x="121.2" y="6.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="136.2" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">BiGen without retrieval</text><rect x="305.7" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="320.7" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">BiGen with retrieval</text><text x="676.0" y="40.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">BLEU-4</text><text x="754.0" y="40.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">Gain</text><line x1="274.0" y1="52.0" x2="274.0" y2="330.0" class="zero"/><text x="274.0" y="344.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="368.3" y1="52.0" x2="368.3" y2="330.0" class="grid"/><text x="368.3" y="344.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.01</text><line x1="462.6" y1="52.0" x2="462.6" y2="330.0" class="grid"/><text x="462.6" y="344.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.02</text><line x1="556.9" y1="52.0" x2="556.9" y2="330.0" class="grid"/><text x="556.9" y="344.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.03</text><text x="439.0" y="364.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">BLEU-4 gained over the plain Transformer (0.103)</text><text x="0" y="75.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Other methods</tspan><tspan dx="8" class="t-muted">re-run by the authors</tspan></text><text x="262.0" y="98.0" class="t" text-anchor="end" dominant-baseline="central">R2Gen</text><g class="hit" tabindex="0" data-tip="R2Gen: BLEU-4 0.107 (+0.004) · BLEU-1 0.378 · BLEU-2 0.243 · BLEU-3 0.160 · BLEU-4 0.107 · METEOR 0.179 · ROUGE 0.279 · Fact-ent 0.505"><path class="f-ctx" d="M274.0,91.5H307.7Q311.7,91.5 311.7,95.5V100.5Q311.7,104.5 307.7,104.5H274.0Z"/><rect x="274.0" y="86.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="98.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.107</text><text x="754.0" y="98.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.004</text><text x="262.0" y="122.0" class="t" text-anchor="end" dominant-baseline="central">R2GenCMN</text><g class="hit" tabindex="0" data-tip="R2GenCMN: BLEU-4 0.110 (+0.007) · BLEU-1 0.396 · BLEU-2 0.254 · BLEU-3 0.164 · BLEU-4 0.110 · METEOR 0.163 · ROUGE 0.279 · Fact-ent 0.470"><path class="f-ctx" d="M274.0,115.5H336.0Q340.0,115.5 340.0,119.5V124.5Q340.0,128.5 336.0,128.5H274.0Z"/><rect x="274.0" y="110.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="122.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.110</text><text x="754.0" y="122.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.007</text><text x="262.0" y="146.0" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen: BLEU-4 0.115 (+0.012) · BLEU-1 0.416 · BLEU-2 0.267 · BLEU-3 0.174 · BLEU-4 0.115 · METEOR 0.165 · ROUGE 0.270 · Fact-ent 0.490"><path class="f-ctx" d="M274.0,139.5H383.1Q387.1,139.5 387.1,143.5V148.5Q387.1,152.5 383.1,152.5H274.0Z"/><rect x="274.0" y="134.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="146.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.115</text><text x="754.0" y="146.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.012</text><text x="262.0" y="170.0" class="t" text-anchor="end" dominant-baseline="central">HistGen</text><g class="hit" tabindex="0" data-tip="HistGen: BLEU-4 0.118 (+0.015) · BLEU-1 0.422 · BLEU-2 0.272 · BLEU-3 0.177 · BLEU-4 0.118 · METEOR 0.169 · ROUGE 0.277 · Fact-ent 0.493"><path class="f-ctx" d="M274.0,163.5H411.4Q415.4,163.5 415.4,167.5V172.5Q415.4,176.5 411.4,176.5H274.0Z"/><rect x="274.0" y="158.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="170.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.118</text><text x="754.0" y="170.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.015</text><text x="0" y="199.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">BiGen, one part at a time</tspan><tspan dx="8" class="t-muted">the paper’s ablation</tspan></text><text x="262.0" y="222.0" class="t" text-anchor="end" dominant-baseline="central">One learned token reads the slide</text><g class="hit" tabindex="0" data-tip="One learned token reads the slide: BLEU-4 0.126 (+0.023) · BLEU-1 0.436 · BLEU-2 0.283 · BLEU-3 0.186 · BLEU-4 0.126 · METEOR 0.174 · ROUGE 0.287 · Fact-ent 0.499"><path class="f-mid" d="M274.0,215.5H486.9Q490.9,215.5 490.9,219.5V224.5Q490.9,228.5 486.9,228.5H274.0Z"/><rect x="274.0" y="210.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="222.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.126</text><text x="754.0" y="222.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.023</text><text x="262.0" y="246.0" class="t" text-anchor="end" dominant-baseline="central">+ one set of weights for all passes</text><g class="hit" tabindex="0" data-tip="one set of weights for all passes: BLEU-4 0.127 (+0.024) · BLEU-1 0.437 · BLEU-2 0.286 · BLEU-3 0.190 · BLEU-4 0.127 · METEOR 0.174 · ROUGE 0.280 · Fact-ent 0.507"><path class="f-mid" d="M274.0,239.5H496.3Q500.3,239.5 500.3,243.5V248.5Q500.3,252.5 496.3,252.5H274.0Z"/><rect x="274.0" y="234.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="246.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.127</text><text x="754.0" y="246.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.024</text><text x="262.0" y="270.0" class="t" text-anchor="end" dominant-baseline="central">+ retrieved report vectors, self-attended</text><g class="hit" tabindex="0" data-tip="retrieved report vectors, self-attended: BLEU-4 0.119 (+0.016) · BLEU-1 0.416 · BLEU-2 0.269 · BLEU-3 0.176 · BLEU-4 0.119 · METEOR 0.169 · ROUGE 0.283 · Fact-ent 0.505"><path class="f-emph" d="M274.0,263.5H420.9Q424.9,263.5 424.9,267.5V272.5Q424.9,276.5 420.9,276.5H274.0Z"/><rect x="274.0" y="258.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="270.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.119</text><text x="754.0" y="270.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.016</text><text x="262.0" y="294.0" class="t" text-anchor="end" dominant-baseline="central">+ a second token pools them instead</text><g class="hit" tabindex="0" data-tip="a second token pools them instead: BLEU-4 0.130 (+0.027) · BLEU-1 0.441 · BLEU-2 0.288 · BLEU-3 0.190 · BLEU-4 0.130 · METEOR 0.178 · ROUGE 0.290 · Fact-ent 0.515"><path class="f-emph" d="M274.0,287.5H524.6Q528.6,287.5 528.6,291.5V296.5Q528.6,300.5 524.6,300.5H274.0Z"/><rect x="274.0" y="282.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="294.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.130</text><text x="754.0" y="294.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.027</text><text x="262.0" y="318.0" class="t t-strong" text-anchor="end" dominant-baseline="central">+ both tokens share weights = BiGen</text><g class="hit" tabindex="0" data-tip="both tokens share weights = BiGen: BLEU-4 0.135 (+0.032) · BLEU-1 0.450 · BLEU-2 0.296 · BLEU-3 0.196 · BLEU-4 0.135 · METEOR 0.180 · ROUGE 0.293 · Fact-ent 0.521"><path class="f-emph" d="M274.0,311.5H571.7Q575.7,311.5 575.7,315.5V320.5Q575.7,324.5 571.7,324.5H274.0Z"/><rect x="274.0" y="306.0" width="330.0" height="24.0" class="hitbox"/></g><text x="676.0" y="318.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.135</text><text x="754.0" y="318.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">+0.032</text><line x1="415.4" y1="176.5" x2="415.4" y2="330.0" class="floor"/><text x="421.4" y="199.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">HistGen’s level</text></svg></div>
+    <figcaption><b>Figure 2 — One token for the slide brings +0.023 BLEU-4; the knowledge branch then adds 0.008.</b> The dashed line marks HistGen, the best baseline; the two LSTM baselines (−0.060 and −0.055) are in the table only, and Table 1’s HER2 columns are in Figure 3. 93 test reports; no intervals or repeat runs are reported. Sources: Tables 1 and 2.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Table 1, text scores</th><th scope="col" class="num">BLEU-1</th><th scope="col" class="num">BLEU-2</th><th scope="col" class="num">BLEU-3</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE</th><th scope="col" class="num">Fact-ent</th></tr></thead><tbody><tr><th scope="row">CNN-RNN</th><td class="num">0.371</td><td class="num">0.185</td><td class="num">0.089</td><td class="num">0.043</td><td class="num">0.143</td><td class="num">0.239</td><td class="num">0.478</td></tr><tr><th scope="row">att-LSTM</th><td class="num">0.371</td><td class="num">0.191</td><td class="num">0.094</td><td class="num">0.048</td><td class="num">0.142</td><td class="num">0.238</td><td class="num">0.460</td></tr><tr><th scope="row">Plain Transformer</th><td class="num">0.389</td><td class="num">0.246</td><td class="num">0.157</td><td class="num">0.103</td><td class="num">0.158</td><td class="num">0.257</td><td class="num">0.487</td></tr><tr><th scope="row">R2Gen</th><td class="num">0.378</td><td class="num">0.243</td><td class="num">0.160</td><td class="num">0.107</td><td class="num">0.179</td><td class="num">0.279</td><td class="num">0.505</td></tr><tr><th scope="row">R2GenCMN</th><td class="num">0.396</td><td class="num">0.254</td><td class="num">0.164</td><td class="num">0.110</td><td class="num">0.163</td><td class="num">0.279</td><td class="num">0.470</td></tr><tr><th scope="row">MI-Gen</th><td class="num">0.416</td><td class="num">0.267</td><td class="num">0.174</td><td class="num">0.115</td><td class="num">0.165</td><td class="num">0.270</td><td class="num">0.490</td></tr><tr><th scope="row">HistGen</th><td class="num">0.422</td><td class="num">0.272</td><td class="num">0.177</td><td class="num">0.118</td><td class="num">0.169</td><td class="num">0.277</td><td class="num">0.493</td></tr><tr class="ours"><th scope="row">BiGen</th><td class="num">0.450</td><td class="num">0.296</td><td class="num">0.196</td><td class="num">0.135</td><td class="num">0.180</td><td class="num">0.293</td><td class="num">0.521</td></tr></tbody></table><div style="height:18px"></div><table class="data"><thead><tr><th scope="col">Table 2, ablation</th><th scope="col" class="num">BLEU-1</th><th scope="col" class="num">BLEU-2</th><th scope="col" class="num">BLEU-3</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE</th><th scope="col" class="num">Fact-ent</th><th scope="col" class="num">AVG. △</th></tr></thead><tbody><tr><th scope="row">Plain Transformer</th><td class="num">0.389</td><td class="num">0.246</td><td class="num">0.157</td><td class="num">0.103</td><td class="num">0.158</td><td class="num">0.257</td><td class="num">0.487</td><td class="num">–</td></tr><tr><th scope="row">+ visual token (VTCA)</th><td class="num">0.436</td><td class="num">0.283</td><td class="num">0.186</td><td class="num">0.126</td><td class="num">0.174</td><td class="num">0.287</td><td class="num">0.499</td><td class="num">10.84%</td></tr><tr><th scope="row">+ shared layers (WSL)</th><td class="num">0.437</td><td class="num">0.286</td><td class="num">0.190</td><td class="num">0.127</td><td class="num">0.174</td><td class="num">0.280</td><td class="num">0.507</td><td class="num">11.41%</td></tr><tr><th scope="row">+ retrieval (KR)</th><td class="num">0.416</td><td class="num">0.269</td><td class="num">0.176</td><td class="num">0.119</td><td class="num">0.169</td><td class="num">0.283</td><td class="num">0.505</td><td class="num">7.75%</td></tr><tr><th scope="row">+ textual token (TTCA)</th><td class="num">0.441</td><td class="num">0.288</td><td class="num">0.190</td><td class="num">0.130</td><td class="num">0.178</td><td class="num">0.290</td><td class="num">0.515</td><td class="num">13.06%</td></tr><tr class="ours"><th scope="row">+ shared branches (WS)</th><td class="num">0.450</td><td class="num">0.296</td><td class="num">0.196</td><td class="num">0.135</td><td class="num">0.180</td><td class="num">0.293</td><td class="num">0.521</td><td class="num">15.26%</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Three things stand out:</p>
+  <ol class="num-list">
+    <li><strong>One vector for the slide does most of it.</strong> Replacing self-attention over all patches by a single learned query lifts BLEU-4 from 0.103 to 0.126. With no retrieval at all, that model already tops HistGen and MI-Gen on all seven text scores. A decoder fed one vector outscores the same decoder attending to every patch: with 796 training reports the bottleneck may regularise, or the scores may reward phrasing more than detail <span class="tag">our observation</span>.</li>
+    <li><strong>Retrieval alone hurts.</strong> Adding the retrieved vectors through self-attention, with no textual token, takes BLEU-4 from 0.127 to 0.119. Pooling them into a second token instead gives 0.130; letting both tokens share weights gives 0.135. The whole knowledge branch adds 0.008, a quarter of the total gain and about half of the lead over HistGen <span class="tag">derived</span>. The paper’s example may hint at why: four of the nine retrieved sentences it shows describe other patients’ immunostains, receptor status, a BRCA2 mutation or a right axillary node.</li>
+    <li><strong>One setting moves the score as much as the lead.</strong> Retrieving for every patch instead of the top 40% gives 0.119, about HistGen’s level. Seven sentences per lookup instead of three gives 0.137, above the headline.</li>
+  </ol>
+  <p>All seven baselines must be the authors’ own runs: the test set is new, the MI-Gen row matches none of the three in MI-Gen’s paper, and HistGen’s paper uses another dataset. The paper names UNI as the visual extractor without saying whether the baselines got it; a reviewer asked for that control, and there was no rebuttal round. The released code fixes one seed.</p>
+</section>
+
+<section id="scores" data-toc="Reading the scores">
+  <h2><span class="n">04</span>What the scores can see</h2>
+  <p>The paper prints one generated report beside its reference and highlights the words they share. Attribute by attribute, the pair reads differently:</p>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Attribute</th><th scope="col">Reference</th><th scope="col">Generated</th></tr></thead><tbody><tr><th scope="row">Side</th><td style="white-space:normal">left breast</td><td style="white-space:normal">left breast</td></tr><tr><th scope="row">Diagnosis</th><td style="white-space:normal">poorly differentiated invasive ductal carcinoma, ICD-O M-8500/3</td><td style="white-space:normal">the same, with the same code</td></tr><tr><th scope="row">Tumour size</th><td style="white-space:normal">up to 6 cm</td><td style="white-space:normal;font-weight:700;color:var(--ink)">1.4 cm</td></tr><tr><th scope="row">Grade</th><td style="white-space:normal">G3</td><td style="white-space:normal;font-weight:700;color:var(--ink)">grade 2</td></tr><tr><th scope="row">Tumour stage</th><td style="white-space:normal">pT3</td><td style="white-space:normal;font-weight:700;color:var(--ink)">pT2</td></tr><tr><th scope="row">Lymph nodes</th><td style="white-space:normal">pN2a</td><td style="white-space:normal;font-weight:700;color:var(--ink)">none involved (pN0)</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — The paper’s example, attribute by attribute.</b> Our reading of the two texts in the paper’s Fig. 2; bold marks a disagreement.</p>
+  <p>Scored alone with the released scorer’s BLEU formula, this pair of about 100 tokens each gets a BLEU-4 of 0.127 (0.102 if full stops aren’t counted as tokens) <span class="tag">derived</span>, where the whole test set gets 0.135. All of its four-word matches come from the diagnosis phrase and from “there is no”.</p>
+
+  <div class="callout">
+    <span class="label">Precision in thirty-fifths <span class="tag">our observation</span></span>
+    <p>The second headline is HER2: an F1 of 0.730 against 0.571 for HistGen, read off the generated text. All eight values in the precision column are whole thirty-fifths, while no single denominator up to the 93 test cases fits the recall column. On a fixed test set it should be the other way round. The paper doesn’t define the columns. The simplest reading: 35 reference reports state a HER2 result, and BiGen’s report matches it in 23, HistGen’s in 18 and a 2015 LSTM captioner’s in 21 (the abstract’s 19.1% matches the gain over that LSTM).</p>
+    <p>Even if BiGen is right wherever HistGen is, five extra cases out of 35 give p = 0.06 in a two-sided exact McNemar test <span class="tag">derived</span>. And HER2 status is set by immunostaining and in-situ hybridisation, not by the H&amp;E slide the model sees: a generated HER2 sentence is an educated guess.</p>
+  </div>
+
+  <figure id="fig-her2">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 306" role="img" aria-label="HER2 columns of the results table rewritten as counts out of 35" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><text x="522.0" y="14.0" class="t t-small t-strong" text-anchor="end" dominant-baseline="central">“Precision”</text><text x="522.0" y="30.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">as printed</text><text x="640.0" y="14.0" class="t t-small t-strong" text-anchor="end" dominant-baseline="central">“Recall”</text><text x="640.0" y="30.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">as printed</text><text x="754.0" y="14.0" class="t t-small t-strong" text-anchor="end" dominant-baseline="central">F1</text><text x="754.0" y="30.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">as printed</text><line x1="162.0" y1="40.0" x2="162.0" y2="260.0" class="zero"/><text x="162.0" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="210.4" y1="40.0" x2="210.4" y2="260.0" class="grid"/><text x="210.4" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">7</text><line x1="258.8" y1="40.0" x2="258.8" y2="260.0" class="grid"/><text x="258.8" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">14</text><line x1="307.2" y1="40.0" x2="307.2" y2="260.0" class="grid"/><text x="307.2" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">21</text><line x1="355.6" y1="40.0" x2="355.6" y2="260.0" class="grid"/><text x="355.6" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">28</text><line x1="404.0" y1="40.0" x2="404.0" y2="260.0" class="grid"/><text x="404.0" y="274.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">35</text><text x="283.0" y="294.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">our reading: generated reports with the right HER2 result, of 35</text><text x="150.0" y="57.5" class="t t-strong" text-anchor="end" dominant-baseline="central">BiGen</text><g class="hit" tabindex="0" data-tip="BiGen: 23/35 = 0.657 (printed precision 0.657) · 23/28 = 0.821 (printed recall 0.821) · F1 from the counts 0.730 (printed 0.730)"><path class="f-emph" d="M162.0,50.5H317.0Q321.0,50.5 321.0,54.5V60.5Q321.0,64.5 317.0,64.5H162.0Z"/><text x="328.0" y="57.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">23</text><rect x="162.0" y="45.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="57.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">23/35 = 0.657</text><text x="640.0" y="57.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">23/28 = 0.821</text><text x="754.0" y="57.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.730</text><text x="150.0" y="84.5" class="t" text-anchor="end" dominant-baseline="central">att-LSTM</text><g class="hit" tabindex="0" data-tip="att-LSTM: 21/35 = 0.600 (printed precision 0.600) · 21/33 = 0.636 (printed recall 0.636) · F1 from the counts 0.618 (printed 0.618)"><path class="f-ctx" d="M162.0,77.5H303.2Q307.2,77.5 307.2,81.5V87.5Q307.2,91.5 303.2,91.5H162.0Z"/><text x="314.2" y="84.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">21</text><rect x="162.0" y="72.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="84.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">21/35 = 0.600</text><text x="640.0" y="84.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">21/33 = 0.636</text><text x="754.0" y="84.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.618</text><text x="150.0" y="111.5" class="t" text-anchor="end" dominant-baseline="central">HistGen</text><g class="hit" tabindex="0" data-tip="HistGen: 18/35 = 0.514 (printed precision 0.514) · 18/28 = 0.643 (printed recall 0.643) · F1 from the counts 0.571 (printed 0.571)"><path class="f-ctx" d="M162.0,104.5H282.5Q286.5,104.5 286.5,108.5V114.5Q286.5,118.5 282.5,118.5H162.0Z"/><text x="293.5" y="111.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">18</text><rect x="162.0" y="99.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="111.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">18/35 = 0.514</text><text x="640.0" y="111.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">18/28 = 0.643</text><text x="754.0" y="111.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.571</text><text x="150.0" y="138.5" class="t" text-anchor="end" dominant-baseline="central">R2Gen</text><g class="hit" tabindex="0" data-tip="R2Gen: 17/35 = 0.486 (printed precision 0.486) · 17/27 = 0.630 (printed recall 0.630) · F1 from the counts 0.548 (printed 0.548)"><path class="f-ctx" d="M162.0,131.5H275.5Q279.5,131.5 279.5,135.5V141.5Q279.5,145.5 275.5,145.5H162.0Z"/><text x="286.5" y="138.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">17</text><rect x="162.0" y="126.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="138.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">17/35 = 0.486</text><text x="640.0" y="138.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">17/27 = 0.630</text><text x="754.0" y="138.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.548</text><text x="150.0" y="165.5" class="t" text-anchor="end" dominant-baseline="central">Plain Transformer</text><g class="hit" tabindex="0" data-tip="Plain Transformer: 16/35 = 0.457 (printed precision 0.457) · 16/20 = 0.800 (printed recall 0.800) · F1 from the counts 0.582 (printed 0.582)"><path class="f-ctx" d="M162.0,158.5H268.6Q272.6,158.5 272.6,162.5V168.5Q272.6,172.5 268.6,172.5H162.0Z"/><text x="279.6" y="165.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">16</text><rect x="162.0" y="153.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="165.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">16/35 = 0.457</text><text x="640.0" y="165.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">16/20 = 0.800</text><text x="754.0" y="165.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.582</text><text x="150.0" y="192.5" class="t" text-anchor="end" dominant-baseline="central">CNN-RNN</text><g class="hit" tabindex="0" data-tip="CNN-RNN: 15/35 = 0.429 (printed precision 0.429) · 15/20 = 0.750 (printed recall 0.750) · F1 from the counts 0.545 (printed 0.546)"><path class="f-ctx" d="M162.0,185.5H261.7Q265.7,185.5 265.7,189.5V195.5Q265.7,199.5 261.7,199.5H162.0Z"/><text x="272.7" y="192.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">15</text><rect x="162.0" y="180.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="192.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">15/35 = 0.429</text><text x="640.0" y="192.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">15/20 = 0.750</text><text x="754.0" y="192.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.546†</text><text x="150.0" y="219.5" class="t" text-anchor="end" dominant-baseline="central">R2GenCMN</text><g class="hit" tabindex="0" data-tip="R2GenCMN: 15/35 = 0.429 (printed precision 0.429) · 15/22 = 0.682 (printed recall 0.682) · F1 from the counts 0.526 (printed 0.526)"><path class="f-ctx" d="M162.0,212.5H261.7Q265.7,212.5 265.7,216.5V222.5Q265.7,226.5 261.7,226.5H162.0Z"/><text x="272.7" y="219.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">15</text><rect x="162.0" y="207.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="219.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">15/35 = 0.429</text><text x="640.0" y="219.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">15/22 = 0.682</text><text x="754.0" y="219.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.526</text><text x="150.0" y="246.5" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen: 9/35 = 0.257 (printed precision 0.257) · 9/17 = 0.529 (printed recall 0.529) · F1 from the counts 0.346 (printed 0.346)"><path class="f-ctx" d="M162.0,239.5H220.2Q224.2,239.5 224.2,243.5V249.5Q224.2,253.5 220.2,253.5H162.0Z"/><text x="231.2" y="246.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">9</text><rect x="162.0" y="234.5" width="242.0" height="24.0" class="hitbox"/></g><text x="522.0" y="246.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">9/35 = 0.257</text><text x="640.0" y="246.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">9/17 = 0.529</text><text x="754.0" y="246.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.346</text></svg></div>
+    <figcaption><b>Figure 3 — The HER2 scores read as small counts: 23, 21 and 18 right out of 35.</b> Each bar is the count that reproduces the printed precision; the columns show the fractions that give the printed values to three decimals. † The counts give 0.545. Our reconstruction, not confirmed by the authors. Source: Table 1.</figcaption>
+  </figure>
+</section>
+
+<section id="reruns" data-toc="Re-run by others">
+  <h2><span class="n">05</span>The same models, re-run by others</h2>
+  <p>Two 2026 preprints from one group, which proposes its own model, SCOUT, each re-train BiGen, HistGen and MI-Gen under one protocol. Neither reports intervals.</p>
+
+  <figure id="fig-reruns">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 406" role="img" aria-label="BLEU-4 of MI-Gen, HistGen and BiGen in four papers" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><line x1="108.0" y1="12.0" x2="108.0" y2="362.0" class="zero"/><text x="108.0" y="376.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="241.0" y1="12.0" x2="241.0" y2="362.0" class="grid"/><text x="241.0" y="376.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.04</text><line x1="374.0" y1="12.0" x2="374.0" y2="362.0" class="grid"/><text x="374.0" y="376.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.08</text><line x1="507.0" y1="12.0" x2="507.0" y2="362.0" class="grid"/><text x="507.0" y="376.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.12</text><line x1="640.0" y1="12.0" x2="640.0" y2="362.0" class="grid"/><text x="640.0" y="376.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.16</text><text x="374.0" y="396.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">BLEU-4</text><rect x="0.0" y="13.0" width="760.0" height="28.0" class="band"/><text x="6" y="28.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">MI-Gen’s own paper, 2024</tspan><tspan dx="8" class="t-muted">breast · 98 test slides · released split: 12 of their patients also in training</tspan></text><text x="96.0" y="53.5" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen in its own paper, BLEU-4 by features: ResNet, ImageNet 0.117 · ViT, ImageNet 0.110 · ViT, HIPT 0.120"><path class="f-ctx" d="M108.0,47.0H503.0Q507.0,47.0 507.0,51.0V56.0Q507.0,60.0 503.0,60.0H108.0Z"/><text x="514.0" y="53.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.120</text><rect x="108.0" y="42.0" width="592.0" height="23.0" class="hitbox"/></g><rect x="0.0" y="66.0" width="760.0" height="28.0" class="band"/><text x="6" y="81.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">BiGen’s paper, 2025</tspan><tspan dx="8" class="t-muted">breast · 93 test patients</tspan></text><text x="96.0" y="106.5" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen, re-run by BiGen’s authors: BLEU-1 0.416 · BLEU-2 0.267 · BLEU-3 0.174 · BLEU-4 0.115 · METEOR 0.165 · ROUGE 0.270 · Fact-ent 0.490"><path class="f-ctx" d="M108.0,100.0H486.4Q490.4,100.0 490.4,104.0V109.0Q490.4,113.0 486.4,113.0H108.0Z"/><text x="497.4" y="106.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.115</text><rect x="108.0" y="95.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="129.5" class="t" text-anchor="end" dominant-baseline="central">HistGen</text><g class="hit" tabindex="0" data-tip="HistGen, re-run by BiGen’s authors: BLEU-1 0.422 · BLEU-2 0.272 · BLEU-3 0.177 · BLEU-4 0.118 · METEOR 0.169 · ROUGE 0.277 · Fact-ent 0.493"><path class="f-ctx" d="M108.0,123.0H496.3Q500.3,123.0 500.3,127.0V132.0Q500.3,136.0 496.3,136.0H108.0Z"/><text x="507.3" y="129.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.118</text><rect x="108.0" y="118.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="152.5" class="t t-strong" text-anchor="end" dominant-baseline="central">BiGen</text><g class="hit" tabindex="0" data-tip="BiGen, re-run by BiGen’s authors: BLEU-1 0.450 · BLEU-2 0.296 · BLEU-3 0.196 · BLEU-4 0.135 · METEOR 0.180 · ROUGE 0.293 · Fact-ent 0.521"><path class="f-emph" d="M108.0,146.0H552.9Q556.9,146.0 556.9,150.0V155.0Q556.9,159.0 552.9,159.0H108.0Z"/><text x="563.9" y="152.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.135</text><rect x="108.0" y="141.0" width="592.0" height="23.0" class="hitbox"/></g><rect x="0.0" y="165.0" width="760.0" height="28.0" class="band"/><text x="6" y="180.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">SCOUT preprint, 2026</tspan><tspan dx="8" class="t-muted">breast · 90 test cases · CONCHv1.5 features</tspan></text><text x="96.0" y="205.5" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen, re-trained by the SCOUT authors: BLEU-4 0.1036 · METEOR 0.1521 · ROUGE-L 0.2843"><path class="f-ctx" d="M108.0,199.0H448.5Q452.5,199.0 452.5,203.0V208.0Q452.5,212.0 448.5,212.0H108.0Z"/><text x="459.5" y="205.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.104</text><rect x="108.0" y="194.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="228.5" class="t" text-anchor="end" dominant-baseline="central">HistGen</text><g class="hit" tabindex="0" data-tip="HistGen, re-trained by the SCOUT authors: BLEU-4 0.1060 · METEOR 0.1749 · ROUGE-L 0.2670"><path class="f-ctx" d="M108.0,222.0H456.4Q460.4,222.0 460.4,226.0V231.0Q460.4,235.0 456.4,235.0H108.0Z"/><text x="467.4" y="228.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.106</text><rect x="108.0" y="217.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="251.5" class="t t-strong" text-anchor="end" dominant-baseline="central">BiGen</text><g class="hit" tabindex="0" data-tip="BiGen, re-trained by the SCOUT authors: BLEU-4 0.1394 · METEOR 0.1581 · ROUGE-L 0.2890"><path class="f-emph" d="M108.0,245.0H567.5Q571.5,245.0 571.5,249.0V254.0Q571.5,258.0 567.5,258.0H108.0Z"/><text x="578.5" y="251.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.139</text><rect x="108.0" y="240.0" width="592.0" height="23.0" class="hitbox"/></g><rect x="0.0" y="264.0" width="760.0" height="28.0" class="band"/><text x="6" y="279.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">PathReportEval preprint, 2026</tspan><tspan dx="8" class="t-muted">PathText, across cancer types · 885 test cases · mean of three encoders</tspan></text><text x="96.0" y="304.5" class="t" text-anchor="end" dominant-baseline="central">MI-Gen</text><g class="hit" tabindex="0" data-tip="MI-Gen, re-implemented by the benchmark’s authors, BLEU-4 by encoder: CONCHv1.5 0.1071 · H-Optimus-1 0.1177 · UNI2-h 0.1198"><path class="f-ctx" d="M108.0,298.0H486.0Q490.0,298.0 490.0,302.0V307.0Q490.0,311.0 486.0,311.0H108.0Z"/><text x="497.0" y="304.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.115</text><rect x="108.0" y="293.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="327.5" class="t" text-anchor="end" dominant-baseline="central">HistGen</text><g class="hit" tabindex="0" data-tip="HistGen, re-implemented by the benchmark’s authors, BLEU-4 by encoder: CONCHv1.5 0.0971 · H-Optimus-1 0.1040 · UNI2-h 0.1128"><path class="f-ctx" d="M108.0,321.0H451.8Q455.8,321.0 455.8,325.0V330.0Q455.8,334.0 451.8,334.0H108.0Z"/><text x="462.8" y="327.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.105</text><rect x="108.0" y="316.0" width="592.0" height="23.0" class="hitbox"/></g><text x="96.0" y="350.5" class="t t-strong" text-anchor="end" dominant-baseline="central">BiGen</text><g class="hit" tabindex="0" data-tip="BiGen, re-implemented by the benchmark’s authors, BLEU-4 by encoder: CONCHv1.5 0.1070 · H-Optimus-1 0.1198 · UNI2-h 0.1214"><path class="f-emph" d="M108.0,344.0H490.0Q494.0,344.0 494.0,348.0V353.0Q494.0,357.0 490.0,357.0H108.0Z"/><text x="501.0" y="350.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.116</text><rect x="108.0" y="339.0" width="592.0" height="23.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 4 — On breast cancer the lead reproduces; across cancer types BiGen and MI-Gen tie.</b> BLEU-4 for the three methods these tables share, grouped by who trained them. MI-Gen’s own row uses its best features; both preprints call MI-Gen WSI-Caption. Sources: MI-Gen paper, Table 1; this paper, Table 1; SCOUT, Table 3; PathReportEval, Tables 2 and 4.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Source</th><th scope="col">Method</th><th scope="col">Features</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE-L</th></tr></thead><tbody><tr><th scope="row">MI-Gen’s own paper, breast</th><td>MI-Gen</td><td>ResNet, ImageNet</td><td class="num">0.117</td><td class="num">0.163</td><td class="num">0.280</td></tr><tr><th scope="row">MI-Gen’s own paper, breast</th><td>MI-Gen</td><td>ViT, ImageNet</td><td class="num">0.110</td><td class="num">0.157</td><td class="num">0.279</td></tr><tr><th scope="row">MI-Gen’s own paper, breast</th><td>MI-Gen</td><td>ViT, HIPT</td><td class="num">0.120</td><td class="num">0.171</td><td class="num">0.271</td></tr><tr><th scope="row">BiGen’s paper, breast</th><td>MI-Gen</td><td>not stated</td><td class="num">0.115</td><td class="num">0.165</td><td class="num">0.270</td></tr><tr><th scope="row">BiGen’s paper, breast</th><td>HistGen</td><td>not stated</td><td class="num">0.118</td><td class="num">0.169</td><td class="num">0.277</td></tr><tr><th scope="row">BiGen’s paper, breast</th><td>BiGen</td><td>UNI</td><td class="num">0.135</td><td class="num">0.180</td><td class="num">0.293</td></tr><tr><th scope="row">SCOUT preprint, breast</th><td>MI-Gen</td><td>CONCHv1.5</td><td class="num">0.1036</td><td class="num">0.1521</td><td class="num">0.2843</td></tr><tr><th scope="row">SCOUT preprint, breast</th><td>HistGen</td><td>CONCHv1.5</td><td class="num">0.1060</td><td class="num">0.1749</td><td class="num">0.2670</td></tr><tr><th scope="row">SCOUT preprint, breast</th><td>BiGen</td><td>CONCHv1.5</td><td class="num">0.1394</td><td class="num">0.1581</td><td class="num">0.2890</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>MI-Gen</td><td>CONCHv1.5</td><td class="num">0.1071</td><td class="num">0.1481</td><td class="num">0.2863</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>MI-Gen</td><td>H-Optimus-1</td><td class="num">0.1177</td><td class="num">0.1542</td><td class="num">0.2907</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>MI-Gen</td><td>UNI2-h</td><td class="num">0.1198</td><td class="num">0.1563</td><td class="num">0.2881</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>MI-Gen</td><td>mean of the three</td><td class="num">0.1149</td><td class="num">0.1529</td><td class="num">0.2884</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>HistGen</td><td>CONCHv1.5</td><td class="num">0.0971</td><td class="num">0.1423</td><td class="num">0.2749</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>HistGen</td><td>H-Optimus-1</td><td class="num">0.1040</td><td class="num">0.1475</td><td class="num">0.2840</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>HistGen</td><td>UNI2-h</td><td class="num">0.1128</td><td class="num">0.1545</td><td class="num">0.2931</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>HistGen</td><td>mean of the three</td><td class="num">0.1046</td><td class="num">0.1481</td><td class="num">0.2840</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>BiGen</td><td>CONCHv1.5</td><td class="num">0.1070</td><td class="num">0.1472</td><td class="num">0.2966</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>BiGen</td><td>H-Optimus-1</td><td class="num">0.1198</td><td class="num">0.1583</td><td class="num">0.2984</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>BiGen</td><td>UNI2-h</td><td class="num">0.1214</td><td class="num">0.1549</td><td class="num">0.2986</td></tr><tr><th scope="row">PathReportEval preprint, across cancer types</th><td>BiGen</td><td>mean of the three</td><td class="num">0.1161</td><td class="num">0.1535</td><td class="num">0.2979</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>On the breast subset, with other features and another split, BiGen’s BLEU-4 and its lead reproduce: 0.139 against 0.106 for HistGen. On PathText across cancer types, with about nine times the training data, BiGen and MI-Gen are 0.001 apart, and 0.0021 at most with any one encoder.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>A floor:</strong> no row copies the nearest training report or prints one fixed report, in this paper or in the benchmark’s, so what a template would score is unknown.</li>
+    <li><strong>Scoring code:</strong> the release computes BLEU, METEOR and ROUGE-L. Fact<sub>ent</sub>, an entity-overlap score borrowed from radiology, and the HER2 columns aren’t in it; two requests have been open since December 2025.</li>
+    <li><strong>The bank’s recipe:</strong> the bank is shared as a file, without the scripts that build it and extract PLIP features (a third open request). That it holds training reports only rests on the paper’s word.</li>
+    <li><strong>Paper against release:</strong> the paper sets groups of 20 patches and the release defaults to 10; the paper motivates groups as neighbouring tissue, and the release groups patches by attention rank.</li>
+    <li><strong>Readers and other organs:</strong> no pathologist read a generated report, and only breast cancer is tested. A reviewer pointed at the single dataset and at findings absent from the bank.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">07</span>Takeaways for building a pathology report generator</h2>
+  <ol class="num-list">
+    <li><strong>With under a thousand reports, try a bottleneck first.</strong> One learned query over the patches gave +0.023 BLEU-4; everything added after it gave +0.009.</li>
+    <li><strong>Ablate retrieval against the same model without it.</strong> Against a plain Transformer BiGen gains 0.032; against its own no-retrieval variant, 0.008. Keep each case’s own report out of the bank while training.</li>
+    <li><strong>Score what a slide can show.</strong> Build references from slide-level findings, as the melanocytic paper did by cleaning its reports. Whole-case summaries reward a model for guessing size and stage.</li>
+    <li><strong>Report intervals, and counts for small subsets.</strong> On 93 test cases a 0.017 lead is untested, and the HER2 gap to HistGen looks like five cases.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Zhang, L., Yun, B., Li, Q., Wang, Y. <a href="https://papers.miccai.org/miccai-2025/0418-Paper2364.html">Historical Report Guided Bi-modal Concurrent Learning for Pathology Report Generation</a>. MICCAI 2025, LNCS 15965, pp. 343–352. The page holds the reviews. <a href="https://papers.miccai.org/miccai-2025/paper/2364_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04978-0_33">doi</a> · <a href="https://arxiv.org/abs/2506.18658">arXiv:2506.18658</a> (one version, same tables).</li>
+    <li>Code: <a href="https://github.com/DeepMed-Lab-ECNU/BiGen">DeepMed-Lab-ECNU/BiGen</a> (MIT), read on 5 Oct 2026; open requests <a href="https://github.com/DeepMed-Lab-ECNU/BiGen/issues/2">2</a>, <a href="https://github.com/DeepMed-Lab-ECNU/BiGen/issues/3">3</a> and <a href="https://github.com/DeepMed-Lab-ECNU/BiGen/issues/4">4</a>.</li>
+    <li>Chen, P., et al. WsiCaption, the MI-Gen and PathText paper. MICCAI 2024; <a href="https://arxiv.org/abs/2311.16480">arXiv:2311.16480</a>. Code and split file: <a href="https://github.com/cpystan/Wsi-Caption">cpystan/Wsi-Caption</a>.</li>
+    <li>Guo, Z., et al. HistGen. MICCAI 2024; <a href="https://arxiv.org/abs/2403.05396">arXiv:2403.05396</a>.</li>
+    <li>Singh, S., et al. SCOUT: <a href="https://arxiv.org/abs/2605.01144">arXiv:2605.01144</a> (2026). Singh, S., et al. PathReportEval: <a href="https://arxiv.org/abs/2607.18448">arXiv:2607.18448</a> (2026).</li>
+    <li>Chen, R. J., et al. UNI. Nature Medicine 30 (2024); <a href="https://github.com/mahmoodlab/UNI/blob/main/README_old.md">repository note</a> on its pretraining data. Huang, Z., et al. PLIP. Nature Medicine 29 (2023); <a href="https://github.com/PathologyFoundation/plip">repository</a>.</li>
+    <li>Wolff, A. C., et al. <a href="https://ascopubs.org/doi/10.1200/JCO.22.02864">HER2 testing in breast cancer: ASCO–CAP guideline update</a>. J Clin Oncol (2023).</li>
+    <li>Miura, Y., et al. Fact<sub>ent</sub>: <a href="https://arxiv.org/abs/2010.10042">arXiv:2010.10042</a> (NAACL 2021).</li>
+    <li>Our post on <a href="/research-blog/melanocytic-pathology-report-generation/">melanocytic lesion reports</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Zhang et al., MICCAI 2025 (LNCS 15965, pp. 343–352). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the released code or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
