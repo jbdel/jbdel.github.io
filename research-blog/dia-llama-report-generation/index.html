@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dia-LLaMA, read for report generation</title>
+<meta name="description" content="A report-generation reading of Dia-LLaMA (MICCAI 2025): a classifier’s diagnosis is written into the prompt of a LoRA-tuned LLaMA-2 that reports chest CT. The paper’s gain is 0.027 F1 on 362 test scans; in the released test outputs the diagnosis marks 5.5 labels present per scan against 1.6 in the references.">
+<meta property="og:title" content="Dia-LLaMA, read for report generation">
+<meta property="og:description" content="A report-generation reading of Dia-LLaMA (MICCAI 2025): a classifier’s diagnosis is written into the prompt of a LoRA-tuned LLaMA-2 that reports chest CT. The paper’s gain is 0.027 F1 on 362 test scans; in the released test outputs the diagnosis marks 5.5 labels present per scan against 1.6 in the references.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/dia-llama-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/dia-llama-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Dia-LLaMA, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/dia-llama-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/dia-llama-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0229-Paper3319.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/3319_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2403.16386">arXiv</a>
+      <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · CT report generation</p>
+    <h1>Dia-LLaMA, read for report generation</h1>
+    <p class="dek">A MICCAI 2025 paper asks a classifier for a diagnosis, writes it into the prompt and lets a LoRA-tuned LLaMA-2 report a chest CT. This post reads the method, its 0.027 F1 gain, and the released test outputs, where the report leaves out most of the diagnosis.</p>
+    <div class="meta">
+      <span><b>Paper</b> Zhixuan Chen, Luyang Luo, Yequan Bie, Hao Chen. <a href="https://papers.miccai.org/miccai-2025/0229-Paper3319.html"><i>Dia-LLaMA: Towards Large Language Model-driven CT Report Generation</i></a>. MICCAI 2025, LNCS 15966, pp. 141–151</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 6 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">32</div><div class="l">visual tokens per scan, plus one sentence per label from a classifier<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">+0.027</div><div class="l">F1 over the same stack without the prompt; 362 test scans<sup>*</sup>, no interval</div></div>
+    <div class="tile" role="listitem"><div class="v">5.5 vs 1.6</div><div class="l">labels marked present per scan: the released prompts against the references<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.452</div><div class="l">F1 of one fixed answer, “lung lesion” for every scan; the table’s best is 0.372<sup>*</sup></div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* From the released code and test outputs; the last assumes a per-scan average (section 02).</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>Diagnose first, then write.</strong> A classifier fills one sentence per CheXbert label, and LLaMA-2 reads them after 32 visual tokens. In the released code, the training prompt is filled from the reference report’s own labels.</li>
+      <li><strong>The printed gain is small and uneven.</strong> It is +0.027 F1 over the same stack without the prompt. The prompt alone adds 0.002, and the paper’s table and chart rank its two modules in opposite order.</li>
+      <li><strong>In the released outputs the diagnosis over-calls, and most of it doesn’t reach the report.</strong> The prompt marks 5.5 labels present per scan, the references 1.6. Pneumothorax is asserted for 148 of 362 scans and written in no report.</li>
+      <li><strong>The rulers are loose.</strong> Read as a per-scan average, the clinical score puts one fixed answer above every row of the table, and a typical fixed report reaches BLEU-4 23.6. Which run produced the tables isn’t stated.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="The idea">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>An LLM can write a fluent report around a finding it missed. Dia-LLaMA decides first and writes second: a classifier reads the scan, and its verdict goes into the prompt as plain sentences. The same group’s <a href="https://arxiv.org/abs/2308.12604">PromptMRG</a> did this for chest X-rays; this paper moves it to chest CT and LLaMA-2. Code, a checkpoint, test outputs and reviews are public; this post uses all four.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Pipeline: a chest CT is resized, encoded by a 3D ViT into 1,024 patch features, which feed a diagnosis branch that writes 14 sentences and a perceiver that makes 32 visual tokens; LLaMA-2 with LoRA writes the report">
+      <div class="row">
+        <div class="box"><div class="t1">Chest CT scan</div><div class="t2">CTRG-Chest-548K, about 304 JPEG slices per scan</div></div>
+        <div class="shape">any length</div>
+      </div>
+      <div class="conn"><div>resize · scale intensities to 0…1</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">3D ViT from RadFM</div><div class="t2">Not frozen in the released code</div></div>
+        <div class="shape">256 × 256 × 64 voxels<br>→ 1,024 × 768</div>
+      </div>
+      <div class="conn"><div>the 1,024 patch features go two ways</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Branch 1, diagnosis: attention table, prototypes</div><div class="t2">Per label, a weighted sum of patches against a “present” and an “absent” vector</div></div>
+        <div class="shape">→ 14 verdicts</div>
+      </div>
+      <div class="conn"><div>one sentence per verdict: The "edema" is negative.</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Branch 2, vision: perceiver and linear layer</div><div class="t2">From RadFM, on the same patch features</div></div>
+        <div class="shape">→ 32 × 4,096</div>
+      </div>
+      <div class="conn"><div>32 visual tokens, then the 14 sentences and an instruction</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">LoRA</span><div class="t1">LLaMA-2-7B (chat)</div><div class="t2">Rank 8, 0.06% of its weights</div></div>
+        <div class="shape">→ report</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>trained</span>
+        <span><i style="border:2px solid var(--ink)"></i>LoRA only</span>
+        <span>monospace = tensor shapes (released code)</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — A scan becomes 32 visual tokens and 14 sentences.</b> Input size, LoRA settings and modules are the paper’s; the token count, the 14 labels and what trains come from the released code (<a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Model/DiaLLaMA/my_embedding_layer.py">encoder and diagnosis</a>, <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Model/DiaLLaMA/multimodality_model.py">language model</a>). Sources: Sections 2 and 3.2.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>The attention doesn’t look at the scan.</strong> The weights of Eq. 5 are a learned table, one row of 1,024 per label, the same for every patient. It can favour a region, not follow a lesion <span class="tag">our observation</span>.</li>
+    <li><strong>The memory bank is 28 vectors in the released code.</strong> With two prototypes per label, the loss of Eq. 6 is that of a linear classifier with no bias <span class="tag">our derivation</span>.</li>
+    <li><strong>14 labels, not eight.</strong> The paper puts eight diseases in the prompt; every public version of the code writes and scores all 14 CheXbert labels, “no finding” included.</li>
+    <li><strong>The training prompt is the answer key.</strong> In training the sentences are filled from the reference report’s own CheXbert labels, as in PromptMRG’s code; at test time, by the classifier. The paper doesn’t say so. Condensed from the released <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Dataset/my_dataset/CTRG_dataset.py#L139-L152">dataset</a> and <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Model/DiaLLaMA/multimodality_model.py#L107-L146">model</a> code:</li>
+  </ul>
+<pre><code><span class="k">def</span> diagnosis_prompt(present):      <span class="c"># one 0/1 per CheXbert label</span>
+    <span class="k">return</span> "".join(
+        f'The "{name}" is {"positive" <span class="k">if</span> on <span class="k">else</span> "negative"}. '
+        <span class="k">for</span> name, on <span class="k">in</span> zip(LABELS, present))
+
+<span class="c"># training: the reference report's own labels</span>
+prompt = diagnosis_prompt(chexbert(reference) == PRESENT)
+<span class="c"># test: the scan's features against two prototypes per label</span>
+prompt = diagnosis_prompt(sim_present &gt; sim_absent)
+
+text = IMAGE_TOKENS + prompt + INSTRUCTION   <span class="c"># then the report</span></code></pre>
+</section>
+
+<section id="data" data-toc="Data and ruler">
+  <h2><span class="n">02</span>The data and the ruler</h2>
+  <p>CTRG-Chest-548K has 1,804 chest CT scans with reports, 548,696 JPEG slices in all, so the model sees display intensities, not Hounsfield units. The reports were written in Chinese and come with an English version, according to a <a href="https://arxiv.org/abs/2608.05615">later paper</a>. This one doesn’t say. It trains on 80% and tests on 20%, drawn at random per its arXiv version; the public split has 362 test scans.</p>
+  <p>The clinical score is CheXbert, a chest X-ray labeler, run on both reports. The <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Dataset/my_dataset/CTRG_finding_labels.csv">label file</a> in the release shows what it finds here: “lung lesion” in 57.2% of reports, “enlarged cardiomediastinum” in 35.0%, pneumonia and pneumothorax never, and no present label in 14.1%. The paper asserts that the labeler stays valid on CT reports. A reviewer noted this wasn’t validated; the reply was that it worked “reasonably well”, with a CT labeler left to future work.</p>
+
+  <div class="callout soft">
+    <span class="label">Which average is the F1? <span class="tag">likely, not confirmed</span></span>
+    <p>The paper follows PromptMRG’s setting, whose scorer, extended in the release, averages per scan over the 14 labels. The paper’s Table 1 fits: its F1 (0.372) is below both precision and recall, which a micro-average can’t be, and it isn’t the mean over labels, which the paper’s chart puts near 0.33 for its eight.</p>
+    <p>Under the per-scan formula, the 54 test scans whose reference has no present label score zero whatever the report says (ceiling 0.851). And a report read as “lung lesion” alone, for every scan, would score 0.452 F1, with precision 0.591 and recall 0.401 <span class="tag">derived</span>: above every row of Table 1. (Micro-averaged: 0.455. As a mean over labels: 0.053.)</p>
+  </div>
+</section>
+
+<section id="results" data-toc="Printed results">
+  <h2><span class="n">03</span>The results as printed</h2>
+  <p>Dia-LLaMA leads the strongest of six baselines, RadFM, by 0.018 precision, 0.026 recall and 0.027 F1 and by 4.9 BLEU-4 points. On ROUGE-L it is fourth of seven. RadFM’s row is also the ablation’s first: the same encoder, perceiver and LoRA-tuned LLaMA-2, without the prompt. So the ablation is the test of the idea.</p>
+
+  <figure id="fig-ablation">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 228" role="img" aria-label="Change from the no-prompt baseline in Table 2&#x27;s F1 and in the mean F1 of Fig. 2&#x27;s eight labels" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><text x="196.0" y="12.0" class="t t-head" text-anchor="start" dominant-baseline="central">Table 2: F1</text><text x="196.0" y="30.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">change from the baseline (0.345)</text><text x="407.0" y="48.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">change</text><text x="461.0" y="48.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">score</text><line x1="215.1" y1="56.0" x2="215.1" y2="198.0" class="zero"/><text x="215.1" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="262.9" y1="56.0" x2="262.9" y2="198.0" class="grid"/><text x="262.9" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.05</text><line x1="310.8" y1="56.0" x2="310.8" y2="198.0" class="grid"/><text x="310.8" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.10</text><g class="hit" tabindex="0" data-tip="+ prompt, plain classifier · Table 2: F1: 0.347 (+0.002 from 0.345)"><path class="f-ctx" d="M215.1,71.5H215.1Q217.0,71.5 217.0,73.4V84.6Q217.0,86.5 215.1,86.5H215.1Z"/><rect x="196.0" y="67.0" width="153.0" height="24.0" class="hitbox"/></g><text x="407.0" y="79.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.002</text><text x="461.0" y="79.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.347</text><g class="hit" tabindex="0" data-tip="+ prompt, attention (DAA) · Table 2: F1: 0.358 (+0.013 from 0.345)"><path class="f-ctx" d="M215.1,105.5H223.6Q227.6,105.5 227.6,109.5V116.5Q227.6,120.5 223.6,120.5H215.1Z"/><rect x="196.0" y="101.0" width="153.0" height="24.0" class="hitbox"/></g><text x="407.0" y="113.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.013</text><text x="461.0" y="113.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.358</text><g class="hit" tabindex="0" data-tip="+ prompt, prototypes (DPM) · Table 2: F1: 0.339 (−0.006 from 0.345)"><path class="f-ctx" d="M215.1,139.5H213.4Q209.4,139.5 209.4,143.5V150.5Q209.4,154.5 213.4,154.5H215.1Z"/><rect x="196.0" y="135.0" width="153.0" height="24.0" class="hitbox"/></g><text x="407.0" y="147.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">−0.006</text><text x="461.0" y="147.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.339</text><g class="hit" tabindex="0" data-tip="+ prompt, both: Dia-LLaMA · Table 2: F1: 0.372 (+0.027 from 0.345)"><path class="f-emph" d="M215.1,173.5H236.9Q240.9,173.5 240.9,177.5V184.5Q240.9,188.5 236.9,188.5H215.1Z"/><rect x="196.0" y="169.0" width="153.0" height="24.0" class="hitbox"/></g><text x="407.0" y="181.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">+0.027</text><text x="461.0" y="181.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.372</text><text x="495.0" y="12.0" class="t t-head" text-anchor="start" dominant-baseline="central">Fig. 2: mean F1 of eight labels</text><text x="495.0" y="30.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">change from the baseline (0.199), measured</text><text x="706.0" y="48.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">change</text><text x="760.0" y="48.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">score</text><line x1="514.1" y1="56.0" x2="514.1" y2="198.0" class="zero"/><text x="514.1" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="561.9" y1="56.0" x2="561.9" y2="198.0" class="grid"/><text x="561.9" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.05</text><line x1="609.8" y1="56.0" x2="609.8" y2="198.0" class="grid"/><text x="609.8" y="212.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.10</text><g class="hit" tabindex="0" data-tip="+ prompt, plain classifier · Fig. 2: mean F1 of eight labels: 0.224 (+0.025 from 0.199)"><path class="f-ctx" d="M514.1,71.5H534.0Q538.0,71.5 538.0,75.5V82.5Q538.0,86.5 534.0,86.5H514.1Z"/><rect x="495.0" y="67.0" width="153.0" height="24.0" class="hitbox"/></g><text x="706.0" y="79.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.025</text><text x="760.0" y="79.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.224</text><g class="hit" tabindex="0" data-tip="+ prompt, attention (DAA) · Fig. 2: mean F1 of eight labels: 0.213 (+0.014 from 0.199)"><path class="f-ctx" d="M514.1,105.5H523.5Q527.5,105.5 527.5,109.5V116.5Q527.5,120.5 523.5,120.5H514.1Z"/><rect x="495.0" y="101.0" width="153.0" height="24.0" class="hitbox"/></g><text x="706.0" y="113.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.014</text><text x="760.0" y="113.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.213</text><g class="hit" tabindex="0" data-tip="+ prompt, prototypes (DPM) · Fig. 2: mean F1 of eight labels: 0.256 (+0.057 from 0.199)"><path class="f-ctx" d="M514.1,139.5H564.6Q568.6,139.5 568.6,143.5V150.5Q568.6,154.5 564.6,154.5H514.1Z"/><rect x="495.0" y="135.0" width="153.0" height="24.0" class="hitbox"/></g><text x="706.0" y="147.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">+0.057</text><text x="760.0" y="147.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.256</text><g class="hit" tabindex="0" data-tip="+ prompt, both: Dia-LLaMA · Fig. 2: mean F1 of eight labels: 0.325 (+0.126 from 0.199)"><path class="f-emph" d="M514.1,173.5H630.6Q634.6,173.5 634.6,177.5V184.5Q634.6,188.5 630.6,188.5H514.1Z"/><rect x="495.0" y="169.0" width="153.0" height="24.0" class="hitbox"/></g><text x="706.0" y="181.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">+0.126</text><text x="760.0" y="181.0" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.325</text><text x="182.0" y="79.0" class="t" text-anchor="end" dominant-baseline="central">+ prompt, plain classifier</text><text x="182.0" y="113.0" class="t" text-anchor="end" dominant-baseline="central">+ prompt, attention (DAA)</text><text x="182.0" y="147.0" class="t" text-anchor="end" dominant-baseline="central">+ prompt, prototypes (DPM)</text><text x="182.0" y="181.0" class="t t-strong" text-anchor="end" dominant-baseline="central">+ prompt, both: Dia-LLaMA</text></svg></div>
+    <figcaption><b>Figure 2 — The table and the chart rank the partial settings in opposite order.</b> Changes from the no-prompt baseline. Left: F1 in the paper’s Table 2. Right: the mean of the eight per-label F1s of its Fig. 2, measured off the image (two measurements within 0.05 points). Sources: Table 2 and Fig. 2.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Setting</th><th scope="col" class="num">F1</th><th scope="col" class="num">Fig. 2</th><th scope="col" class="num">Prec.</th><th scope="col" class="num">Rec.</th><th scope="col" class="num">BL-1</th><th scope="col" class="num">BL-4</th><th scope="col" class="num">MTR</th><th scope="col" class="num">RG-L</th></tr></thead><tbody><tr><th scope="row">No prompt (baseline)</th><td class="num">0.345</td><td class="num">0.199</td><td class="num">0.403</td><td class="num">0.361</td><td class="num">46.70</td><td class="num">24.70</td><td class="num">24.01</td><td class="num">38.98</td></tr><tr><th scope="row">+ prompt, plain classifier</th><td class="num">0.347</td><td class="num">0.224</td><td class="num">0.415</td><td class="num">0.336</td><td class="num">45.74</td><td class="num">27.05</td><td class="num">24.80</td><td class="num">42.29</td></tr><tr><th scope="row">+ prompt, attention (DAA)</th><td class="num">0.358</td><td class="num">0.213</td><td class="num">0.424</td><td class="num">0.347</td><td class="num">44.22</td><td class="num">26.38</td><td class="num">24.34</td><td class="num">42.68</td></tr><tr><th scope="row">+ prompt, prototypes (DPM)</th><td class="num">0.339</td><td class="num">0.256</td><td class="num">0.437</td><td class="num">0.313</td><td class="num">44.06</td><td class="num">27.10</td><td class="num">24.46</td><td class="num">44.5</td></tr><tr class="ours"><th scope="row">+ prompt, both: Dia-LLaMA</th><td class="num">0.372</td><td class="num">0.325</td><td class="num">0.421</td><td class="num">0.387</td><td class="num">51.16</td><td class="num">29.64</td><td class="num">26.28</td><td class="num">42.15</td></tr></tbody></table></div></details>
+  </figure>
+
+  <ol class="num-list">
+    <li><strong>The prompt alone adds 0.002 F1,</strong> and with a plain classifier behind it recall falls from 0.361 to 0.336.</li>
+    <li><strong>The two rulers disagree about the modules.</strong> By the table, attention helps (0.358) and prototypes alone hurt (0.339, below the baseline). By the chart’s mean, prototypes help (0.256) and attention hardly does (0.213). The four rarest of the chart’s eight labels have 13 to 25 positive scans each in the released test set.</li>
+  </ol>
+  <p>No interval or second run is reported.</p>
+</section>
+
+<section id="outputs" data-toc="Released outputs">
+  <h2><span class="n">04</span>Inside the released test outputs</h2>
+  <p>The paper scores the report, never the classifier. The repository lets us: <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/results/dia-llama.csv"><code>results/dia-llama.csv</code></a> holds, for 362 test scans, the prompt the model wrote, its report, the reference and its labels. Re-scored the release’s way, the reports reach BLEU-4 30.0; an earlier version of the file, with the same prompts and different reports, gives 29.5. The paper’s 29.64 lies between, so this is evidently the paper’s system, though perhaps not the run behind its tables.</p>
+
+  <figure id="fig-prompt">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 519.3" role="img" aria-label="Test scans whose prompt says positive and whose reference label is present, per label" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="5.5" width="9.8" height="9.8" class="f-emph" rx="2"/><text x="15.8" y="10.3" class="t t-small" text-anchor="start" dominant-baseline="central">The model’s prompt says “positive”</text><rect x="258.8" y="5.5" width="9.8" height="9.8" class="f-ctx" rx="2"/><text x="274.6" y="10.3" class="t t-small" text-anchor="start" dominant-baseline="central">The reference label is present</text><text x="690.4" y="33.9" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">prompt</text><text x="760.0" y="33.9" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">reference</text><line x1="200.0" y1="42.9" x2="200.0" y2="492.9" class="zero"/><text x="200.0" y="506.7" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="320.4" y1="42.9" x2="320.4" y2="492.9" class="grid"/><text x="320.4" y="506.7" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100</text><line x1="440.8" y1="42.9" x2="440.8" y2="492.9" class="grid"/><text x="440.8" y="506.7" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">200</text><line x1="561.2" y1="42.9" x2="561.2" y2="492.9" class="grid"/><text x="561.2" y="506.7" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">300</text><line x1="635.8" y1="42.9" x2="635.8" y2="492.9" class="grid"/><text x="635.8" y="506.7" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">362</text><text x="188.0" y="60.9" class="t" text-anchor="end" dominant-baseline="central">Pleural effusion</text><g class="hit" tabindex="0" data-tip="Pleural effusion: the prompt says positive for 331 of 362 test scans; the reference label is present for 48; both for 46"><path class="f-emph" d="M200.0,49.9H594.5Q598.5,49.9 598.5,53.9V55.9Q598.5,59.9 594.5,59.9H200.0Z"/><path class="f-ctx" d="M200.0,61.9H253.8Q257.8,61.9 257.8,65.8V67.8Q257.8,71.8 253.8,71.8H200.0Z"/><rect x="200.0" y="45.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="60.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">331</text><text x="760.0" y="60.9" class="t t-num" text-anchor="end" dominant-baseline="central">48</text><text x="188.0" y="92.8" class="t" text-anchor="end" dominant-baseline="central">Lung lesion</text><g class="hit" tabindex="0" data-tip="Lung lesion: the prompt says positive for 307 of 362 test scans; the reference label is present for 214; both for 182"><path class="f-emph" d="M200.0,81.8H565.6Q569.6,81.8 569.6,85.8V87.8Q569.6,91.8 565.6,91.8H200.0Z"/><path class="f-ctx" d="M200.0,93.8H453.6Q457.6,93.8 457.6,97.8V99.8Q457.6,103.8 453.6,103.8H200.0Z"/><rect x="200.0" y="77.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="92.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">307</text><text x="760.0" y="92.8" class="t t-num" text-anchor="end" dominant-baseline="central">214</text><text x="188.0" y="124.8" class="t" text-anchor="end" dominant-baseline="central">Edema</text><g class="hit" tabindex="0" data-tip="Edema: the prompt says positive for 263 of 362 test scans; the reference label is present for 3; both for 3"><path class="f-emph" d="M200.0,113.8H512.6Q516.6,113.8 516.6,117.8V119.8Q516.6,123.8 512.6,123.8H200.0Z"/><path class="f-ctx" d="M200.0,125.8H200.0Q203.6,125.8 203.6,129.5V132.2Q203.6,135.8 200.0,135.8H200.0Z"/><rect x="200.0" y="109.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="124.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">263</text><text x="760.0" y="124.8" class="t t-num" text-anchor="end" dominant-baseline="central">3</text><text x="188.0" y="156.8" class="t" text-anchor="end" dominant-baseline="central">Fracture</text><g class="hit" tabindex="0" data-tip="Fracture: the prompt says positive for 240 of 362 test scans; the reference label is present for 6; both for 5"><path class="f-emph" d="M200.0,145.8H484.9Q488.9,145.8 488.9,149.8V151.8Q488.9,155.8 484.9,155.8H200.0Z"/><path class="f-ctx" d="M200.0,157.8H203.2Q207.2,157.8 207.2,161.8V163.8Q207.2,167.8 203.2,167.8H200.0Z"/><rect x="200.0" y="141.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="156.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">240</text><text x="760.0" y="156.8" class="t t-num" text-anchor="end" dominant-baseline="central">6</text><text x="188.0" y="188.8" class="t" text-anchor="end" dominant-baseline="central">Pleural other</text><g class="hit" tabindex="0" data-tip="Pleural other: the prompt says positive for 225 of 362 test scans; the reference label is present for 94; both for 63"><path class="f-emph" d="M200.0,177.8H466.9Q470.9,177.8 470.9,181.8V183.8Q470.9,187.8 466.9,187.8H200.0Z"/><path class="f-ctx" d="M200.0,189.8H309.2Q313.2,189.8 313.2,193.8V195.8Q313.2,199.8 309.2,199.8H200.0Z"/><rect x="200.0" y="173.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="188.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">225</text><text x="760.0" y="188.8" class="t t-num" text-anchor="end" dominant-baseline="central">94</text><text x="188.0" y="220.8" class="t" text-anchor="end" dominant-baseline="central">Consolidation</text><g class="hit" tabindex="0" data-tip="Consolidation: the prompt says positive for 166 of 362 test scans; the reference label is present for 17; both for 13"><path class="f-emph" d="M200.0,209.8H395.9Q399.9,209.8 399.9,213.8V215.8Q399.9,219.8 395.9,219.8H200.0Z"/><path class="f-ctx" d="M200.0,221.8H216.5Q220.5,221.8 220.5,225.8V227.8Q220.5,231.8 216.5,231.8H200.0Z"/><rect x="200.0" y="205.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="220.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">166</text><text x="760.0" y="220.8" class="t t-num" text-anchor="end" dominant-baseline="central">17</text><text x="188.0" y="252.8" class="t" text-anchor="end" dominant-baseline="central">Pneumothorax</text><g class="hit" tabindex="0" data-tip="Pneumothorax: the prompt says positive for 148 of 362 test scans; the reference label is present for 0; both for 0"><path class="f-emph" d="M200.0,241.8H374.2Q378.2,241.8 378.2,245.8V247.8Q378.2,251.8 374.2,251.8H200.0Z"/><rect x="200.0" y="237.8" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="252.8" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">148</text><text x="760.0" y="252.8" class="t t-num" text-anchor="end" dominant-baseline="central">0</text><text x="188.0" y="284.9" class="t" text-anchor="end" dominant-baseline="central">Enlarged cardiomediastinum</text><g class="hit" tabindex="0" data-tip="Enlarged cardiomediastinum: the prompt says positive for 134 of 362 test scans; the reference label is present for 122; both for 52"><path class="f-emph" d="M200.0,273.9H357.3Q361.3,273.9 361.3,277.9V279.9Q361.3,283.9 357.3,283.9H200.0Z"/><path class="f-ctx" d="M200.0,285.9H342.9Q346.9,285.9 346.9,289.9V291.9Q346.9,295.9 342.9,295.9H200.0Z"/><rect x="200.0" y="269.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="284.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">134</text><text x="760.0" y="284.9" class="t t-num" text-anchor="end" dominant-baseline="central">122</text><text x="188.0" y="316.9" class="t" text-anchor="end" dominant-baseline="central">Lung opacity</text><g class="hit" tabindex="0" data-tip="Lung opacity: the prompt says positive for 64 of 362 test scans; the reference label is present for 6; both for 1"><path class="f-emph" d="M200.0,305.9H273.1Q277.1,305.9 277.1,309.9V311.9Q277.1,315.9 273.1,315.9H200.0Z"/><path class="f-ctx" d="M200.0,317.9H203.2Q207.2,317.9 207.2,321.9V323.9Q207.2,327.9 203.2,327.9H200.0Z"/><rect x="200.0" y="301.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="316.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">64</text><text x="760.0" y="316.9" class="t t-num" text-anchor="end" dominant-baseline="central">6</text><text x="188.0" y="348.9" class="t" text-anchor="end" dominant-baseline="central">Atelectasis</text><g class="hit" tabindex="0" data-tip="Atelectasis: the prompt says positive for 47 of 362 test scans; the reference label is present for 5; both for 1"><path class="f-emph" d="M200.0,337.9H252.6Q256.6,337.9 256.6,341.9V343.9Q256.6,347.9 252.6,347.9H200.0Z"/><path class="f-ctx" d="M200.0,349.9H202.0Q206.0,349.9 206.0,353.9V355.9Q206.0,359.9 202.0,359.9H200.0Z"/><rect x="200.0" y="333.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="348.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">47</text><text x="760.0" y="348.9" class="t t-num" text-anchor="end" dominant-baseline="central">5</text><text x="188.0" y="380.9" class="t" text-anchor="end" dominant-baseline="central">Pneumonia</text><g class="hit" tabindex="0" data-tip="Pneumonia: the prompt says positive for 47 of 362 test scans; the reference label is present for 0; both for 0"><path class="f-emph" d="M200.0,369.9H252.6Q256.6,369.9 256.6,373.9V375.9Q256.6,379.9 252.6,379.9H200.0Z"/><rect x="200.0" y="365.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="380.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">47</text><text x="760.0" y="380.9" class="t t-num" text-anchor="end" dominant-baseline="central">0</text><text x="188.0" y="412.9" class="t" text-anchor="end" dominant-baseline="central">Cardiomegaly</text><g class="hit" tabindex="0" data-tip="Cardiomegaly: the prompt says positive for 17 of 362 test scans; the reference label is present for 25; both for 3"><path class="f-emph" d="M200.0,401.9H216.5Q220.5,401.9 220.5,405.9V407.9Q220.5,411.9 216.5,411.9H200.0Z"/><path class="f-ctx" d="M200.0,413.9H226.1Q230.1,413.9 230.1,417.9V419.9Q230.1,423.9 226.1,423.9H200.0Z"/><rect x="200.0" y="397.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="412.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">17</text><text x="760.0" y="412.9" class="t t-num" text-anchor="end" dominant-baseline="central">25</text><text x="188.0" y="444.9" class="t" text-anchor="end" dominant-baseline="central">Support devices</text><g class="hit" tabindex="0" data-tip="Support devices: the prompt says positive for 10 of 362 test scans; the reference label is present for 25; both for 1"><path class="f-emph" d="M200.0,433.9H208.0Q212.0,433.9 212.0,437.9V439.9Q212.0,443.9 208.0,443.9H200.0Z"/><path class="f-ctx" d="M200.0,445.9H226.1Q230.1,445.9 230.1,449.9V451.9Q230.1,455.9 226.1,455.9H200.0Z"/><rect x="200.0" y="429.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="444.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">10</text><text x="760.0" y="444.9" class="t t-num" text-anchor="end" dominant-baseline="central">25</text><text x="188.0" y="476.9" class="t" text-anchor="end" dominant-baseline="central">No finding</text><g class="hit" tabindex="0" data-tip="No finding: the prompt says positive for 0 of 362 test scans; the reference label is present for 13; both for 0"><path class="f-ctx" d="M200.0,477.9H211.7Q215.7,477.9 215.7,481.9V483.9Q215.7,487.9 211.7,487.9H200.0Z"/><rect x="200.0" y="461.9" width="435.8" height="30.0" class="hitbox"/></g><text x="690.4" y="476.9" class="t t-num t-strong" text-anchor="end" dominant-baseline="central">0</text><text x="760.0" y="476.9" class="t t-num" text-anchor="end" dominant-baseline="central">13</text></svg></div>
+    <figcaption><b>Figure 3 — The prompt marks 5.5 labels present per scan; the references, 1.6.</b> Test scans out of 362, sorted by the prompt’s count. Our count on the released file, whose reference labels are its own. Source: the repository’s test outputs.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">CheXbert label</th><th scope="col" class="num">Present in the 1,804 reports</th><th scope="col" class="num">Test references</th><th scope="col" class="num">Prompt says positive</th><th scope="col" class="num">Both</th></tr></thead><tbody><tr><th scope="row">Pleural effusion</th><td class="num">221 (12.3%)</td><td class="num">48</td><td class="num">331</td><td class="num">46</td></tr><tr><th scope="row">Lung lesion</th><td class="num">1,031 (57.2%)</td><td class="num">214</td><td class="num">307</td><td class="num">182</td></tr><tr><th scope="row">Edema</th><td class="num">10 (0.6%)</td><td class="num">3</td><td class="num">263</td><td class="num">3</td></tr><tr><th scope="row">Fracture</th><td class="num">18 (1.0%)</td><td class="num">6</td><td class="num">240</td><td class="num">5</td></tr><tr><th scope="row">Pleural other</th><td class="num">443 (24.6%)</td><td class="num">94</td><td class="num">225</td><td class="num">63</td></tr><tr><th scope="row">Consolidation</th><td class="num">76 (4.2%)</td><td class="num">17</td><td class="num">166</td><td class="num">13</td></tr><tr><th scope="row">Pneumothorax</th><td class="num">0 (0.0%)</td><td class="num">0</td><td class="num">148</td><td class="num">0</td></tr><tr><th scope="row">Enlarged cardiomediastinum</th><td class="num">631 (35.0%)</td><td class="num">122</td><td class="num">134</td><td class="num">52</td></tr><tr><th scope="row">Lung opacity</th><td class="num">28 (1.6%)</td><td class="num">6</td><td class="num">64</td><td class="num">1</td></tr><tr><th scope="row">Atelectasis</th><td class="num">12 (0.7%)</td><td class="num">5</td><td class="num">47</td><td class="num">1</td></tr><tr><th scope="row">Pneumonia</th><td class="num">0 (0.0%)</td><td class="num">0</td><td class="num">47</td><td class="num">0</td></tr><tr><th scope="row">Cardiomegaly</th><td class="num">144 (8.0%)</td><td class="num">25</td><td class="num">17</td><td class="num">3</td></tr><tr><th scope="row">Support devices</th><td class="num">112 (6.2%)</td><td class="num">25</td><td class="num">10</td><td class="num">1</td></tr><tr><th scope="row">No finding</th><td class="num">81 (4.5%)</td><td class="num">13</td><td class="num">0</td><td class="num">0</td></tr><tr class="ours"><th scope="row">All 14 labels</th><td class="num">2,807</td><td class="num">578</td><td class="num">1,999</td><td class="num">370</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>The prompts assert 1,999 labels, the references hold 578, and 370 coincide: a precision of 0.19 and a recall of 0.64. Pneumothorax is asserted for 148 scans, although no report in the dataset carries the label. Scored as if it were the report, the prompt would get a per-scan F1 of 0.269, below the no-prompt baseline.</p>
+  <p>Most of it doesn’t reach the report, by a word count. Seven labels have an unambiguous word: effusion, edema, fracture, consolidation, pneumothorax, pneumonia and atelectasis. They carry 1,242 of the 1,999 assertions; the report states the finding, with no negation before the word, in 27 or 28 of those cases, depending on the rule. The word pneumothorax is in no report.</p>
+  <details class="data"><summary>Show the seven labels as a table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Label</th><th scope="col" class="num">Prompt says positive</th><th scope="col" class="num">… and the report affirms it</th><th scope="col" class="num">… and the reference has it</th><th scope="col" class="num">Reference label present</th></tr></thead><tbody><tr><th scope="row">Pleural effusion</th><td class="num">331</td><td class="num">22 or 23</td><td class="num">7</td><td class="num">48</td></tr><tr><th scope="row">Edema</th><td class="num">263</td><td class="num">1</td><td class="num">0</td><td class="num">3</td></tr><tr><th scope="row">Fracture</th><td class="num">240</td><td class="num">2</td><td class="num">0</td><td class="num">6</td></tr><tr><th scope="row">Consolidation</th><td class="num">166</td><td class="num">2</td><td class="num">0</td><td class="num">17</td></tr><tr><th scope="row">Pneumothorax</th><td class="num">148</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr><tr><th scope="row">Pneumonia</th><td class="num">47</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr><tr><th scope="row">Atelectasis</th><td class="num">47</td><td class="num">0</td><td class="num">0</td><td class="num">5</td></tr><tr class="ours"><th scope="row">Seven labels</th><td class="num">1,242</td><td class="num">27 or 28</td><td class="num">7</td><td class="num">79</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — What the reports do with the prompt’s assertions.</b> “Affirms”: the report has the word with no negation word earlier in the sentence or, as a second rule, among the six words before it. On the references, the two rules find 71 and 74 of the 79 labelled reports, and fire on 9 unlabelled ones. Pneumothorax and pneumonia are never present in the label file, so the language model saw no positive prompt for either in training. Our count on the released outputs.</p></details>
+
+  <div class="callout">
+    <span class="label">Worth checking: the test path <span class="tag">our observation</span></span>
+    <p>In training, each label’s feature is the attention-weighted sum over the 1,024 patches. At test time the released code sums over the 14 labels instead, so label <em>i</em> is judged on the feature at patch <em>i</em>, against prototypes fitted to pooled features (<a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/blob/6c278fea4552870015d895d55129d55a87dc75ce/src/Model/DiaLLaMA/my_embedding_layer.py#L130-L134">lines 130–134</a>, in every public version of the file; the comment there gives the intended shape). It may explain the over-calling; we did not run the model. Whether the paper’s numbers came from this path isn’t stated.</p>
+  </div>
+
+  <p>So here the score evidently belongs to the language model, whose reports are more cautious than their prompts. What produces the 0.027 is open: perhaps the auxiliary loss, which also trains the encoder in the released code. No row of the paper trains the modules and leaves the prompt out.</p>
+</section>
+
+<section id="scores" data-toc="Fixed answers">
+  <h2><span class="n">05</span>Fixed answers and moving baselines</h2>
+  <p>The paper notes that CT reports follow a rigid template. One of the test set’s own reference reports, as the answer for every test scan (its own too) and scored the release’s way, gets BLEU-4 23.6 at the median of the 362 choices <span class="tag">derived</span>. The six baselines score 21.9 to 24.7; their tokenisation isn’t stated.</p>
+
+  <figure id="fig-fixed">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 336" role="img" aria-label="CheXbert F1 and BLEU-4 of the seven systems in Table 1 and of one fixed answer for every scan" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.8" y="5.8" width="9.4" height="9.4" class="f-ctx" rx="2"/><text x="16.0" y="10.5" class="t t-small" text-anchor="start" dominant-baseline="central">Table 1</text><rect x="85.1" y="5.8" width="9.4" height="9.4" class="f-emph" rx="2"/><text x="100.3" y="10.5" class="t t-small" text-anchor="start" dominant-baseline="central">Dia-LLaMA</text><rect x="182.0" y="5.8" width="9.4" height="9.4" class="f-hollow" rx="2"/><text x="197.2" y="10.5" class="t t-small" text-anchor="start" dominant-baseline="central">One fixed answer for every scan (our arithmetic)</text><line x1="0.0" y1="257.0" x2="760.0" y2="257.0" class="rule"/><text x="150.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">CheXbert F1</text><text x="238.7" y="34.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">scale 0–1</text><line x1="150.0" y1="58.0" x2="150.0" y2="306.0" class="zero"/><text x="150.0" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="196.6" y1="58.0" x2="196.6" y2="306.0" class="grid"/><text x="196.6" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><line x1="243.2" y1="58.0" x2="243.2" y2="306.0" class="grid"/><text x="243.2" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="289.8" y1="58.0" x2="289.8" y2="306.0" class="grid"/><text x="289.8" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="336.4" y1="58.0" x2="336.4" y2="306.0" class="grid"/><text x="336.4" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="383.0" y1="58.0" x2="383.0" y2="306.0" class="grid"/><text x="383.0" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><g class="hit" tabindex="0" data-tip="R2Gen · CheXbert F1: 0.144 (Table 1)"><path class="f-ctx" d="M150.0,71.0H213.1Q217.1,71.0 217.1,75.0V80.0Q217.1,84.0 213.1,84.0H150.0Z"/><rect x="150.0" y="65.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="77.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.144</text><g class="hit" tabindex="0" data-tip="R2GenCMN · CheXbert F1: 0.114 (Table 1)"><path class="f-ctx" d="M150.0,98.0H199.1Q203.1,98.0 203.1,102.0V107.0Q203.1,111.0 199.1,111.0H150.0Z"/><rect x="150.0" y="92.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="104.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.114</text><g class="hit" tabindex="0" data-tip="M2KT · CheXbert F1: 0.145 (Table 1)"><path class="f-ctx" d="M150.0,125.0H213.6Q217.6,125.0 217.6,129.0V134.0Q217.6,138.0 213.6,138.0H150.0Z"/><rect x="150.0" y="119.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="131.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.145</text><g class="hit" tabindex="0" data-tip="PromptMRG · CheXbert F1: 0.290 (Table 1)"><path class="f-ctx" d="M150.0,152.0H281.1Q285.1,152.0 285.1,156.0V161.0Q285.1,165.0 281.1,165.0H150.0Z"/><rect x="150.0" y="146.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="158.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.290</text><text x="156.0" y="185.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">not reported</text><text x="437.0" y="185.5" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">–</text><g class="hit" tabindex="0" data-tip="RadFM · CheXbert F1: 0.345 (Table 1)"><path class="f-ctx" d="M150.0,206.0H306.8Q310.8,206.0 310.8,210.0V215.0Q310.8,219.0 306.8,219.0H150.0Z"/><rect x="150.0" y="200.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="212.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.345</text><g class="hit" tabindex="0" data-tip="Dia-LLaMA · CheXbert F1: 0.372 (Table 1)"><path class="f-emph" d="M150.0,233.0H319.4Q323.4,233.0 323.4,237.0V242.0Q323.4,246.0 319.4,246.0H150.0Z"/><rect x="150.0" y="227.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="239.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.372</text><g class="hit" tabindex="0" data-tip="CheXbert F1: one fixed answer for every scan, the label “lung lesion”: 0.452"><path class="f-hollow" d="M150.0,268.0H356.6Q360.6,268.0 360.6,272.0V277.0Q360.6,281.0 356.6,281.0H150.0Z"/><rect x="150.0" y="262.5" width="233.0" height="24.0" class="hitbox"/></g><text x="437.0" y="274.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">0.452</text><text x="156.0" y="294.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">the label “lung lesion”</text><text x="473.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU-4</text><text x="525.9" y="34.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">scale 0–100</text><line x1="473.0" y1="58.0" x2="473.0" y2="306.0" class="zero"/><text x="473.0" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="539.6" y1="58.0" x2="539.6" y2="306.0" class="grid"/><text x="539.6" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10</text><line x1="606.1" y1="58.0" x2="606.1" y2="306.0" class="grid"/><text x="606.1" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">20</text><line x1="672.7" y1="58.0" x2="672.7" y2="306.0" class="grid"/><text x="672.7" y="320.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30</text><g class="hit" tabindex="0" data-tip="R2Gen · BLEU-4: 23.39 (Table 1)"><path class="f-ctx" d="M473.0,71.0H624.7Q628.7,71.0 628.7,75.0V80.0Q628.7,84.0 624.7,84.0H473.0Z"/><rect x="473.0" y="65.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="77.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">23.39</text><g class="hit" tabindex="0" data-tip="R2GenCMN · BLEU-4: 23.37 (Table 1)"><path class="f-ctx" d="M473.0,98.0H624.6Q628.6,98.0 628.6,102.0V107.0Q628.6,111.0 624.6,111.0H473.0Z"/><rect x="473.0" y="92.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="104.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">23.37</text><g class="hit" tabindex="0" data-tip="M2KT · BLEU-4: 21.93 (Table 1)"><path class="f-ctx" d="M473.0,125.0H615.0Q619.0,125.0 619.0,129.0V134.0Q619.0,138.0 615.0,138.0H473.0Z"/><rect x="473.0" y="119.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="131.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">21.93</text><g class="hit" tabindex="0" data-tip="PromptMRG · BLEU-4: 23.02 (Table 1)"><path class="f-ctx" d="M473.0,152.0H622.2Q626.2,152.0 626.2,156.0V161.0Q626.2,165.0 622.2,165.0H473.0Z"/><rect x="473.0" y="146.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="158.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">23.02</text><g class="hit" tabindex="0" data-tip="SL-DG · BLEU-4: 23.70 (Table 1)"><path class="f-ctx" d="M473.0,179.0H626.8Q630.8,179.0 630.8,183.0V188.0Q630.8,192.0 626.8,192.0H473.0Z"/><rect x="473.0" y="173.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="185.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">23.70</text><g class="hit" tabindex="0" data-tip="RadFM · BLEU-4: 24.70 (Table 1)"><path class="f-ctx" d="M473.0,206.0H633.4Q637.4,206.0 637.4,210.0V215.0Q637.4,219.0 633.4,219.0H473.0Z"/><rect x="473.0" y="200.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="212.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">24.70</text><g class="hit" tabindex="0" data-tip="Dia-LLaMA · BLEU-4: 29.64 (Table 1)"><path class="f-emph" d="M473.0,233.0H666.3Q670.3,233.0 670.3,237.0V242.0Q670.3,246.0 666.3,246.0H473.0Z"/><rect x="473.0" y="227.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="239.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">29.64</text><g class="hit" tabindex="0" data-tip="BLEU-4: one fixed answer for every scan, a typical reference report: 23.57"><path class="f-hollow" d="M473.0,268.0H625.9Q629.9,268.0 629.9,272.0V277.0Q629.9,281.0 625.9,281.0H473.0Z"/><rect x="473.0" y="262.5" width="233.0" height="24.0" class="hitbox"/></g><text x="760.0" y="274.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">23.57</text><text x="479.0" y="294.5" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">a typical reference report</text><text x="136.0" y="77.5" class="t" text-anchor="end" dominant-baseline="central">R2Gen</text><text x="136.0" y="104.5" class="t" text-anchor="end" dominant-baseline="central">R2GenCMN</text><text x="136.0" y="131.5" class="t" text-anchor="end" dominant-baseline="central">M2KT</text><text x="136.0" y="158.5" class="t" text-anchor="end" dominant-baseline="central">PromptMRG</text><text x="136.0" y="185.5" class="t" text-anchor="end" dominant-baseline="central">SL-DG *</text><text x="136.0" y="212.5" class="t" text-anchor="end" dominant-baseline="central">RadFM</text><text x="136.0" y="239.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Dia-LLaMA</text><text x="136.0" y="274.5" class="t t-strong" text-anchor="end" dominant-baseline="central">One fixed answer</text></svg></div>
+    <figcaption><b>Figure 4 — Fixed answers top the F1 column, read per scan, and sit mid-table on BLEU-4.</b> Filled bars: Table 1. Outlined: our arithmetic on the released references, “lung lesion” for every scan (per-scan F1) and one test reference report for every scan (median of 362). * Copied from the dataset paper. Sources: Table 1 and the repository’s test outputs.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Row</th><th scope="col" class="num">Prec.</th><th scope="col" class="num">Recall</th><th scope="col" class="num">F1</th><th scope="col" class="num">BLEU-1</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE-L</th></tr></thead><tbody><tr><th scope="row">R2Gen</th><td class="num">0.207</td><td class="num">0.121</td><td class="num">0.144</td><td class="num">34.11</td><td class="num">23.39</td><td class="num">21.40</td><td class="num">47.75</td></tr><tr><th scope="row">R2GenCMN</th><td class="num">0.158</td><td class="num">0.100</td><td class="num">0.114</td><td class="num">35.88</td><td class="num">23.37</td><td class="num">21.43</td><td class="num">45.94</td></tr><tr><th scope="row">M2KT</th><td class="num">0.220</td><td class="num">0.119</td><td class="num">0.145</td><td class="num">46.09</td><td class="num">21.93</td><td class="num">25.20</td><td class="num">36.47</td></tr><tr><th scope="row">PromptMRG</th><td class="num">0.290</td><td class="num">0.330</td><td class="num">0.290</td><td class="num">47.73</td><td class="num">23.02</td><td class="num">22.87</td><td class="num">37.35</td></tr><tr><th scope="row">SL-DG *</th><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">23.70</td><td class="num">21.90</td><td class="num">43.80</td></tr><tr><th scope="row">RadFM</th><td class="num">0.403</td><td class="num">0.361</td><td class="num">0.345</td><td class="num">46.70</td><td class="num">24.70</td><td class="num">24.01</td><td class="num">38.98</td></tr><tr class="ours"><th scope="row">Dia-LLaMA</th><td class="num">0.421</td><td class="num">0.387</td><td class="num">0.372</td><td class="num">51.16</td><td class="num">29.64</td><td class="num">26.28</td><td class="num">42.15</td></tr><tr><th scope="row">Fixed: “lung lesion” label</th><td class="num">0.591</td><td class="num">0.401</td><td class="num">0.452</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td></tr><tr><th scope="row">Fixed: one reference report</th><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">43.02</td><td class="num">23.57</td><td class="num">–</td><td class="num">–</td></tr><tr><th scope="row">Released prompts as reports</th><td class="num">0.198</td><td class="num">0.555</td><td class="num">0.269</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td></tr><tr><th scope="row">Released reports, re-scored</th><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">51.23</td><td class="num">29.98</td><td class="num">–</td><td class="num">42.77</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>What rises above the template isn’t checked by these scores. 82 generated reports cite a slice number in the form IM141; where the reference cites one too (17 scans), none matches. In the paper’s one example, the model’s report shrinks the reference’s 15 × 10 mm lobulated nodule to 6 × 4 mm in another segment, which a “lung lesion” label can’t see.</p>
+  <p><strong>Who ran the baselines?</strong> Only SL-DG’s row is marked as copied. It comes from the dataset paper, on another split: the arXiv caption said so, the MICCAI caption doesn’t. The others are evidently the authors’ runs, the four chest X-ray models on 30 slices per scan, per the arXiv version. And in a later paper from the group (<a href="https://arxiv.org/abs/2411.15539">Reg2RG</a>), RadFM, described the same way on this dataset, scores BLEU-4 30.89, above Dia-LLaMA’s 29.64 here, with a METEOR of 49 against 24: the scorer evidently changed too.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>The classifier:</strong> no accuracy for the verdict the method rests on.</li>
+    <li><strong>Readers and spread:</strong> no radiologist read a report, and there is no repeat run or interval. Decoding isn’t described; the released file’s versions suggest it is sampled.</li>
+    <li><strong>The data:</strong> one dataset, as a reviewer objected; no patient count, and nothing on a patient-level split, the reports’ language or the JPEG source.</li>
+    <li><strong>The recipe:</strong> 2,000 steps in the arXiv version, 20 epochs in the final text, 25.4 passes over 1,262 scans in the released training log; nothing on what is frozen.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">07</span>Takeaways for building a CT report generator</h2>
+  <ol class="num-list">
+    <li><strong>Score the classifier before crediting the prompt.</strong> The released verdicts have a precision of 0.19; the paper reports the report’s F1 only.</li>
+    <li><strong>Train the writer on prompts it will meet.</strong> In the release, training prompts come from the reference labels (about 1.6 present per scan), test prompts from a classifier (5.5). Mix in predicted labels.</li>
+    <li><strong>Put fixed answers in the table.</strong> One label scores 0.452 per-scan F1 and one typical report BLEU-4 23.6.</li>
+    <li><strong>Use labels your reports contain.</strong> Two of the 14 never occur in 1,804 reports, and 14.1% of reports have none.</li>
+    <li><strong>Freeze the protocol before comparing.</strong> RadFM scores BLEU-4 24.70 and 30.89 in two papers from one group, and a second decode moves Dia-LLaMA’s BLEU-4 by 0.5.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Chen, Z., Luo, L., Bie, Y., Chen, H. <a href="https://papers.miccai.org/miccai-2025/0229-Paper3319.html">Dia-LLaMA: Towards Large Language Model-driven CT Report Generation</a>. MICCAI 2025, LNCS 15966, pp. 141–151. The page holds the three reviews and the authors’ reply. <a href="https://papers.miccai.org/miccai-2025/paper/3319_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04981-0_14">doi</a> · <a href="https://arxiv.org/abs/2403.16386v1">arXiv:2403.16386 v1</a> (March 2024: the same three tables; a different account of the split, the baselines and the training length).</li>
+    <li>Code: <a href="https://github.com/zhi-xuan-chen/Dia-LLaMA/tree/6c278fea4552870015d895d55129d55a87dc75ce">zhi-xuan-chen/Dia-LLaMA</a> at commit 6c278fea, read on 6 Oct 2026, with its test outputs and label file. Checkpoint and training log: <a href="https://huggingface.co/Trusure/Dia-LLaMA">Trusure/Dia-LLaMA</a>.</li>
+    <li>Dataset: <a href="https://github.com/tangyuhao2016/CTRG">CTRG</a>; Tang, Y., et al. Work like a doctor. <a href="https://doi.org/10.1016/j.eswa.2023.121442">Expert Systems with Applications 237, 121442</a> (2024), the source of the SL-DG row.</li>
+    <li>Jin, H., et al. PromptMRG: <a href="https://arxiv.org/abs/2308.12604">arXiv:2308.12604</a> (AAAI 2024) and its <a href="https://github.com/jhb86253817/PromptMRG/blob/main/modules/metrics_clinical.py">scorer</a>.</li>
+    <li>Chen, Z., et al. Reg2RG: <a href="https://arxiv.org/abs/2411.15539">arXiv:2411.15539</a> (IEEE TMI 2025), Table I and Section IV.</li>
+    <li>Li, D., Liang, J., Li, W. ALTER: <a href="https://arxiv.org/abs/2608.05615">arXiv:2608.05615</a> (2026), Appendix A: the dataset’s language and split sizes.</li>
+    <li>Smit, A., et al. CheXbert: <a href="https://arxiv.org/abs/2004.09167">arXiv:2004.09167</a> (EMNLP 2020). Wu, C., et al. RadFM: <a href="https://arxiv.org/abs/2308.02463">arXiv:2308.02463</a>.</li>
+    <li>Our posts on the <a href="/research-blog/3d-mllm-design-space-report-generation/">3D MLLM design space</a> and <a href="/research-blog/mu2-tokenizer-report-generation/">µ²LLM</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Chen et al., MICCAI 2025 (LNCS 15966, pp. 141–151). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the released code, its test outputs or another source. Figures were generated with Python from the paper’s tables and from totals counted on the released files. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
