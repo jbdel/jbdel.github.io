@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phrase-grounded fact-checking, read for report-generation evaluation</title>
+<meta name="description" content="A report-generation-evaluation reading of a MICCAI 2025 fact-checker for chest X-ray reports: it checks each finding against the image and returns a verdict and a box; its 0.997 agreement with ground truth can be reproduced from 28 pairs of averages.">
+<meta property="og:title" content="Phrase-grounded fact-checking, read for report-generation evaluation">
+<meta property="og:description" content="A report-generation-evaluation reading of a MICCAI 2025 fact-checker for chest X-ray reports: it checks each finding against the image and returns a verdict and a box; its 0.997 agreement with ground truth can be reproduced from 28 pairs of averages.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Phrase-grounded fact-checking, read for report-generation evaluation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0693-Paper3526.html">Paper page</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/3526_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2509.21356">arXiv</a>
+      <a href="https://huggingface.co/datasets/razi-mahmood/RadCheck">Data</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Report-generation evaluation</p>
+    <h1>Phrase-grounded fact-checking, read for report-generation evaluation</h1>
+    <p class="dek">A MICCAI 2025 model checks a generated chest X-ray report against the image itself: for each finding it answers real or fake and draws a box, with no reference report. Its headline number, a concordance of 0.997 with ground truth, can be reproduced from 28 pairs of averages in one table: what that shows, and what it leaves open.</p>
+    <div class="meta">
+      <span><b>Paper</b> Razi Mahmood, Diego Machado-Reyes, … Pingkun Yan, Tanveer Syeda-Mahmood. <a href="https://papers.miccai.org/miccai-2025/0693-Paper3526.html"><i>Phrase-grounded Fact-checking for Automatically Generated Chest X-ray Reports</i></a>. MICCAI 2025, LNCS 15966, pp. 441–452</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 5 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+      <span><b>Disclosure</b> I am a co-author of GREEN and RadGraph-F1. The paper says its score was shown to outperform RadGraph-F1, and a reviewer asked for comparisons with both.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">27M</div><div class="l">synthetic finding–box pairs made from real reports, about 16 to 17 for each real pair<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.90–0.94</div><div class="l">accuracy at telling real pairs from fake ones, on four test sets</div></div>
+    <div class="tile" role="listitem"><div class="v">0.49–0.57</div><div class="l">mean IoU of its boxes with the reference boxes</div></div>
+    <div class="tile" role="listitem"><div class="v">0.997</div><div class="l">concordance with a reference-based score; 28 pairs of averages give it<sup>*</sup></div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic on the paper’s Tables 3 and 5.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A checker that looks at the image, not at a reference.</strong> It takes the image and one finding phrase, such as “yes|edema”, and returns a real-or-fake verdict and a box.</li>
+      <li><strong>It learns from fakes made by rule.</strong> Real findings are flipped, moved or swapped, about 16 to 17 fakes for each real pair. In a sample of the released files, seven fakes in ten carry a phrase that is almost never real.</li>
+      <li><strong>28 pairs of averages reproduce the 0.997.</strong> For seven generators on four datasets, the checker’s mean error score stays within 0.022 of a reference-based one. That shows it flags about the right amount of error, not that it flags the right findings.</li>
+      <li><strong>What we can’t tell.</strong> How often one verdict on a real generator’s finding is right, and how much of the 0.90 to 0.94 is the mix: by the paper’s own counts, the datasets behind it are 64 to 92% fake.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why the image">
+  <h2><span class="n">01</span>Why check a report against the image</h2>
+  <p>The blog’s <a href="/research-blog/spec-cxr-report-evaluation/">first post on evaluation</a> read SPEC-CXR, which scores a generated chest X-ray report against a reference report, finding by finding. This paper checks the report against the image instead. That matters at the point of use, where no reference exists.</p>
+  <p>It comes from Rensselaer Polytechnic Institute, IBM Research, Stanford and Massachusetts General Hospital. Some of the authors built a first checker in 2023: a frozen CLIP encoder with an SVM that labelled whole sentences real or fake. The new one, the FC model, reads normalised finding phrases, trains its encoders and also says where the finding is.</p>
+
+  <figure id="fig-flow">
+    <div class="flow" role="img" aria-label="Fact-checking pipeline: a generated report is split into finding patterns; the model receives the image and each short phrase and returns a box and a real-or-fake verdict; the location words of the report select a region box; the two boxes and the verdicts give an error score">
+      <div class="row">
+        <div class="box"><div class="t1">Generated report and its image</div><div class="t2">One frontal chest X-ray</div></div>
+        <div class="shape">text + image</div>
+      </div>
+      <div class="conn"><div>a lexicon-based extractor writes each finding as a pattern</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">earlier work</span><div class="t1">Finding pattern (FFL)</div><div class="t2">The paper’s example: anatomicalfinding | yes | pulmonary edema | right lung</div></div>
+        <div class="shape">type | yes or no |<br>finding | location</div>
+      </div>
+      <div class="conn"><div>the short phrase, without the location, goes to the model with the image</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">FC model</div><div class="t2">CLIP encoders (ViT-B/32) pretrained on chest X-rays, trained further, and a small regression head</div></div>
+        <div class="shape">512 + 512 →<br>box ⟨x, y, w, h⟩, E</div>
+      </div>
+      <div class="conn"><div>separately, the location words pick a region from an anatomy detector</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">earlier work</span><div class="t1">Indicated location</div><div class="t2">The box of “right lung” in this image, one of 36 regions</div></div>
+        <div class="shape">box ⟨x, y, w, h⟩</div>
+      </div>
+      <div class="conn"><div>compared finding by finding</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">arithmetic</span><div class="t1">Error score of the report</div><div class="t2">1 − ½ (share of findings judged real + overlap of the predicted and indicated boxes)</div></div>
+        <div class="shape">0 to 1,<br>higher = more error</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>trained in this paper</span>
+        <span><i style="background:var(--c-frozen)"></i>tools from earlier work</span>
+        <span><i style="border:2px solid var(--ink)"></i>arithmetic</span>
+        <span>E = 1 real, 0 fake</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The model gets the image and a phrase; where the report puts the finding enters only afterwards.</b> The extractor and the region detector come from earlier work; the score is worded as in the first preprint. Sources: Sections 2 to 2.3; Figures 1 and 2.</figcaption>
+  </figure>
+
+  <p>So the verdict is about presence. The first preprint says the location words are dropped from the model’s input. A misplaced finding shows only as a low overlap between two boxes.</p>
+</section>
+
+<section id="data" data-toc="Fakes made by rule">
+  <h2><span class="n">02</span>The training data: fakes made by rule</h2>
+  <p>With no large set of labelled generator errors to learn from, the authors make their own. Each ground-truth report yields real pairs: a finding phrase, and a box around the anatomical regions the finding is attached to. Each real pair then spawns fakes of three kinds. Omissions and wrong severities, the other error types the paper names, are left out.</p>
+
+  <figure id="fig-fakes">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 234" role="img" aria-label="The paper&#x27;s example of one real finding and the four fake pairs made from it" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="11.0" height="10.0" class="f-emph" rx="2"/><text x="16.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">box of the real pair</text><rect x="166.5" y="6" width="11" height="10" rx="2" style="fill:var(--rule-2)"/><text x="182.5" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">the same box, for reference</text><rect x="378.2" y="6.9" width="9.2" height="8.2" style="fill:var(--bg);stroke:var(--c-emph);stroke-width:1.8"/><text x="393.3" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">box of a fake pair</text><text x="0.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">Original</text><g class="hit" tabindex="0" data-tip="Original: yes|edema · label ⟨x, y, w, h, E⟩ = ⟨0.14, 0.13, 0.72, 0.56, 1⟩"><rect x="15.7" y="60.6" width="80.6" height="62.7" class="f-emph"/><rect x="0.5" y="46.5" width="111" height="111" class="bracket"/><rect x="0.0" y="46.0" width="112.0" height="112.0" class="hitbox"/></g><text x="0.0" y="176.0" class="t" text-anchor="start" dominant-baseline="central" style="font-family:var(--mono);font-size:11.5px">yes|edema</text><text x="0.0" y="195.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">real · E = 1</text><text x="0.0" y="213.0" class="t t-tiny t-muted t-num" text-anchor="start" dominant-baseline="central">box 0.14, 0.13, 0.72, 0.56</text><text x="145.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">Reversal</text><g class="hit" tabindex="0" data-tip="Reversal: no|edema · label ⟨x, y, w, h, E⟩ = ⟨0, 0, 0, 0, 0⟩"><rect x="160.7" y="60.6" width="80.6" height="62.7" style="fill:var(--rule-2)"/><rect x="145.5" y="46.5" width="111" height="111" class="bracket"/><text x="201.0" y="146.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">no box</text><rect x="145.0" y="46.0" width="112.0" height="112.0" class="hitbox"/></g><text x="145.0" y="176.0" class="t" text-anchor="start" dominant-baseline="central" style="font-family:var(--mono);font-size:11.5px">no|edema</text><text x="145.0" y="195.0" class="t t-small" text-anchor="start" dominant-baseline="central">fake · E = 0</text><text x="145.0" y="213.0" class="t t-tiny t-muted t-num" text-anchor="start" dominant-baseline="central">box 0, 0, 0, 0</text><text x="290.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">Relocation</text><g class="hit" tabindex="0" data-tip="Relocation: yes|edema · label ⟨x, y, w, h, E⟩ = ⟨0.85, 0.74, 0.1, 0.21, 0⟩"><rect x="305.7" y="60.6" width="80.6" height="62.7" style="fill:var(--rule-2)"/><rect x="385.2" y="128.9" width="11.2" height="23.5" style="fill:var(--bg);stroke:var(--c-emph);stroke-width:1.8"/><rect x="290.5" y="46.5" width="111" height="111" class="bracket"/><rect x="290.0" y="46.0" width="112.0" height="112.0" class="hitbox"/></g><text x="290.0" y="176.0" class="t" text-anchor="start" dominant-baseline="central" style="font-family:var(--mono);font-size:11.5px">yes|edema</text><text x="290.0" y="195.0" class="t t-small" text-anchor="start" dominant-baseline="central">fake · E = 0</text><text x="290.0" y="213.0" class="t t-tiny t-muted t-num" text-anchor="start" dominant-baseline="central">box 0.85, 0.74, 0.1, 0.21</text><text x="435.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">Relocation</text><g class="hit" tabindex="0" data-tip="Relocation: yes|edema · label ⟨x, y, w, h, E⟩ = ⟨0.9, 0.7, 0.1, 0.2, 0⟩"><rect x="450.7" y="60.6" width="80.6" height="62.7" style="fill:var(--rule-2)"/><rect x="535.8" y="124.4" width="11.2" height="22.4" style="fill:var(--bg);stroke:var(--c-emph);stroke-width:1.8"/><rect x="435.5" y="46.5" width="111" height="111" class="bracket"/><rect x="435.0" y="46.0" width="112.0" height="112.0" class="hitbox"/></g><text x="435.0" y="176.0" class="t" text-anchor="start" dominant-baseline="central" style="font-family:var(--mono);font-size:11.5px">yes|edema</text><text x="435.0" y="195.0" class="t t-small" text-anchor="start" dominant-baseline="central">fake · E = 0</text><text x="435.0" y="213.0" class="t t-tiny t-muted t-num" text-anchor="start" dominant-baseline="central">box 0.9, 0.7, 0.1, 0.2</text><text x="580.0" y="34.0" class="t t-head" text-anchor="start" dominant-baseline="central">Substitution</text><g class="hit" tabindex="0" data-tip="Substitution: yes|lung cyst · label ⟨x, y, w, h, E⟩ = ⟨0.02, 0.48, 0.1, 0.14, 0⟩"><rect x="595.7" y="60.6" width="80.6" height="62.7" style="fill:var(--rule-2)"/><rect x="582.2" y="99.8" width="11.2" height="15.7" style="fill:var(--bg);stroke:var(--c-emph);stroke-width:1.8"/><rect x="580.5" y="46.5" width="111" height="111" class="bracket"/><rect x="580.0" y="46.0" width="112.0" height="112.0" class="hitbox"/></g><text x="580.0" y="176.0" class="t" text-anchor="start" dominant-baseline="central" style="font-family:var(--mono);font-size:11.5px">yes|lung cyst</text><text x="580.0" y="195.0" class="t t-small" text-anchor="start" dominant-baseline="central">fake · E = 0</text><text x="580.0" y="213.0" class="t t-tiny t-muted t-num" text-anchor="start" dominant-baseline="central">box 0.02, 0.48, 0.1, 0.14</text></svg></div>
+    <figcaption><b>Figure 2 — A fake is the real pair with its polarity flipped, its box moved or its finding swapped.</b> The paper’s own example, drawn to scale; each frame is the image. A relocated box comes from where the finding sits in other images; a swapped finding is one the report doesn’t contain. Source: Table 2.</figcaption>
+  </figure>
+
+  <p>Look at the two relocated fakes. They keep the image and the phrase of the real pair, yes|edema; only the target changes. Since the model’s input is the image and the phrase, nothing it receives tells the three apart <span class="tag">our observation</span>, and the paper doesn’t say what it should learn from them.</p>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Dataset</th><th scope="col">Images and labels</th><th scope="col" class="num">Finding types</th><th scope="col" class="num">Real pairs</th><th scope="col" class="num">Synthetic pairs</th><th scope="col" class="num">Per real pair</th></tr></thead><tbody><tr class="ours"><th scope="row">Chest ImaGenome silver</th><td style="white-space:normal;min-width:150px">MIMIC-CXR; automatic labels</td><td class="num">49</td><td class="num">1,616,852</td><td class="num">27,047,054</td><td class="num">16.7</td></tr><tr><th scope="row">Chest ImaGenome gold</th><td style="white-space:normal;min-width:150px">MIMIC-CXR; clinician-verified</td><td class="num">35</td><td class="num">4,063</td><td class="num">23,463</td><td class="num">5.8</td></tr><tr><th scope="row">MS-CXR</th><td style="white-space:normal;min-width:150px">MIMIC-CXR; radiologists’ boxes</td><td class="num">8</td><td class="num">2,247</td><td class="num">24,338</td><td class="num">10.8</td></tr><tr><th scope="row">ChestX-ray8</th><td style="white-space:normal;min-width:150px">NIH; radiologists’ boxes</td><td class="num">8</td><td class="num">1,571</td><td class="num">10,137</td><td class="num">6.5</td></tr><tr><th scope="row">VinDr-CXR</th><td style="white-space:normal;min-width:150px">Vietnam; radiologists’ boxes</td><td class="num">23</td><td class="num">47,973</td><td class="num">132,632</td><td class="num">2.8</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — Five public datasets, three of them cut from MIMIC-CXR.</b> The silver set supplies the bulk; the paper sets the gold one aside for the generator test. Source: Table 3 (silver counts in full from the first preprint); last column derived.</p>
+
+  
+
+  <div class="callout">
+    <span class="label">What the released pairs show <span class="tag">our count</span></span>
+    <p>The Chest ImaGenome silver pairs are public on Hugging Face as <a href="https://huggingface.co/datasets/razi-mahmood/RadCheck">RadCheck</a>: an image id, a phrase such as yes|pleural effusion, a box and a 0/1 label per row, over 22 finding names in our sample (VinDr-CXR’s labels). Fakes outnumber real pairs 17 to 1: 7,465,605 against 429,266 in the validation and test splits.</p>
+    <p>In a sample of 33,000 validation pairs, seven fakes in ten carry one of eight phrases, among them yes|clavicle fracture and yes|rib fracture, which make up under 3% of the real pairs: the phrase gives the label away before the image is read. The sample also holds 68 image–phrase combinations labelled real with one box and fake with another, as in Figure 2, and 9 labelled both ways with the same empty box.</p>
+  </div>
+</section>
+
+<section id="synthetic" data-toc="Test 1: synthetic pairs">
+  <h2><span class="n">03</span>Test 1: held-out synthetic pairs</h2>
+  <p>The first test asks the model to do on held-out pairs what it was trained to do: label each pair real or fake, and regress its box.</p>
+
+  <figure id="fig-table4">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 314" role="img" aria-label="Accuracy and mean IoU of the fact-checking model, its ablations and three other models on four datasets" style="min-width:660px" xmlns="http://www.w3.org/2000/svg"><circle cx="6.0" cy="11.0" r="4.6" class="f-emph ring"/><text x="17.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">the FC model</text><circle cx="112.0" cy="11.0" r="4.0" class="f-ctx ring"/><text x="123.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">its three ablations</text><line x1="248.0" y1="11.0" x2="266.0" y2="11.0" class="whisker"/><line x1="248.0" y1="7.0" x2="248.0" y2="15.0" class="whisker"/><line x1="266.0" y1="7.0" x2="266.0" y2="15.0" class="whisker"/><text x="273.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">share of fake pairs in the dataset</text><text x="160.0" y="36.0" class="t t-head" text-anchor="start" dominant-baseline="central">Real or fake: accuracy</text><rect x="161.2" y="51.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><text x="175.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">2023 sentence classifier</text><line x1="160.0" y1="70.0" x2="160.0" y2="284.0" class="grid"/><text x="160.0" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="225.8" y1="70.0" x2="225.8" y2="284.0" class="grid"/><text x="225.8" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.7</text><line x1="291.5" y1="70.0" x2="291.5" y2="284.0" class="grid"/><text x="291.5" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.8</text><line x1="357.2" y1="70.0" x2="357.2" y2="284.0" class="grid"/><text x="357.2" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.9</text><line x1="423.0" y1="70.0" x2="423.0" y2="284.0" class="grid"/><text x="423.0" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1.0</text><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · BCE in place of the contrastive loss (FCRegBCE): 0.88"><circle cx="344.1" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="332.1" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · Two heads, separate losses (FCRegDual): 0.87"><circle cx="337.5" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="325.5" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · Pre-built CLIP encoder (FCRegSep): 0.89"><circle cx="350.7" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="338.7" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · FC model (FCRegComb): 0.92"><circle cx="370.4" cy="92.0" r="4.8" class="f-emph ring"/><text x="379.4" y="92.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.92</text><rect x="358.4" y="80.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · share of fake pairs by Table 3: 82.7% if the synthetic count includes the real pairs, 85.2% if it does not"><line x1="309.1" y1="113.0" x2="325.9" y2="113.0" class="whisker"/><line x1="309.1" y1="109.0" x2="309.1" y2="117.0" class="whisker"/><line x1="325.9" y1="109.0" x2="325.9" y2="117.0" class="whisker"/><text x="332.9" y="113.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">83–85%</text><rect x="303.1" y="101.0" width="28.8" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · 2023 sentence classifier (R/F Model): 0.84"><rect x="314.0" y="109.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="305.8" y="101.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="160.0" y1="128.0" x2="423.0" y2="128.0" class="grid"/><g class="hit" tabindex="0" data-tip="MS-CXR · BCE in place of the contrastive loss (FCRegBCE): 0.92"><circle cx="370.4" cy="144.0" r="4.0" class="f-ctx ring"/><rect x="358.4" y="132.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · Two heads, separate losses (FCRegDual): 0.89"><circle cx="350.7" cy="144.0" r="4.0" class="f-ctx ring"/><rect x="338.7" y="132.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · Pre-built CLIP encoder (FCRegSep): 0.89"><circle cx="350.7" cy="151.0" r="4.0" class="f-ctx ring"/><rect x="338.7" y="139.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · FC model (FCRegComb): 0.94"><circle cx="383.5" cy="144.0" r="4.8" class="f-emph ring"/><text x="392.5" y="144.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.94</text><rect x="371.5" y="132.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · share of fake pairs by Table 3: 90.8% if the synthetic count includes the real pairs, 91.5% if it does not"><line x1="362.3" y1="165.0" x2="367.4" y2="165.0" class="whisker"/><line x1="362.3" y1="161.0" x2="362.3" y2="169.0" class="whisker"/><line x1="367.4" y1="161.0" x2="367.4" y2="169.0" class="whisker"/><text x="374.4" y="165.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">91–92%</text><rect x="356.3" y="153.0" width="17.1" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · 2023 sentence classifier (R/F Model): 0.78"><rect x="274.6" y="161.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="266.4" y="153.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="160.0" y1="180.0" x2="423.0" y2="180.0" class="grid"/><g class="hit" tabindex="0" data-tip="ChestX-ray8 · BCE in place of the contrastive loss (FCRegBCE): 0.90"><circle cx="357.2" cy="196.0" r="4.0" class="f-ctx ring"/><rect x="345.2" y="184.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · Two heads, separate losses (FCRegDual): 0.87"><circle cx="337.5" cy="196.0" r="4.0" class="f-ctx ring"/><rect x="325.5" y="184.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · Pre-built CLIP encoder (FCRegSep): 0.92"><circle cx="370.4" cy="203.0" r="4.0" class="f-ctx ring"/><rect x="358.4" y="191.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · FC model (FCRegComb): 0.92"><circle cx="370.4" cy="196.0" r="4.8" class="f-emph ring"/><text x="379.4" y="196.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.92</text><rect x="358.4" y="184.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · share of fake pairs by Table 3: 84.5% if the synthetic count includes the real pairs, 86.6% if it does not"><line x1="321.1" y1="217.0" x2="334.8" y2="217.0" class="whisker"/><line x1="321.1" y1="213.0" x2="321.1" y2="221.0" class="whisker"/><line x1="334.8" y1="213.0" x2="334.8" y2="221.0" class="whisker"/><text x="341.8" y="217.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">85–87%</text><rect x="315.1" y="205.0" width="25.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · 2023 sentence classifier (R/F Model): 0.81"><rect x="294.3" y="213.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="286.1" y="205.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="160.0" y1="232.0" x2="423.0" y2="232.0" class="grid"/><g class="hit" tabindex="0" data-tip="VinDr-CXR · BCE in place of the contrastive loss (FCRegBCE): 0.88"><circle cx="344.1" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="332.1" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · Two heads, separate losses (FCRegDual): 0.86"><circle cx="331.0" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="319.0" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · Pre-built CLIP encoder (FCRegSep): 0.89"><circle cx="350.7" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="338.7" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · FC model (FCRegComb): 0.90"><circle cx="357.2" cy="248.0" r="4.8" class="f-emph ring"/><text x="366.2" y="248.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.90</text><rect x="345.2" y="236.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · share of fake pairs by Table 3: 63.8% if the synthetic count includes the real pairs, 73.4% if it does not"><line x1="185.2" y1="269.0" x2="248.4" y2="269.0" class="whisker"/><line x1="185.2" y1="265.0" x2="185.2" y2="273.0" class="whisker"/><line x1="248.4" y1="265.0" x2="248.4" y2="273.0" class="whisker"/><text x="255.4" y="269.0" class="t t-small t-muted t-num" text-anchor="start" dominant-baseline="central">64–73%</text><rect x="179.2" y="257.0" width="75.2" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · 2023 sentence classifier (R/F Model): 0.83"><rect x="307.4" y="265.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="299.2" y="257.0" width="24.0" height="24.0" class="hitbox"/></g><text x="463.0" y="36.0" class="t t-head" text-anchor="start" dominant-baseline="central">Where: mean IoU of the box</text><rect x="464.2" y="51.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><text x="478.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">MAIRA-2</text><polygon points="545.3,48.7 551.0,59.3 539.5,59.3" class="f-ctx ring"/><text x="555.3" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Med-RPG</text><line x1="463.0" y1="70.0" x2="463.0" y2="284.0" class="grid"/><text x="463.0" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="528.8" y1="70.0" x2="528.8" y2="284.0" class="grid"/><text x="528.8" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="594.5" y1="70.0" x2="594.5" y2="284.0" class="grid"/><text x="594.5" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="660.2" y1="70.0" x2="660.2" y2="284.0" class="grid"/><text x="660.2" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="726.0" y1="70.0" x2="726.0" y2="284.0" class="grid"/><text x="726.0" y="298.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · BCE in place of the contrastive loss (FCRegBCE): 0.49"><circle cx="653.7" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="641.7" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · Two heads, separate losses (FCRegDual): 0.51"><circle cx="666.8" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="654.8" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · Pre-built CLIP encoder (FCRegSep): 0.38"><circle cx="581.4" cy="92.0" r="4.0" class="f-ctx ring"/><rect x="569.4" y="80.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · FC model (FCRegComb): 0.54"><circle cx="686.5" cy="92.0" r="4.8" class="f-emph ring"/><text x="695.5" y="92.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.54</text><rect x="674.5" y="80.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · MAIRA-2: 0.39"><rect x="584.1" y="109.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="575.9" y="101.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Chest ImaGenome gold · Med-RPG: 0.23"><polygon points="482.7,106.7 488.5,117.3 477.0,117.3" class="f-ctx ring"/><rect x="470.7" y="101.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="463.0" y1="128.0" x2="726.0" y2="128.0" class="grid"/><g class="hit" tabindex="0" data-tip="MS-CXR · BCE in place of the contrastive loss (FCRegBCE): 0.46"><circle cx="634.0" cy="144.0" r="4.0" class="f-ctx ring"/><rect x="622.0" y="132.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · Two heads, separate losses (FCRegDual): 0.49"><circle cx="653.7" cy="144.0" r="4.0" class="f-ctx ring"/><rect x="641.7" y="132.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · Pre-built CLIP encoder (FCRegSep): 0.39"><circle cx="587.9" cy="144.0" r="4.0" class="f-ctx ring"/><rect x="575.9" y="132.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · FC model (FCRegComb): 0.53"><circle cx="680.0" cy="144.0" r="4.8" class="f-emph ring"/><text x="689.0" y="144.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.53</text><rect x="668.0" y="132.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · MAIRA-2: 0.48"><rect x="643.3" y="161.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="635.1" y="153.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MS-CXR · Med-RPG: 0.32"><polygon points="541.9,158.7 547.6,169.3 536.1,169.3" class="f-ctx ring"/><rect x="529.9" y="153.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="463.0" y1="180.0" x2="726.0" y2="180.0" class="grid"/><g class="hit" tabindex="0" data-tip="ChestX-ray8 · BCE in place of the contrastive loss (FCRegBCE): 0.53"><circle cx="680.0" cy="196.0" r="4.0" class="f-ctx ring"/><rect x="668.0" y="184.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · Two heads, separate losses (FCRegDual): 0.51"><circle cx="666.8" cy="196.0" r="4.0" class="f-ctx ring"/><rect x="654.8" y="184.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · Pre-built CLIP encoder (FCRegSep): 0.42"><circle cx="607.6" cy="196.0" r="4.0" class="f-ctx ring"/><rect x="595.6" y="184.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · FC model (FCRegComb): 0.57"><circle cx="706.3" cy="196.0" r="4.8" class="f-emph ring"/><text x="715.3" y="196.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.57</text><rect x="694.3" y="184.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · MAIRA-2: 0.51"><rect x="663.0" y="213.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="654.8" y="205.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="ChestX-ray8 · Med-RPG: 0.28"><polygon points="515.6,210.7 521.4,221.3 509.9,221.3" class="f-ctx ring"/><rect x="503.6" y="205.0" width="24.0" height="24.0" class="hitbox"/></g><line x1="463.0" y1="232.0" x2="726.0" y2="232.0" class="grid"/><g class="hit" tabindex="0" data-tip="VinDr-CXR · BCE in place of the contrastive loss (FCRegBCE): 0.45"><circle cx="627.4" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="615.4" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · Two heads, separate losses (FCRegDual): 0.47"><circle cx="640.5" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="628.5" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · Pre-built CLIP encoder (FCRegSep): 0.37"><circle cx="574.8" cy="248.0" r="4.0" class="f-ctx ring"/><rect x="562.8" y="236.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · FC model (FCRegComb): 0.49"><circle cx="653.7" cy="248.0" r="4.8" class="f-emph ring"/><text x="662.7" y="248.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.49</text><rect x="641.7" y="236.0" width="46.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · MAIRA-2: 0.42"><rect x="603.9" y="265.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><rect x="595.6" y="257.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="VinDr-CXR · Med-RPG: 0.38"><polygon points="581.4,262.7 587.1,273.3 575.6,273.3" class="f-ctx ring"/><rect x="569.4" y="257.0" width="24.0" height="24.0" class="hitbox"/></g><text x="146.0" y="102.0" class="t" text-anchor="end" dominant-baseline="central">Chest ImaGenome gold</text><text x="146.0" y="154.0" class="t" text-anchor="end" dominant-baseline="central">MS-CXR</text><text x="146.0" y="206.0" class="t" text-anchor="end" dominant-baseline="central">ChestX-ray8</text><text x="146.0" y="258.0" class="t" text-anchor="end" dominant-baseline="central">VinDr-CXR</text></svg></div>
+    <figcaption><b>Figure 3 — On three of four sets the verdict sits a few points above the share of fake pairs; the box leads two grounding models by 0.05 or more.</b> The bracket is the share of fake pairs in that dataset by Table 3, read two ways (the synthetic count with or without the real pairs). No intervals are reported. Source: Table 4; brackets derived from Table 3.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th style="border-bottom:0"></th><th colspan="2" style="border-bottom:0;text-align:right">ImaGenome gold</th><th colspan="2" style="border-bottom:0;text-align:right">MS-CXR</th><th colspan="2" style="border-bottom:0;text-align:right">ChestX-ray8</th><th colspan="2" style="border-bottom:0;text-align:right">VinDr-CXR</th></tr><tr><th scope="col">Method</th><th scope="col" class="num">Acc.</th><th scope="col" class="num">mIoU</th><th scope="col" class="num">Acc.</th><th scope="col" class="num">mIoU</th><th scope="col" class="num">Acc.</th><th scope="col" class="num">mIoU</th><th scope="col" class="num">Acc.</th><th scope="col" class="num">mIoU</th></tr></thead><tbody><tr class="ours"><th scope="row">FC model (FCRegComb)</th><td class="num">0.92</td><td class="num">0.54</td><td class="num">0.94</td><td class="num">0.53</td><td class="num">0.92</td><td class="num">0.57</td><td class="num">0.90</td><td class="num">0.49</td></tr><tr><th scope="row">BCE loss (FCRegBCE)</th><td class="num">0.88</td><td class="num">0.49</td><td class="num">0.92</td><td class="num">0.46</td><td class="num">0.90</td><td class="num">0.53</td><td class="num">0.88</td><td class="num">0.45</td></tr><tr><th scope="row">Two heads (FCRegDual)</th><td class="num">0.87</td><td class="num">0.51</td><td class="num">0.89</td><td class="num">0.49</td><td class="num">0.87</td><td class="num">0.51</td><td class="num">0.86</td><td class="num">0.47</td></tr><tr><th scope="row">Pre-built CLIP (FCRegSep)</th><td class="num">0.89</td><td class="num">0.38</td><td class="num">0.89</td><td class="num">0.39</td><td class="num">0.92</td><td class="num">0.42</td><td class="num">0.89</td><td class="num">0.37</td></tr><tr><th scope="row">Med-RPG</th><td class="num">–</td><td class="num">0.23</td><td class="num">–</td><td class="num">0.32</td><td class="num">–</td><td class="num">0.28</td><td class="num">–</td><td class="num">0.38</td></tr><tr><th scope="row">MAIRA-2</th><td class="num">–</td><td class="num">0.39</td><td class="num">–</td><td class="num">0.48</td><td class="num">–</td><td class="num">0.51</td><td class="num">–</td><td class="num">0.42</td></tr><tr><th scope="row">2023 classifier (R/F Model)</th><td class="num">0.84</td><td class="num">–</td><td class="num">0.78</td><td class="num">–</td><td class="num">0.81</td><td class="num">–</td><td class="num">0.83</td><td class="num">–</td></tr><tr><th scope="row">Share of fake pairs (derived)</th><td class="num" colspan="2">83–85%</td><td class="num" colspan="2">91–92%</td><td class="num" colspan="2">85–87%</td><td class="num" colspan="2">64–73%</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Four things to read off it:</p>
+  <ol class="num-list">
+    <li><strong>An accuracy without its mix.</strong> The paper gives no confusion matrix and no balance of the test partitions. By Table 3 the pairs are 83 to 92% fake on three of the four sets <span class="tag">derived</span>. If the test partitions keep that mix, answering “fake” every time scores as much: the model is 0.02 to 0.09 above it, the 2023 classifier below it on two or three.</li>
+    <li><strong>The only spread given is wider than the gaps.</strong> Over a ten-fold re-split the paper reports 0.92 ± 0.12, of unstated meaning. The ablations sit within 0.05 of the full model in accuracy.</li>
+    <li><strong>The box baselines may not be on home ground.</strong> MAIRA-2 is 0.05 to 0.15 behind and Med-RPG 0.11 to 0.31, and the paper doesn’t say how either was run. Med-RPG’s own paper reports 0.59 on its MS-CXR split, against 0.32 here, and 0.39 for a version that sees only the phrase.</li>
+    <li><strong>A mean IoU needs a floor.</strong> In our sample of the released pairs, half of the real boxes cover more than 37% of the image, and one fixed box per phrase, set without looking at the image, overlaps them at a mean IoU of 0.50 <span class="tag">our count</span>. That is the silver set, not the table’s test sets, but it is the kind of yardstick the 0.49 to 0.57 lacks.</li>
+  </ol>
+</section>
+
+<section id="generators" data-toc="Test 2: seven generators">
+  <h2><span class="n">04</span>Test 2: seven real report generators</h2>
+  <p>The second test gives the abstract its only number. Seven generators write reports for the same images, 439 of them on the gold set: RGRG, XrayGPT, R2GenGPT, CvT2DistilGPT2, CheXRepair, MAIRA-2 and an in-house GPT-4 tool. Each report gets the error score of Figure 1 twice: once from the checker’s verdicts and boxes, once with the dataset’s annotations in the checker’s place. The second is a metric from a companion paper by the same group. The two agree with a concordance correlation coefficient of 0.997, which the authors read as support for the checker as a “surrogate for ground truth”.</p>
+
+  <figure id="fig-agreement">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 427.9" role="img" aria-label="Checker-based against reference-based error score for seven report generators on four datasets" style="min-width:620px" xmlns="http://www.w3.org/2000/svg"><line x1="52.0" y1="355.5" x2="432.0" y2="355.5" class="grid"/><line x1="86.5" y1="10.0" x2="86.5" y2="390.0" class="grid"/><text x="44.0" y="355.5" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.3</text><text x="86.5" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><line x1="52.0" y1="286.4" x2="432.0" y2="286.4" class="grid"/><line x1="155.6" y1="10.0" x2="155.6" y2="390.0" class="grid"/><text x="44.0" y="286.4" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.4</text><text x="155.6" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="52.0" y1="217.3" x2="432.0" y2="217.3" class="grid"/><line x1="224.7" y1="10.0" x2="224.7" y2="390.0" class="grid"/><text x="44.0" y="217.3" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.5</text><text x="224.7" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="52.0" y1="148.2" x2="432.0" y2="148.2" class="grid"/><line x1="293.8" y1="10.0" x2="293.8" y2="390.0" class="grid"/><text x="44.0" y="148.2" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.6</text><text x="293.8" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="52.0" y1="79.1" x2="432.0" y2="79.1" class="grid"/><line x1="362.9" y1="10.0" x2="362.9" y2="390.0" class="grid"/><text x="44.0" y="79.1" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.7</text><text x="362.9" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.7</text><line x1="52.0" y1="10.0" x2="432.0" y2="10.0" class="grid"/><line x1="432.0" y1="10.0" x2="432.0" y2="390.0" class="grid"/><text x="44.0" y="10.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.8</text><text x="432.0" y="403.2" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.8</text><line x1="52.0" y1="390.0" x2="432.0" y2="10.0" class="floor"/><text x="366.4" y="34.2" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">equal</text><text x="242.0" y="421.6" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">error score against the reference annotations</text><text x="9.2" y="200.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central" transform="rotate(-90 9.2 200.0)">error score from the checker</text><g class="hit" tabindex="0" data-tip="RGRG on MS-CXR · checker 0.329 · reference 0.308 · gap +0.021"><polygon points="92.1,329.4 97.6,339.5 86.6,339.5" class="f-ctx ring"/><rect x="80.1" y="323.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="RGRG on ChestX-ray8 · checker 0.305 · reference 0.298 · gap +0.007"><polygon points="85.2,346.5 90.7,352.0 85.2,357.5 79.7,352.0" class="f-ctx ring"/><rect x="73.2" y="340.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="XrayGPT on MS-CXR · checker 0.388 · reference 0.391 · gap −0.003"><polygon points="149.4,288.6 154.9,298.8 143.9,298.8" class="f-ctx ring"/><rect x="137.4" y="282.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="XrayGPT on ChestX-ray8 · checker 0.377 · reference 0.355 · gap +0.022"><polygon points="124.5,296.8 130.0,302.3 124.5,307.8 119.0,302.3" class="f-ctx ring"/><rect x="112.5" y="290.3" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4, in-house on MS-CXR · checker 0.433 · reference 0.426 · gap +0.007"><polygon points="173.6,257.5 179.1,267.7 168.1,267.7" class="f-ctx ring"/><rect x="161.6" y="251.6" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4, in-house on ChestX-ray8 · checker 0.399 · reference 0.408 · gap −0.009"><polygon points="161.2,281.6 166.7,287.1 161.2,292.6 155.7,287.1" class="f-ctx ring"/><rect x="149.2" y="275.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="R2GenGPT on MS-CXR · checker 0.377 · reference 0.374 · gap +0.003"><polygon points="137.7,296.2 143.2,306.4 132.2,306.4" class="f-ctx ring"/><rect x="125.7" y="290.3" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="R2GenGPT on ChestX-ray8 · checker 0.346 · reference 0.333 · gap +0.013"><polygon points="109.3,318.2 114.8,323.7 109.3,329.2 103.8,323.7" class="f-ctx ring"/><rect x="97.3" y="311.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT2DistilGPT2 on MS-CXR · checker 0.439 · reference 0.433 · gap +0.006"><polygon points="178.4,253.4 183.9,263.5 172.9,263.5" class="f-ctx ring"/><rect x="166.4" y="247.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT2DistilGPT2 on ChestX-ray8 · checker 0.427 · reference 0.420 · gap +0.007"><polygon points="169.5,262.2 175.0,267.7 169.5,273.2 164.0,267.7" class="f-ctx ring"/><rect x="157.5" y="255.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CheXRepair on MS-CXR · checker 0.466 · reference 0.461 · gap +0.005"><polygon points="197.8,234.7 203.3,244.9 192.3,244.9" class="f-ctx ring"/><rect x="185.8" y="228.8" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CheXRepair on ChestX-ray8 · checker 0.439 · reference 0.432 · gap +0.007"><polygon points="177.7,253.9 183.2,259.4 177.7,264.9 172.2,259.4" class="f-ctx ring"/><rect x="165.7" y="247.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MAIRA-2 on MS-CXR · checker 0.423 · reference 0.425 · gap −0.002"><polygon points="172.9,264.4 178.4,274.6 167.4,274.6" class="f-ctx ring"/><rect x="160.9" y="258.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MAIRA-2 on ChestX-ray8 · checker 0.412 · reference 0.419 · gap −0.007"><polygon points="168.8,272.6 174.3,278.1 168.8,283.6 163.3,278.1" class="f-ctx ring"/><rect x="156.8" y="266.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="RGRG on Chest ImaGenome gold · checker 0.541 · reference 0.537 · gap +0.004"><circle cx="250.3" cy="188.9" r="4.4" class="f-emph ring"/><rect x="238.3" y="176.9" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="RGRG on VinDr-CXR · checker 0.549 · reference 0.537 · gap +0.012"><rect x="246.3" y="179.5" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="238.3" y="171.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="XrayGPT on Chest ImaGenome gold · checker 0.622 · reference 0.626 · gap −0.004"><circle cx="311.8" cy="133.0" r="4.4" class="f-emph ring"/><rect x="299.8" y="121.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="XrayGPT on VinDr-CXR · checker 0.618 · reference 0.609 · gap +0.009"><rect x="296.1" y="131.8" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="288.0" y="123.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4, in-house on Chest ImaGenome gold · checker 0.658 · reference 0.653 · gap +0.005"><circle cx="330.4" cy="108.1" r="4.4" class="f-emph ring"/><rect x="318.4" y="96.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4, in-house on VinDr-CXR · checker 0.636 · reference 0.630 · gap +0.006"><rect x="310.6" y="119.3" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="302.5" y="111.3" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="R2GenGPT on Chest ImaGenome gold · checker 0.587 · reference 0.585 · gap +0.002"><circle cx="283.5" cy="157.2" r="4.4" class="f-emph ring"/><rect x="271.5" y="145.2" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="R2GenGPT on VinDr-CXR · checker 0.581 · reference 0.579 · gap +0.002"><rect x="275.3" y="157.3" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="267.3" y="149.3" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT2DistilGPT2 on Chest ImaGenome gold · checker 0.576 · reference 0.573 · gap +0.003"><circle cx="275.2" cy="164.8" r="4.4" class="f-emph ring"/><rect x="263.2" y="152.8" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT2DistilGPT2 on VinDr-CXR · checker 0.588 · reference 0.600 · gap −0.012"><rect x="289.9" y="152.5" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="281.8" y="144.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CheXRepair on Chest ImaGenome gold · checker 0.744 · reference 0.733 · gap +0.011"><circle cx="385.7" cy="48.7" r="4.4" class="f-emph ring"/><rect x="373.7" y="36.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CheXRepair on VinDr-CXR · checker 0.709 · reference 0.714 · gap −0.005"><rect x="368.6" y="68.9" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="360.6" y="60.9" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MAIRA-2 on Chest ImaGenome gold · checker 0.619 · reference 0.633 · gap −0.014"><circle cx="316.6" cy="135.1" r="4.4" class="f-emph ring"/><rect x="304.6" y="123.1" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="MAIRA-2 on VinDr-CXR · checker 0.578 · reference 0.569 · gap +0.009"><rect x="268.4" y="159.4" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><rect x="260.4" y="151.4" width="24.0" height="24.0" class="hitbox"/></g><circle cx="466.4" cy="17.5" r="4.4" class="f-emph ring"/><text x="479.8" y="17.5" class="t t-small" text-anchor="start" dominant-baseline="central">Chest ImaGenome gold</text><rect x="462.4" y="31.7" width="7.9" height="7.9" rx="1.5" class="f-mid ring"/><text x="479.8" y="35.6" class="t t-small" text-anchor="start" dominant-baseline="central">VinDr-CXR</text><polygon points="466.4,47.7 471.9,57.9 460.9,57.9" class="f-ctx ring"/><text x="479.8" y="53.8" class="t t-small" text-anchor="start" dominant-baseline="central">MS-CXR</text><polygon points="466.4,66.4 471.9,71.9 466.4,77.4 460.9,71.9" class="f-ctx ring"/><text x="479.8" y="71.9" class="t t-small" text-anchor="start" dominant-baseline="central">ChestX-ray8</text><text x="462.0" y="100.0" class="t t-head t-num" text-anchor="start" dominant-baseline="central">28 pairs of averages</text><text x="462.0" y="116.6" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">7 generators × 4 datasets</text><text x="462.0" y="142.6" class="t t-head t-num" text-anchor="start" dominant-baseline="central">0.997</text><text x="462.0" y="159.2" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">their concordance (our arithmetic)</text><text x="462.0" y="185.2" class="t t-head t-num" text-anchor="start" dominant-baseline="central">0.022</text><text x="462.0" y="201.8" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">largest gap between the two scores</text><text x="462.0" y="227.8" class="t t-head t-num" text-anchor="start" dominant-baseline="central">82%</text><text x="462.0" y="244.4" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">of the variance is between datasets</text></svg></div>
+    <figcaption><b>Figure 4 — These 28 pairs of averages give the 0.997, and the datasets, more than the generators, spread them.</b> Each point is one generator on one dataset: its mean error score from the checker against the same score from the reference annotations. Dashed line: equal scores. Source: Table 5; the four statistics are derived.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th style="border-bottom:0"></th><th colspan="2" style="border-bottom:0;text-align:right">ImaGenome gold</th><th colspan="2" style="border-bottom:0;text-align:right">MS-CXR</th><th colspan="2" style="border-bottom:0;text-align:right">ChestX-ray8</th><th colspan="2" style="border-bottom:0;text-align:right">VinDr-CXR</th></tr><tr><th scope="col">Generator</th><th scope="col" class="num">Checker</th><th scope="col" class="num">Ref.</th><th scope="col" class="num">Checker</th><th scope="col" class="num">Ref.</th><th scope="col" class="num">Checker</th><th scope="col" class="num">Ref.</th><th scope="col" class="num">Checker</th><th scope="col" class="num">Ref.</th></tr></thead><tbody><tr><th scope="row">RGRG</th><td class="num">0.541</td><td class="num">0.537</td><td class="num">0.329</td><td class="num">0.308</td><td class="num">0.305</td><td class="num">0.298</td><td class="num">0.549</td><td class="num">0.537</td></tr><tr><th scope="row">XrayGPT</th><td class="num">0.622</td><td class="num">0.626</td><td class="num">0.388</td><td class="num">0.391</td><td class="num">0.377</td><td class="num">0.355</td><td class="num">0.618</td><td class="num">0.609</td></tr><tr><th scope="row">GPT-4, in-house</th><td class="num">0.658</td><td class="num">0.653</td><td class="num">0.433</td><td class="num">0.426</td><td class="num">0.399</td><td class="num">0.408</td><td class="num">0.636</td><td class="num">0.630</td></tr><tr><th scope="row">R2GenGPT</th><td class="num">0.587</td><td class="num">0.585</td><td class="num">0.377</td><td class="num">0.374</td><td class="num">0.346</td><td class="num">0.333</td><td class="num">0.581</td><td class="num">0.579</td></tr><tr><th scope="row">CvT2DistilGPT2</th><td class="num">0.576</td><td class="num">0.573</td><td class="num">0.439</td><td class="num">0.433</td><td class="num">0.427</td><td class="num">0.420</td><td class="num">0.588</td><td class="num">0.600</td></tr><tr><th scope="row">CheXRepair</th><td class="num">0.744</td><td class="num">0.733</td><td class="num">0.466</td><td class="num">0.461</td><td class="num">0.439</td><td class="num">0.432</td><td class="num">0.709</td><td class="num">0.714</td></tr><tr><th scope="row">MAIRA-2</th><td class="num">0.619</td><td class="num">0.633</td><td class="num">0.423</td><td class="num">0.425</td><td class="num">0.412</td><td class="num">0.419</td><td class="num">0.578</td><td class="num">0.569</td></tr><tr class="ours"><th scope="row">Concordance (derived)</th><td class="num" colspan="2">0.992</td><td class="num" colspan="2">0.980</td><td class="num" colspan="2">0.969</td><td class="num" colspan="2">0.986</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Lin’s coefficient on the 28 printed pairs is 0.997 <span class="tag">derived</span>, the paper’s number to the third decimal. The paper doesn’t say what its coefficient was computed on and gives no per-report value. The rebuttal counts its evidence the same way: six metrics, four datasets and six generators make “144 measurements”.</p>
+  <p>At that level the agreement holds: the two means never differ by more than 0.022, and within each dataset the seven generators come out in the same order, bar one swap between two that the reference separates by 0.007. Two things temper it. First, 82% of the variance in the reference score lies between datasets <span class="tag">derived</span>: both scores are near 0.6 on the gold set and VinDr-CXR and near 0.4 on the other two. Second, the two sides share a front end <span class="tag">our observation</span>: the same extractor and region boxes turn each report into findings and locations before either comparison, so their errors move both scores together.</p>
+
+  <div class="callout">
+    <span class="label">What an agreement of averages shows <span class="tag">our observation</span></span>
+    <p>Each score averages two shares: the findings judged real, and the box overlap. Over a dataset, two such scores agree when the checker calls about as many findings fake as the reference does and its boxes overlap the stated locations about as much. It can do both while flagging the wrong findings.</p>
+    <p>Flagging errors in one report needs another number: of the findings the reference contradicts, how many did the checker flag, and how many correct ones did it flag by mistake? On generator output the paper shows five example sentences and no such table.</p>
+  </div>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">05</span>What the paper leaves out</h2>
+  <p>The three reviewers started at 2, 3 and 6 out of 6 and all ended at accept.</p>
+  <ul>
+    <li><strong>Verdicts on real errors:</strong> no per-finding accuracy on generator output, no radiologist, no weighting of errors. Asked whether synthetic errors transfer, the authors pointed to Table 5. And by the first preprint the reference side, too, keeps only the findings a report mentions.</li>
+    <li><strong>The promised comparison:</strong> a reviewer asked how the verdicts line up with GREEN, RadGraph-F1, CheXbert-F1 and RadCliQ. The rebuttal quotes concordances of 0.998, 0.999 and 0.998 for the first three and promises the full results in the arXiv version, which has the camera-ready text without them.</li>
+    <li><strong>Uncertainty and bookkeeping:</strong> no interval beyond the ±0.12, and no word on which pairs the mean IoU averages over. The gold set has 439 images in the text and 461 in Table 3.</li>
+    <li><strong>Code and model:</strong> the paper page lists neither. Without the extractor and the region detector, a report can’t be turned into the phrases and boxes the check needs.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">06</span>Takeaways for evaluating without a reference</h2>
+  <ol class="num-list">
+    <li><strong>Validate a checker per finding, on real generator output.</strong> Agreement between averages, which gives the 0.997 here, can’t tell a checker that flags the right findings from one that flags the right number of them.</li>
+    <li><strong>Print the floor next to every score.</strong> An accuracy of 0.92 reads differently once 83 to 85% of the dataset’s pairs are fake, and a mean IoU of 0.54 once a fixed box reaches 0.50 on the released silver pairs.</li>
+    <li><strong>Make rule-made errors as hard as a generator’s.</strong> When seven fakes in ten carry a phrase that is almost never real, as in the released sample, accuracy says little about the hard case: a common finding that is or isn’t there.</li>
+    <li><strong>Use an image-based check beside a reference-based score, not in its place.</strong> It needs no second report, but it can’t see what a report leaves out; a score like SPEC-CXR can.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Mahmood, R., Machado-Reyes, D., Wu, J., Kaviani, P., Wong, K. C. L., D’Souza, N., Kalra, M., Wang, G., Yan, P., Syeda-Mahmood, T. Phrase-grounded Fact-checking for Automatically Generated Chest X-ray Reports. MICCAI 2025, LNCS 15966, pp. 441–452: <a href="https://papers.miccai.org/miccai-2025/0693-Paper3526.html">paper page</a> with the reviews and the rebuttal · <a href="https://papers.miccai.org/miccai-2025/paper/3526_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04981-0_42">DOI</a> · <a href="https://arxiv.org/abs/2509.21356">arXiv:2509.21356</a> (the camera-ready text).</li>
+    <li>The first preprint: Mahmood, R., et al. Anatomically-Grounded Fact Checking of Automated Chest X-ray Reports. <a href="https://arxiv.org/abs/2412.02177">arXiv:2412.02177</a> (Dec 2024). The same model and results, with a report-correction step the MICCAI version drops.</li>
+    <li>The companion metric: Mahmood, R., et al. Evaluating Automated Radiology Report Quality through Fine-Grained Phrasal Grounding of Clinical Findings. <a href="https://arxiv.org/abs/2412.01031">arXiv:2412.01031</a>. The 2023 classifier: Mahmood, R., et al. Fact-Checking of AI-Generated Reports. <a href="https://arxiv.org/abs/2307.14634">arXiv:2307.14634</a>.</li>
+    <li>The released pairs: <a href="https://huggingface.co/datasets/razi-mahmood/RadCheck">razi-mahmood/RadCheck</a> on Hugging Face, read through its dataset viewer on 5 Oct 2026: exact counts for the validation and test splits, and 330 evenly spaced pages of 100 validation rows as the sample. The fixed box of section 03 is the median box per phrase, fitted on half of the sampled images and scored on the other half.</li>
+    <li>Chen, Z., et al. Med-RPG: <a href="https://arxiv.org/abs/2303.07618">arXiv:2303.07618</a> (2023), Tables I and II. Bannur, S., et al. MAIRA-2: <a href="https://arxiv.org/abs/2406.04449">arXiv:2406.04449</a> (2024).</li>
+    <li>Datasets: <a href="https://physionet.org/content/chest-imagenome/1.0.0/">Chest ImaGenome</a>, <a href="https://physionet.org/content/ms-cxr/0.1/">MS-CXR</a> and <a href="https://physionet.org/content/vindr-cxr/1.0.0/">VinDr-CXR</a> on PhysioNet; <a href="https://arxiv.org/abs/1705.02315">ChestX-ray8</a>.</li>
+    <li>Lin, L. I.-K. <a href="https://doi.org/10.2307/2532051">A concordance correlation coefficient to evaluate reproducibility</a>. Biometrics 45, 255–268 (1989).</li>
+    <li>Our post on <a href="/research-blog/spec-cxr-report-evaluation/">SPEC-CXR</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Mahmood et al., MICCAI 2025 (LNCS 15966, pp. 441–452). All numbers come from the paper, or from the source cited beside them, unless marked <em>derived</em>, <em>our count</em> or <em>our observation</em>. Figures were generated with Python from those numbers. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>

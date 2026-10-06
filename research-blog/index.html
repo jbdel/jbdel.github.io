@@ -13,13 +13,13 @@
 <meta property="og:url" content="https://jbdel.github.io/research-blog/">
 <!-- share card: the latest post's og.png (update when a new post is published) -->
 <meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
-<meta property="og:image" content="https://jbdel.github.io/research-blog/mu2-tokenizer-report-generation/og.png">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/og.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="Research blog: latest post, µ²LLM, read for report generation">
+<meta property="og:image:alt" content="Research blog: latest post, Phrase-grounded fact-checking, read for report-generation evaluation">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://jbdel.github.io/research-blog/mu2-tokenizer-report-generation/og.png">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/phrase-grounded-fact-checking/og.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,7 +74,7 @@ footer .in { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; font-fam
   <h1>Research blog</h1>
   <p class="lede">Long-form reading notes on radiology AI papers, with a focus on report generation.</p>
 <!-- TAGS:START -->
-<nav class="tags" aria-label="Filter posts by tag"><a class="tag on" href="/research-blog/" data-tag="">All<span class="n">10</span></a><a class="tag" href="/research-blog/?tag=miccai-2025" data-tag="miccai-2025">MICCAI 2025<span class="n">7</span></a><a class="tag" href="/research-blog/?tag=arxiv-2026" data-tag="arxiv-2026">arXiv 2026<span class="n">2</span></a><a class="tag" href="/research-blog/?tag=nature-2026" data-tag="nature-2026">Nature 2026<span class="n">1</span></a></nav>
+<nav class="tags" aria-label="Filter posts by tag"><a class="tag on" href="/research-blog/" data-tag="">All<span class="n">11</span></a><a class="tag" href="/research-blog/?tag=miccai-2025" data-tag="miccai-2025">MICCAI 2025<span class="n">8</span></a><a class="tag" href="/research-blog/?tag=arxiv-2026" data-tag="arxiv-2026">arXiv 2026<span class="n">2</span></a><a class="tag" href="/research-blog/?tag=nature-2026" data-tag="nature-2026">Nature 2026<span class="n">1</span></a></nav>
 <!-- TAGS:END -->
   <div class="posts">
 <!-- POSTS:START -->
@@ -100,6 +100,14 @@ footer .in { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; font-fam
     <p class="meta"><span class="k">CT report generation</span><a class="tag" href="/research-blog/?tag=nature-2026">Nature 2026</a><span>2 Oct 2026</span><span>~11 min read</span></p>
     <h2><a href="/research-blog/merlin-report-generation/">Merlin, read for report generation</a></h2>
     <p class="sum">The report-generation side of Merlin, the abdominal CT foundation model published in Nature: 490 visual tokens, one linear adapter and a LoRA-tuned language model writing one organ section at a time, what the scores show, and why the released dataset matters more.</p>
+  </div>
+</article>
+<article class="post-card" data-tags="miccai-2025">
+  <a class="thumb" href="/research-blog/phrase-grounded-fact-checking/" tabindex="-1" aria-hidden="true"><img src="/research-blog/phrase-grounded-fact-checking/og.png" alt="" width="1200" height="627" loading="lazy"></a>
+  <div class="body">
+    <p class="meta"><span class="k">Report-generation evaluation</span><a class="tag" href="/research-blog/?tag=miccai-2025">MICCAI 2025</a><span>5 Oct 2026</span><span>~8 min read</span></p>
+    <h2><a href="/research-blog/phrase-grounded-fact-checking/">Phrase-grounded fact-checking, read for report-generation evaluation</a></h2>
+    <p class="sum">A model checks a generated chest X-ray report against the image itself: for each finding it answers real or fake and draws a box, with no reference report. Its headline number, a concordance of 0.997 with ground truth, can be reproduced from 28 pairs of averages in one table: what that shows, and what it leaves open.</p>
   </div>
 </article>
 <article class="post-card" data-tags="miccai-2025">
