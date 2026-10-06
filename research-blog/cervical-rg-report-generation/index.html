@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cervical-RG, read for report generation</title>
+<meta name="description" content="A report-generation reading of Cervical-RG (MICCAI 2025): five 3D MRI sequences in, a FIGO stage out. On 105 test cases the findings text leads its own 2D baseline by 0.033 BLEU-2, and the stage is right for 64% of cases, 26% with the substage.">
+<meta property="og:title" content="Cervical-RG, read for report generation">
+<meta property="og:description" content="A report-generation reading of Cervical-RG (MICCAI 2025): five 3D MRI sequences in, a FIGO stage out. On 105 test cases the findings text leads its own 2D baseline by 0.033 BLEU-2, and the stage is right for 64% of cases, 26% with the substage.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/cervical-rg-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/cervical-rg-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Cervical-RG, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/cervical-rg-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/cervical-rg-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0143-Paper0177.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/0177_paper.pdf">PDF</a>
+      <a href="https://github.com/LongYu-LY/Cervical-RG">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · MRI report generation</p>
+    <h1>Cervical-RG, read for report generation</h1>
+    <p class="dek">Cervical-RG (MICCAI 2025) writes a cervical-cancer MRI report from five 3D sequences and ends it on a FIGO stage, in three passes. This post reads what its 105 test cases can carry: a findings text 0.033 BLEU-2 ahead of the same language model fed 2D slices, and a stage that is right for 64% of cases, 26% with the substage.</p>
+    <div class="meta">
+      <span><b>Paper</b> Hanwen Zhang, Yu Long, … Xiaohui Duan, Weibing Zhao. <a href="https://papers.miccai.org/miccai-2025/0143-Paper0177.html"><i>Cervical-RG: Automated Cervical Cancer Report Generation from 3D Multi-sequence MRI via CoT-guided Hierarchical Experts</i></a>. MICCAI 2025, LNCS 15964, pp. 78–88</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 5 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a></span>
+      <span><b>Disclosure</b> I am the first author of RadGraph-F1, a metric of the family this paper reports as “RadGraph F1”.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">3,177</div><div class="l">patients from seven hospitals, five MRI sequences each; 105 held out for testing</div></div>
+    <div class="tile" role="listitem"><div class="v">1,280</div><div class="l">visual tokens per exam reach the language model: 256 per sequence<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">+0.033</div><div class="l">BLEU-2 over the same language model with a 2D encoder (0.286 against 0.253)</div></div>
+    <div class="tile" role="listitem"><div class="v">64%</div><div class="l">of test cases get the right major FIGO stage; 26% the right full stage</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic from the paper’s shapes: 5 × (4 × 8 × 8).</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>Three passes; only two see the images.</strong> A 9B language model fine-tuned on five 3D sequences writes findings and conclusion. The same design, fine-tuned separately, reasons to a FIGO stage in six tagged steps, and a text-only 8B model checks that stage against the rules.</li>
+      <li><strong>The findings text leads by a little.</strong> The strongest baseline is the same language model fed 2D slices, 0.033 BLEU-2 behind. The largest step is pretraining the encoder on the dataset’s own reports.</li>
+      <li><strong>The stage is right for 64% of cases, 26% with the substage.</strong> The text-only check supplies 10 and 8 of those points. The paper gives no stage counts, so the score of a constant answer is unknown.</li>
+      <li><strong>What we can’t tell.</strong> There are no intervals or repeat runs, and three of the ten staging accuracies cannot be whole counts out of 105. The data come on request only, and the released code covers the first pass.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>This is the first MRI paper in this series. Three things change for readers who build CT or chest X-ray report generators:</p>
+  <ul>
+    <li><strong>Several sequences per exam.</strong> A CT report generator usually reads one volume. A pelvic MRI exam is several, each with its own contrast and often its own plane. Cervical-RG takes five: ADC, T1CA, T1CS, T2A and T2S (by their names, which the paper doesn’t expand: a diffusion map, contrast-enhanced T1 in two planes and T2 in two planes).</li>
+    <li><strong>A stage the report must end on.</strong> Treatment follows the FIGO stage, a rule-based label built from tumour size, spread and lymph nodes. Each exam has one clinical answer that is right or wrong.</li>
+    <li><strong>A single disease.</strong> Every patient has cervical cancer, so there is no list of findings to score against, as CheXpert’s 14 labels or CT-RATE’s 18 allow.</li>
+  </ul>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="Cervical-RG pipeline: five MRI sequences, a frozen 3D ViT, a pooling projector, a fine-tuned language model that writes the image diagnosis, a second fine-tuned pass that stages with six tagged steps, and a text-only model that checks the stage">
+      <div class="row">
+        <div class="box"><div class="t1">One exam, five MRI sequences</div><div class="t2">One single-channel volume per sequence</div></div>
+        <div class="shape">5 × 1 × 32 × 256 × 256</div>
+      </div>
+      <div class="conn"><div>each sequence through the same encoder, on its own</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">3D ViT, M3D’s design</div><div class="t2">Pretrained CLIP-style on the dataset’s own reports, cut into one description per sequence by GPT-4o</div></div>
+        <div class="shape">→ 5 × 2,048 × 768</div>
+      </div>
+      <div class="conn"><div>average-pool 2 × 2 × 2, then an MLP</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Projector</div><div class="t2">M3D’s pooling projector; 6 epochs alone, then 6 with the language model</div></div>
+        <div class="shape">→ 5 × 256 tokens<br>= 1,280</div>
+      </div>
+      <div class="conn"><div>the tokens fill five image tags in the prompt</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Pass 1 · “radiologist”</div><div class="t2">LongLLaVA-Med’s 9B language model, 28 Mamba and 4 attention layers, fully fine-tuned; writes findings and conclusion</div></div>
+        <div class="shape">the “image diagnosis”</div>
+      </div>
+      <div class="conn"><div>the images again, plus pass 1’s text</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Pass 2 · “oncologist”</div><div class="t2">Same design, fine-tuned on staging rationales in six tagged steps: size, location, infiltration, pelvic wall, other lesions, stage</div></div>
+        <div class="shape">e.g. 3 cm → IB1</div>
+      </div>
+      <div class="conn"><div>text only: pass 1’s text, the FIGO criteria, pass 2’s stage</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">off the shelf</span><div class="t1">Pass 3 · “reviewing specialist”</div><div class="t2">DeepSeek-R1-Distill-Llama-8B, which can run locally; keeps or corrects the stage</div></div>
+        <div class="shape">→ IB2 (2 to 4 cm)</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>not trained at this step</span>
+        <span><i style="background:var(--ink)"></i>trained</span>
+        <span>monospace = the paper’s shapes (256 and 1,280: our arithmetic) and its own staging example</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — Three passes; only the first two see the images.</b> In the paper’s own example, pass 2 files a 3 cm tumour under IB1 and pass 3 moves it to IB2, the FIGO 2018 class for 2 to 4 cm. Sources: Sections 2.1, 2.2 and 3.2, Figures 1 and 2; the released code for the M3D lineage; LongLLaVA-Med’s <a href="https://huggingface.co/FreedomIntelligence/LongLLaVAMed-9B/blob/main/config.json">public config</a> for the layer counts.</figcaption>
+  </figure>
+
+  <p>The sequences meet only in the language model. Each passes alone through the shared encoder and arrives as its own block of 256 tokens, the budget the <a href="/research-blog/3d-mllm-design-space-report-generation/">design-space study</a> gave a whole CT scan. The released prompt builders never name the sequences: five image tags follow each other.</p>
+</section>
+
+<section id="data" data-toc="The data">
+  <h2><span class="n">02</span>The data</h2>
+  <p>Cervical-MD is the authors’ own dataset: 3,177 patients from seven hospitals, each with five sequences, a report and the FIGO stage that clinicians recorded. The abstract counts 3,137 MRI–report pairs, and the paper doesn’t explain the difference. The test set is 15 random cases per hospital, 105 in all. Every other case trains, and the paper mentions no validation split. The released scripts key each record by hospital and patient folder, so the split appears to be by patient.</p>
+  <p>The paper prints its example in English and never says whether the reports were written in English or translated. Every author’s institution is in China and the released code keeps a Chinese prompt in a comment, so translation is likely, not confirmed.</p>
+  <p>The data are not released. The paper page lists no dataset, and both the rebuttal and the repository’s <a href="https://github.com/LongYu-LY/Cervical-RG/issues/1">issue tracker</a> say to apply by email.</p>
+</section>
+
+<section id="text" data-toc="The findings text">
+  <h2><span class="n">03</span>The findings text</h2>
+  <p>The paper compares Cervical-RG with six models, all run by the authors: two zero-shot and four fine-tuned on Cervical-MD, on inputs it doesn’t specify. A second table ablates the inputs and the training stages. Two rows appear in both, so everything fits on one axis.</p>
+
+  <figure id="fig-text">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 496" role="img" aria-label="BLEU-2 and RadGraph F1 of every model and ablation in Tables 1 and 3" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Cervical-RG</text><rect x="108.6" y="6.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="123.6" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">its 2D arm, the strongest baseline</text><rect x="362.6" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="377.6" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">other runs</text><text x="276.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU-2</text><text x="276.0" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><text x="334.1" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><text x="392.2" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><text x="450.4" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><text x="528.0" y="40.0" class="t t-head" text-anchor="start" dominant-baseline="central">RadGraph F1</text><text x="528.0" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><text x="586.1" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.1</text><text x="644.2" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><text x="702.4" y="482.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.3</text><text x="0" y="82.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Zero-shot</tspan><tspan dx="8" class="t-muted">not trained on Cervical-MD</tspan></text><line x1="276.0" y1="90.0" x2="276.0" y2="138.0" class="zero"/><line x1="334.1" y1="90.0" x2="334.1" y2="138.0" class="grid"/><line x1="392.2" y1="90.0" x2="392.2" y2="138.0" class="grid"/><line x1="450.4" y1="90.0" x2="450.4" y2="138.0" class="grid"/><line x1="528.0" y1="90.0" x2="528.0" y2="138.0" class="zero"/><line x1="586.1" y1="90.0" x2="586.1" y2="138.0" class="grid"/><line x1="644.2" y1="90.0" x2="644.2" y2="138.0" class="grid"/><line x1="702.4" y1="90.0" x2="702.4" y2="138.0" class="grid"/><text x="262.0" y="103.0" class="t" text-anchor="end" dominant-baseline="central">LLaVA-Med</text><g class="hit" tabindex="0" data-tip="Zero-shot: LLaVA-Med · BLEU-2 0.021 · ROUGE-1 0.158 · METEOR 0.079 · BERTScore 0.812 · RadGraph F1 0.012 · RadCliQ 2.335"><path class="f-ctx" d="M276.0,97.0H284.2Q288.2,97.0 288.2,101.0V105.0Q288.2,109.0 284.2,109.0H276.0Z"/><text x="294.2" y="103.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.021</text><path class="f-ctx" d="M528.0,97.0H531.0Q535.0,97.0 535.0,101.0V105.0Q535.0,109.0 531.0,109.0H528.0Z"/><text x="541.0" y="103.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.012</text><rect x="276.0" y="92.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="125.0" class="t" text-anchor="end" dominant-baseline="central">GPT-4o</text><g class="hit" tabindex="0" data-tip="Zero-shot: GPT-4o · BLEU-2 0.029 · ROUGE-1 0.151 · METEOR 0.102 · BERTScore 0.804 · RadGraph F1 0.021 · RadCliQ 2.391"><path class="f-ctx" d="M276.0,119.0H288.9Q292.9,119.0 292.9,123.0V127.0Q292.9,131.0 288.9,131.0H276.0Z"/><text x="298.9" y="125.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.029</text><path class="f-ctx" d="M528.0,119.0H536.2Q540.2,119.0 540.2,123.0V127.0Q540.2,131.0 536.2,131.0H528.0Z"/><text x="546.2" y="125.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.021</text><rect x="276.0" y="114.0" width="484.0" height="22.0" class="hitbox"/></g><text x="0" y="156.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Other models</tspan><tspan dx="8" class="t-muted">fine-tuned on Cervical-MD by the authors</tspan></text><line x1="276.0" y1="164.0" x2="276.0" y2="234.0" class="zero"/><line x1="334.1" y1="164.0" x2="334.1" y2="234.0" class="grid"/><line x1="392.2" y1="164.0" x2="392.2" y2="234.0" class="grid"/><line x1="450.4" y1="164.0" x2="450.4" y2="234.0" class="grid"/><line x1="528.0" y1="164.0" x2="528.0" y2="234.0" class="zero"/><line x1="586.1" y1="164.0" x2="586.1" y2="234.0" class="grid"/><line x1="644.2" y1="164.0" x2="644.2" y2="234.0" class="grid"/><line x1="702.4" y1="164.0" x2="702.4" y2="234.0" class="grid"/><text x="262.0" y="177.0" class="t" text-anchor="end" dominant-baseline="central">R2GenGPT</text><g class="hit" tabindex="0" data-tip="Other models: R2GenGPT · BLEU-2 0.167 · ROUGE-1 0.358 · METEOR 0.247 · BERTScore 0.841 · RadGraph F1 0.149 · RadCliQ 1.768"><path class="f-ctx" d="M276.0,171.0H369.1Q373.1,171.0 373.1,175.0V179.0Q373.1,183.0 369.1,183.0H276.0Z"/><text x="379.1" y="177.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.167</text><path class="f-ctx" d="M528.0,171.0H610.6Q614.6,171.0 614.6,175.0V179.0Q614.6,183.0 610.6,183.0H528.0Z"/><text x="620.6" y="177.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.149</text><rect x="276.0" y="166.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="199.0" class="t" text-anchor="end" dominant-baseline="central">M3D-LaMed</text><g class="hit" tabindex="0" data-tip="Other models: M3D-LaMed · BLEU-2 0.191 · ROUGE-1 0.432 · METEOR 0.299 · BERTScore 0.867 · RadGraph F1 0.218 · RadCliQ 1.427"><path class="f-ctx" d="M276.0,193.0H383.0Q387.0,193.0 387.0,197.0V201.0Q387.0,205.0 383.0,205.0H276.0Z"/><text x="393.0" y="199.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.191</text><path class="f-ctx" d="M528.0,193.0H650.7Q654.7,193.0 654.7,197.0V201.0Q654.7,205.0 650.7,205.0H528.0Z"/><text x="660.7" y="199.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.218</text><rect x="276.0" y="188.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="221.0" class="t" text-anchor="end" dominant-baseline="central">miniGPT-Med</text><g class="hit" tabindex="0" data-tip="Other models: miniGPT-Med · BLEU-2 0.231 · ROUGE-1 0.492 · METEOR 0.330 · BERTScore 0.880 · RadGraph F1 0.261 · RadCliQ 1.221"><path class="f-ctx" d="M276.0,215.0H406.3Q410.3,215.0 410.3,219.0V223.0Q410.3,227.0 406.3,227.0H276.0Z"/><text x="416.3" y="221.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.231</text><path class="f-ctx" d="M528.0,215.0H675.7Q679.7,215.0 679.7,219.0V223.0Q679.7,227.0 675.7,227.0H528.0Z"/><text x="685.7" y="221.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.261</text><rect x="276.0" y="210.0" width="484.0" height="22.0" class="hitbox"/></g><text x="0" y="252.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Same language model, 2D encoder</tspan><tspan dx="8" class="t-muted">LongLLaVA-Med, fine-tuned</tspan></text><line x1="276.0" y1="260.0" x2="276.0" y2="330.0" class="zero"/><line x1="334.1" y1="260.0" x2="334.1" y2="330.0" class="grid"/><line x1="392.2" y1="260.0" x2="392.2" y2="330.0" class="grid"/><line x1="450.4" y1="260.0" x2="450.4" y2="330.0" class="grid"/><line x1="528.0" y1="260.0" x2="528.0" y2="330.0" class="zero"/><line x1="586.1" y1="260.0" x2="586.1" y2="330.0" class="grid"/><line x1="644.2" y1="260.0" x2="644.2" y2="330.0" class="grid"/><line x1="702.4" y1="260.0" x2="702.4" y2="330.0" class="grid"/><text x="262.0" y="273.0" class="t" text-anchor="end" dominant-baseline="central">T2A only</text><g class="hit" tabindex="0" data-tip="Same language model, 2D encoder: T2A only · BLEU-2 0.244 · ROUGE-1 0.497 · METEOR 0.350 · BERTScore 0.881 · RadGraph F1 0.272 · RadCliQ 1.197"><path class="f-ctx" d="M276.0,267.0H413.8Q417.8,267.0 417.8,271.0V275.0Q417.8,279.0 413.8,279.0H276.0Z"/><text x="423.8" y="273.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.244</text><path class="f-ctx" d="M528.0,267.0H682.1Q686.1,267.0 686.1,271.0V275.0Q686.1,279.0 682.1,279.0H528.0Z"/><text x="692.1" y="273.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.272</text><rect x="276.0" y="262.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="295.0" class="t" text-anchor="end" dominant-baseline="central">ADC, T1CS, T2A</text><g class="hit" tabindex="0" data-tip="Same language model, 2D encoder: ADC, T1CS, T2A · BLEU-2 0.252 · ROUGE-1 0.504 · METEOR 0.353 · BERTScore 0.881 · RadGraph F1 0.277 · RadCliQ 1.179"><path class="f-ctx" d="M276.0,289.0H418.5Q422.5,289.0 422.5,293.0V297.0Q422.5,301.0 418.5,301.0H276.0Z"/><text x="428.5" y="295.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.252</text><path class="f-ctx" d="M528.0,289.0H685.0Q689.0,289.0 689.0,293.0V297.0Q689.0,301.0 685.0,301.0H528.0Z"/><text x="695.0" y="295.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.277</text><rect x="276.0" y="284.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="317.0" class="t" text-anchor="end" dominant-baseline="central">all five (same scores as LongLLaVA-Med†)</text><g class="hit" tabindex="0" data-tip="Same language model, 2D encoder: all five (same scores as LongLLaVA-Med†) · BLEU-2 0.253 · ROUGE-1 0.504 · METEOR 0.358 · BERTScore 0.882 · RadGraph F1 0.283 · RadCliQ 1.157"><path class="f-mid" d="M276.0,311.0H419.1Q423.1,311.0 423.1,315.0V319.0Q423.1,323.0 419.1,323.0H276.0Z"/><text x="429.1" y="317.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.253</text><path class="f-mid" d="M528.0,311.0H688.5Q692.5,311.0 692.5,315.0V319.0Q692.5,323.0 688.5,323.0H528.0Z"/><text x="698.5" y="317.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.283</text><rect x="276.0" y="306.0" width="484.0" height="22.0" class="hitbox"/></g><text x="0" y="348.0" class="t t-small" dominant-baseline="central"><tspan class="t-strong">Same language model, 3D encoder</tspan><tspan dx="8" class="t-muted">Cervical-RG and its ablations</tspan></text><line x1="276.0" y1="356.0" x2="276.0" y2="470.0" class="zero"/><line x1="334.1" y1="356.0" x2="334.1" y2="470.0" class="grid"/><line x1="392.2" y1="356.0" x2="392.2" y2="470.0" class="grid"/><line x1="450.4" y1="356.0" x2="450.4" y2="470.0" class="grid"/><line x1="528.0" y1="356.0" x2="528.0" y2="470.0" class="zero"/><line x1="586.1" y1="356.0" x2="586.1" y2="470.0" class="grid"/><line x1="644.2" y1="356.0" x2="644.2" y2="470.0" class="grid"/><line x1="702.4" y1="356.0" x2="702.4" y2="470.0" class="grid"/><text x="262.0" y="369.0" class="t" text-anchor="end" dominant-baseline="central">all five, encoder and projector not retrained</text><g class="hit" tabindex="0" data-tip="Same language model, 3D encoder: all five, encoder and projector not retrained · BLEU-2 0.211 · ROUGE-1 0.454 · METEOR 0.330 · BERTScore 0.868 · RadGraph F1 0.207 · RadCliQ 1.446"><path class="f-ctx" d="M276.0,363.0H394.6Q398.6,363.0 398.6,367.0V371.0Q398.6,375.0 394.6,375.0H276.0Z"/><text x="404.6" y="369.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.211</text><path class="f-ctx" d="M528.0,363.0H644.3Q648.3,363.0 648.3,367.0V371.0Q648.3,375.0 644.3,375.0H528.0Z"/><text x="654.3" y="369.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.207</text><rect x="276.0" y="358.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="391.0" class="t" text-anchor="end" dominant-baseline="central">T2A only</text><g class="hit" tabindex="0" data-tip="Same language model, 3D encoder: T2A only · BLEU-2 0.260 · ROUGE-1 0.507 · METEOR 0.359 · BERTScore 0.882 · RadGraph F1 0.222 · RadCliQ 1.196"><path class="f-ctx" d="M276.0,385.0H423.1Q427.1,385.0 427.1,389.0V393.0Q427.1,397.0 423.1,397.0H276.0Z"/><text x="433.1" y="391.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.260</text><path class="f-ctx" d="M528.0,385.0H653.0Q657.0,385.0 657.0,389.0V393.0Q657.0,397.0 653.0,397.0H528.0Z"/><text x="663.0" y="391.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.222</text><rect x="276.0" y="380.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="413.0" class="t" text-anchor="end" dominant-baseline="central">ADC, T1CS, T2A</text><g class="hit" tabindex="0" data-tip="Same language model, 3D encoder: ADC, T1CS, T2A · BLEU-2 0.259 · ROUGE-1 0.504 · METEOR 0.364 · BERTScore 0.882 · RadGraph F1 0.277 · RadCliQ 1.157"><path class="f-ctx" d="M276.0,407.0H422.5Q426.5,407.0 426.5,411.0V415.0Q426.5,419.0 422.5,419.0H276.0Z"/><text x="432.5" y="413.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.259</text><path class="f-ctx" d="M528.0,407.0H685.0Q689.0,407.0 689.0,411.0V415.0Q689.0,419.0 685.0,419.0H528.0Z"/><text x="695.0" y="413.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.277</text><rect x="276.0" y="402.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="435.0" class="t" text-anchor="end" dominant-baseline="central">all five, no projector stage</text><g class="hit" tabindex="0" data-tip="Same language model, 3D encoder: all five, no projector stage · BLEU-2 0.270 · ROUGE-1 0.520 · METEOR 0.376 · BERTScore 0.885 · RadGraph F1 0.295 · RadCliQ 1.077"><path class="f-ctx" d="M276.0,429.0H428.9Q432.9,429.0 432.9,433.0V437.0Q432.9,441.0 428.9,441.0H276.0Z"/><text x="438.9" y="435.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.270</text><path class="f-ctx" d="M528.0,429.0H695.5Q699.5,429.0 699.5,433.0V437.0Q699.5,441.0 695.5,441.0H528.0Z"/><text x="705.5" y="435.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.295</text><rect x="276.0" y="424.0" width="484.0" height="22.0" class="hitbox"/></g><text x="262.0" y="457.0" class="t t-strong" text-anchor="end" dominant-baseline="central">all five, full recipe: Cervical-RG</text><g class="hit" tabindex="0" data-tip="Same language model, 3D encoder: all five, full recipe: Cervical-RG · BLEU-2 0.286 · ROUGE-1 0.536 · METEOR 0.394 · BERTScore 0.888 · RadGraph F1 0.297 · RadCliQ 1.068"><path class="f-emph" d="M276.0,451.0H438.2Q442.2,451.0 442.2,455.0V459.0Q442.2,463.0 438.2,463.0H276.0Z"/><text x="448.2" y="457.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.286</text><path class="f-emph" d="M528.0,451.0H696.6Q700.6,451.0 700.6,455.0V459.0Q700.6,463.0 696.6,463.0H528.0Z"/><text x="706.6" y="457.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.297</text><rect x="276.0" y="446.0" width="484.0" height="22.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 2 — The full model leads its own 2D arm by 0.033 BLEU-2 and 0.014 RadGraph F1.</b> Bars start at zero on one shared scale. All runs are the authors’, on the 105 test cases, with no intervals or repeat runs. † marks a model they fine-tuned. Sources: Tables 1 and 3.</figcaption>
+    <details class="data"><summary>Show as table, with all six metrics</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Setting</th><th scope="col" class="num">BLEU-2</th><th scope="col" class="num">ROUGE-1</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">BERTSc.</th><th scope="col" class="num">RadGraph</th><th scope="col" class="num">RadCliQ ↓</th></tr></thead><tbody><tr><th scope="row">LLaVA-Med, zero-shot</th><td class="num">0.021</td><td class="num">0.158</td><td class="num">0.079</td><td class="num">0.812</td><td class="num">0.012</td><td class="num">2.335</td></tr><tr><th scope="row">GPT-4o, zero-shot</th><td class="num">0.029</td><td class="num">0.151</td><td class="num">0.102</td><td class="num">0.804</td><td class="num">0.021</td><td class="num">2.391</td></tr><tr><th scope="row">R2GenGPT†</th><td class="num">0.167</td><td class="num">0.358</td><td class="num">0.247</td><td class="num">0.841</td><td class="num">0.149</td><td class="num">1.768</td></tr><tr><th scope="row">M3D-LaMed†</th><td class="num">0.191</td><td class="num">0.432</td><td class="num">0.299</td><td class="num">0.867</td><td class="num">0.218</td><td class="num">1.427</td></tr><tr><th scope="row">miniGPT-Med†</th><td class="num">0.231</td><td class="num">0.492</td><td class="num">0.330</td><td class="num">0.880</td><td class="num">0.261</td><td class="num">1.221</td></tr><tr><th scope="row">2D · T2A only</th><td class="num">0.244</td><td class="num">0.497</td><td class="num">0.350</td><td class="num">0.881</td><td class="num">0.272</td><td class="num">1.197</td></tr><tr><th scope="row">2D · ADC, T1CS, T2A</th><td class="num">0.252</td><td class="num">0.504</td><td class="num">0.353</td><td class="num">0.881</td><td class="num">0.277</td><td class="num">1.179</td></tr><tr><th scope="row">2D · all five; same scores as LongLLaVA-Med†</th><td class="num">0.253</td><td class="num">0.504</td><td class="num">0.358</td><td class="num">0.882</td><td class="num">0.283</td><td class="num">1.157</td></tr><tr><th scope="row">3D · all five, neither retrained</th><td class="num">0.211</td><td class="num">0.454</td><td class="num">0.330</td><td class="num">0.868</td><td class="num">0.207</td><td class="num">1.446</td></tr><tr><th scope="row">3D · T2A only</th><td class="num">0.260</td><td class="num">0.507</td><td class="num">0.359</td><td class="num">0.882</td><td class="num">0.222</td><td class="num">1.196</td></tr><tr><th scope="row">3D · ADC, T1CS, T2A</th><td class="num">0.259</td><td class="num">0.504</td><td class="num">0.364</td><td class="num">0.882</td><td class="num">0.277</td><td class="num">1.157</td></tr><tr><th scope="row">3D · all five, no projector stage</th><td class="num">0.270</td><td class="num">0.520</td><td class="num">0.376</td><td class="num">0.885</td><td class="num">0.295</td><td class="num">1.077</td></tr><tr class="ours"><th scope="row">3D · all five, full: Cervical-RG</th><td class="num">0.286</td><td class="num">0.536</td><td class="num">0.394</td><td class="num">0.888</td><td class="num">0.297</td><td class="num">1.068</td></tr></tbody></table></div></details>
+  </figure>
+
+  <ol class="num-list">
+    <li><strong>The strongest baseline is the paper’s own 2D arm.</strong> LongLLaVA-Med† in Table 1 and the 2D row with all sequences in Table 3 share all six numbers. It is evidently the same run: Cervical-RG’s language model with its stock 2D encoder.</li>
+    <li><strong>Pretraining the encoder on the reports is the largest step.</strong> Without it, and without the projector stage, the 3D model scores 0.211 BLEU-2, below every 2D row. The pretraining alone takes it to 0.270. The paper doesn’t say whether the 105 test cases were kept out of it.</li>
+    <li><strong>Not every row agrees that 3D beats 2D, or that more sequences help.</strong> With T2A alone, 3D has a RadGraph F1 lower by 0.050 (0.222 against 0.272, as printed), a swing between neighbouring rows that exceeds the 0.014 lead in Figure 2’s title. And from one 3D sequence to three, BLEU-2 goes from 0.260 to 0.259.</li>
+    <li><strong>The metrics see little of the clinic.</strong> BERTScore gives a zero-shot GPT-4o 0.804 and the best model 0.888. The two clinical metrics come from chest X-ray work: RadGraph was annotated on chest X-ray reports, and RadCliQ was fitted to radiologists’ error counts on reports drawn from 50 MIMIC-CXR studies. The paper names no implementation and offers no check that either transfers to pelvic MRI.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="label">The paper’s own example <span class="tag">our observation</span></span>
+    <p>The paper prints one report written by Cervical-RG. It finds the cervical tumour and gives it the reference’s 12 mm. It also describes two nodules in the uterine wall as probable fibroids, where the reference reports a myometrium without lesions, and it leaves out the reference’s two cysts.</p>
+    <p>The figure colours the phrases that agree. Both texts walk the pelvis organ by organ in the same order, so part of the overlap is the template. The paper reports no reader score for the findings text.</p>
+  </div>
+</section>
+
+<section id="stage" data-toc="The stage">
+  <h2><span class="n">04</span>The stage</h2>
+  <p>Staging is scored by accuracy against the recorded stage: C-Acc over the four major stages and F-Acc over 19 classes that the paper doesn’t list. The label has its own limit: under FIGO 2018, pathology overrules imaging and positive lymph nodes alone make a case stage IIIC, so it can rest on information that MRI doesn’t hold, as the authors acknowledge.</p>
+
+  <figure id="fig-stage">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 290" role="img" aria-label="FIGO staging accuracy with 95% intervals for each configuration" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="198.0" width="760.0" height="30.0" class="band"/><text x="236.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Major stage</text><text x="236.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">C-Acc · 4 classes</text><line x1="236.0" y1="74.0" x2="236.0" y2="258.0" class="grid"/><text x="236.0" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="287.8" y1="74.0" x2="287.8" y2="258.0" class="grid"/><text x="287.8" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="339.5" y1="74.0" x2="339.5" y2="258.0" class="grid"/><text x="339.5" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="391.2" y1="74.0" x2="391.2" y2="258.0" class="grid"/><text x="391.2" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="443.0" y1="74.0" x2="443.0" y2="258.0" class="grid"/><text x="443.0" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.8</text><line x1="302.5" y1="64.0" x2="302.5" y2="258.0" class="floor"/><text x="307.5" y="64.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">best constant answer ≥ 0.257</text><g class="hit" tabindex="0" data-tip="UNETR classifier · Major stage 0.283 (95% interval 0.206–0.376, Wilson, 105 cases, our arithmetic)"><line x1="289.2" y1="93.0" x2="333.2" y2="93.0" class="ci"/><circle cx="309.2" cy="93.0" r="4.6" class="f-ctx ring"/><text x="341.2" y="93.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.283</text><rect x="283.2" y="81.0" width="104.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Swin-UNETR classifier · Major stage 0.333 (95% interval 0.250–0.428, Wilson, 105 cases, our arithmetic)"><line x1="300.7" y1="123.0" x2="346.6" y2="123.0" class="ci"/><circle cx="322.2" cy="123.0" r="4.6" class="f-ctx ring"/><text x="354.6" y="123.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.333</text><rect x="294.7" y="111.0" width="105.9" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 3: text-only LLM stages · Major stage 0.352 (95% interval 0.267–0.447, Wilson, 105 cases, our arithmetic)"><line x1="305.2" y1="153.0" x2="351.7" y2="153.0" class="ci"/><circle cx="327.1" cy="153.0" r="4.6" class="f-ctx ring"/><text x="359.7" y="153.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.352</text><rect x="299.2" y="141.0" width="106.5" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 2: staging pass · Major stage 0.543 (95% interval 0.448–0.635, Wilson, 105 cases, our arithmetic)"><line x1="351.9" y1="183.0" x2="400.3" y2="183.0" class="ci"/><circle cx="376.5" cy="183.0" r="4.6" class="f-ctx ring"/><text x="408.3" y="183.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.543</text><rect x="345.9" y="171.0" width="108.4" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 2 + 3: Cervical-RG · Major stage 0.642 (95% interval 0.547–0.727, Wilson, 105 cases, our arithmetic)"><line x1="377.5" y1="213.0" x2="424.2" y2="213.0" class="ci ci-emph"/><circle cx="402.1" cy="213.0" r="4.6" class="f-emph ring"/><text x="432.2" y="213.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.642</text><rect x="371.5" y="201.0" width="106.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="… with GPT-4o in pass 3 (rebuttal) · Major stage 0.609 (95% interval 0.513–0.697, Wilson, 105 cases, our arithmetic)"><line x1="368.8" y1="243.0" x2="416.3" y2="243.0" class="ci"/><circle cx="393.6" cy="243.0" r="4.6" class="f-hollow"/><text x="424.3" y="243.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.609</text><rect x="362.8" y="231.0" width="107.5" height="24.0" class="hitbox"/></g><text x="505.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Full stage</text><text x="505.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">F-Acc · 19 classes</text><line x1="505.0" y1="74.0" x2="505.0" y2="258.0" class="grid"/><text x="505.0" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="556.8" y1="74.0" x2="556.8" y2="258.0" class="grid"/><text x="556.8" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.2</text><line x1="608.5" y1="74.0" x2="608.5" y2="258.0" class="grid"/><text x="608.5" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.4</text><line x1="660.2" y1="74.0" x2="660.2" y2="258.0" class="grid"/><text x="660.2" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><line x1="712.0" y1="74.0" x2="712.0" y2="258.0" class="grid"/><text x="712.0" y="272.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.8</text><line x1="519.8" y1="64.0" x2="519.8" y2="258.0" class="floor"/><text x="524.8" y="64.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">best constant answer ≥ 0.057</text><g class="hit" tabindex="0" data-tip="UNETR classifier · Full stage 0.124 (95% interval 0.074–0.201, Wilson, 105 cases, our arithmetic)"><line x1="524.1" y1="93.0" x2="556.9" y2="93.0" class="ci"/><circle cx="537.1" cy="93.0" r="4.6" class="f-ctx ring"/><text x="564.9" y="93.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.124</text><rect x="518.1" y="81.0" width="92.8" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Swin-UNETR classifier · Full stage 0.133 (95% interval 0.081–0.211, Wilson, 105 cases, our arithmetic)"><line x1="525.9" y1="123.0" x2="559.6" y2="123.0" class="ci"/><circle cx="539.4" cy="123.0" r="4.6" class="f-ctx ring"/><text x="567.6" y="123.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.133</text><rect x="519.9" y="111.0" width="93.7" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 3: text-only LLM stages · Full stage 0.124 (95% interval 0.074–0.201, Wilson, 105 cases, our arithmetic)"><line x1="524.1" y1="153.0" x2="556.9" y2="153.0" class="ci"/><circle cx="537.1" cy="153.0" r="4.6" class="f-ctx ring"/><text x="564.9" y="153.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.124</text><rect x="518.1" y="141.0" width="92.8" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 2: staging pass · Full stage 0.181 (95% interval 0.119–0.265, Wilson, 105 cases, our arithmetic)"><line x1="535.8" y1="183.0" x2="573.7" y2="183.0" class="ci"/><circle cx="551.8" cy="183.0" r="4.6" class="f-ctx ring"/><text x="581.7" y="183.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.181</text><rect x="529.8" y="171.0" width="97.9" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Passes 1 + 2 + 3: Cervical-RG · Full stage 0.264 (95% interval 0.189–0.356, Wilson, 105 cases, our arithmetic)"><line x1="553.9" y1="213.0" x2="597.0" y2="213.0" class="ci ci-emph"/><circle cx="573.3" cy="213.0" r="4.6" class="f-emph ring"/><text x="605.0" y="213.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">0.264</text><rect x="547.9" y="201.0" width="103.1" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="… with GPT-4o in pass 3 (rebuttal) · Full stage 0.209 (95% interval 0.142–0.296, Wilson, 105 cases, our arithmetic)"><line x1="541.8" y1="243.0" x2="581.7" y2="243.0" class="ci"/><circle cx="559.1" cy="243.0" r="4.6" class="f-hollow"/><text x="589.7" y="243.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.209</text><rect x="535.8" y="231.0" width="99.9" height="24.0" class="hitbox"/></g><text x="222.0" y="93.0" class="t" text-anchor="end" dominant-baseline="central">UNETR classifier</text><text x="222.0" y="123.0" class="t" text-anchor="end" dominant-baseline="central">Swin-UNETR classifier</text><text x="222.0" y="153.0" class="t" text-anchor="end" dominant-baseline="central">Passes 1 + 3: text-only LLM stages</text><text x="222.0" y="183.0" class="t" text-anchor="end" dominant-baseline="central">Passes 1 + 2: staging pass</text><text x="222.0" y="213.0" class="t t-strong" text-anchor="end" dominant-baseline="central">Passes 1 + 2 + 3: Cervical-RG</text><text x="222.0" y="243.0" class="t" text-anchor="end" dominant-baseline="central">… with GPT-4o in pass 3 (rebuttal)</text></svg></div>
+    <figcaption><b>Figure 3 — The full pipeline stages 0.642 of cases at the major level and 0.264 in full.</b> Dots are the paper’s accuracies. Lines are our 95% intervals (Wilson, taking 105 test cases), which the paper doesn’t give. The dashed line is the least the best constant answer can score <span class="tag">derived</span>. The hollow dot is the submitted version, from the rebuttal. Sources: Table 2; rebuttal.</figcaption>
+    <details class="data"><summary>Show as table, with counts and the doctors’ scores</summary><div class="table-wrap"><table class="data stack"><thead><tr><th scope="col">Configuration</th><th scope="col" class="num">Major stage</th><th scope="col" class="num">Correct of 105</th><th scope="col" class="num">Full stage</th><th scope="col" class="num">Correct of 105</th><th scope="col" class="num">Doctors, /10</th></tr></thead><tbody><tr><th scope="row">UNETR classifier</th><td class="num"><span class="v">0.283</span> <span class="ci">0.21–0.38</span></td><td class="num">none</td><td class="num"><span class="v">0.124</span> <span class="ci">0.07–0.20</span></td><td class="num">13</td><td class="num">–</td></tr><tr><th scope="row">Swin-UNETR classifier</th><td class="num"><span class="v">0.333</span> <span class="ci">0.25–0.43</span></td><td class="num">35</td><td class="num"><span class="v">0.133</span> <span class="ci">0.08–0.21</span></td><td class="num">14</td><td class="num">–</td></tr><tr><th scope="row">Passes 1 + 3</th><td class="num"><span class="v">0.352</span> <span class="ci">0.27–0.45</span></td><td class="num">37</td><td class="num"><span class="v">0.124</span> <span class="ci">0.07–0.20</span></td><td class="num">13</td><td class="num">–</td></tr><tr><th scope="row">Passes 1 + 2</th><td class="num"><span class="v">0.543</span> <span class="ci">0.45–0.64</span></td><td class="num">57</td><td class="num"><span class="v">0.181</span> <span class="ci">0.12–0.27</span></td><td class="num">19</td><td class="num">4.474</td></tr><tr class="ours"><th scope="row">Passes 1 + 2 + 3</th><td class="num"><span class="v">0.642</span> <span class="ci">0.55–0.73</span></td><td class="num">none</td><td class="num"><span class="v">0.264</span> <span class="ci">0.19–0.36</span></td><td class="num">none</td><td class="num">6.320</td></tr><tr><th scope="row">Same, GPT-4o in pass 3</th><td class="num"><span class="v">0.609</span> <span class="ci">0.51–0.70</span></td><td class="num">64<span class="ci">if truncated</span></td><td class="num"><span class="v">0.209</span> <span class="ci">0.14–0.30</span></td><td class="num">22<span class="ci">if truncated</span></td><td class="num">–</td></tr></tbody></table></div><p class="tcap" style="margin-bottom:0">Under each accuracy, our 95% interval. “Correct of 105” is the whole count that prints as that accuracy; “none” means no count does. The last row is the rebuttal’s.</p></details>
+  </figure>
+
+  <ol class="num-list">
+    <li><strong>The chain.</strong> A text-only LLM that stages pass 1’s report scores 0.352 and 0.124, about what two image classifiers get. The fine-tuned staging pass reaches 0.543 and 0.181, and the rule check adds 0.099 and 0.083.</li>
+    <li><strong>What the ablation doesn’t isolate.</strong> No row has the fine-tuned model state a stage without the tagged steps. Pass 2’s gain mixes fine-tuning on stage labels, a second look at the images and the chain of thought.</li>
+    <li><strong>No yardstick.</strong> The paper gives no stage counts, so the score of always answering the most common stage is unknown. It is at least 0.257 (27 of 105, with four stages), and our intervals for both classifiers include that value.</li>
+    <li><strong>About ±9 points.</strong> That is our 95% interval on 105 cases (Figure 3). The paper gives none, and no paired test for the rule check’s ten points.</li>
+    <li><strong>Half the errors are major.</strong> 36% of cases get the wrong major stage, about half of the 74% with a wrong full stage <span class="tag">derived</span>. The rebuttal describes errors as mostly between neighbouring substages; the paper prints no confusion matrix.</li>
+  </ol>
+
+  <div class="callout">
+    <span class="label">Do the counts add up? <span class="tag">derived</span></span>
+    <p>Seven of the ten accuracies in Table 2 (five configurations, two levels) are whole counts out of 105. Three are not, whether rounded or truncated: UNETR’s 0.283 and the two headline numbers, 0.642 and 0.264. All three would be whole counts out of 53, or of 106.</p>
+<pre><code><span class="k">def</span> whole_counts(p, n=105):
+    <span class="k">return</span> [k <span class="k">for</span> k <span class="k">in</span> range(n + 1)
+            <span class="k">if</span> round(k / n, 3) == p]
+
+whole_counts(0.543)        <span class="c"># [57]</span>
+whole_counts(0.642)        <span class="c"># []</span>
+whole_counts(0.642, n=53)  <span class="c"># [34]</span>
+whole_counts(0.642, n=106) <span class="c"># [68]</span></code></pre>
+    <p>Typos, a 106th test case or a test set that changed would each explain it. The rebuttal says the test set was being expanded; the paper says 105.</p>
+  </div>
+
+  <p>Two doctors also scored the reports out of 10 on a staging rubric: 4.474 without the rule check and 6.320 with it. The paper gives no agreement between the two doctors, and no baseline was scored.</p>
+</section>
+
+<section id="reviews" data-toc="Reviews and code">
+  <h2><span class="n">05</span>What the reviews and the release add</h2>
+  <p>The three reviewers scored the submission 1, 3 and 4. The lowest score came with a short review: implementation details were missing (how the sequences are combined, how image and text are aligned), the dataset description was unclear, and the submission gave too little information to reproduce it. The rebuttal described the projector, the six tags and a few dataset facts, and that reviewer moved to accept.</p>
+  <p>The other two worried about pass 3, which was GPT-4o in the submitted version: one saw a privacy issue in uploading generated reports to a proprietary model, and both a method that relied on it. The authors called it a marginal fallback, worth 2.8 points of full-stage accuracy, and replaceable. The final paper uses a locally deployable 8B model instead, and the headline row moves from the rebuttal’s 60.9% and 20.9% to 64.2% and 26.4%. Pass 3 now adds 8.3 points, 31% of the final full-stage accuracy <span class="tag">derived</span>. The reviewer who scored 3 stayed at reject, doubting that such changes fit a camera-ready version.</p>
+  <p>Three things the rebuttal promised are not in the final paper: full expert scores, results on other institutions and detailed distributions, of which only the ages appear.</p>
+  <p>The <a href="https://github.com/LongYu-LY/Cervical-RG">code</a> came on 5 December 2025 and covers pass 1: a fine-tuning script, a generation script, data-preparation scripts and a link to a checkpoint. It has no data, no encoder pretraining, no prompts or staging rules for passes 2 and 3, no metric code and no licence file. Its generation script samples at temperature 1.0 with no fixed seed, and the paper states no decoding settings; tables made that way would be one draw each.</p>
+  <p>All four released prompt builders end the prompt with a sentence saying whether the patient has metastatic lymph nodes, read from a spreadsheet column. The paper mentions no such input and the prompt in its Figure 1 has no such sentence, so we can’t tell which prompt produced the tables. Under FIGO 2018, node status is part of the stage.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>Radiologists’ accuracy:</strong> how often radiologists reach the recorded stage from the same images, which a reviewer asked for.</li>
+    <li><strong>A baseline without images:</strong> in a one-disease cohort it says how much of each text score the template earns.</li>
+    <li><strong>The decoder:</strong> every variant uses the hybrid language model, fully fine-tuned. There is no Transformer-only, frozen or LoRA variant and no memory or speed figure, although efficiency is the stated reason for the hybrid.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">07</span>Takeaways for building an MRI report generator</h2>
+  <ol class="num-list">
+    <li><strong>Pretrain the encoder on your own reports first.</strong> It moved BLEU-2 from 0.211 to 0.270, more than 3D over 2D (0.033) or five sequences over three (0.027). Keep the test cases out, and say so.</li>
+    <li><strong>When a report ends on a rule-based label, check the label with the rules.</strong> A text-only 8B model re-reading the output added ten points of major-stage accuracy.</li>
+    <li><strong>Publish the class balance with any staging accuracy,</strong> and the constant-answer score beside it. 64% can’t be read without them.</li>
+    <li><strong>In a one-disease cohort, add a no-image baseline and a reader for the findings.</strong> One 2D sequence already earns 85% of the best BLEU-2 <span class="tag">derived</span>.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Zhang, H., Long, Y., Fan, Y., Wang, Y., Zhan, Z., Wang, S., Jiang, Y., Sun, R., Xing, Z., Li, Z., Duan, X., Zhao, W. <a href="https://papers.miccai.org/miccai-2025/0143-Paper0177.html">Cervical-RG: Automated Cervical Cancer Report Generation from 3D Multi-sequence MRI via CoT-guided Hierarchical Experts</a>. MICCAI 2025, LNCS 15964, pp. 78–88. The page holds the reviews and the rebuttal. <a href="https://papers.miccai.org/miccai-2025/paper/0177_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04971-1_8">doi</a>. No arXiv version was found on 5 Oct 2026.</li>
+    <li>Code: <a href="https://github.com/LongYu-LY/Cervical-RG">LongYu-LY/Cervical-RG</a> (no licence file), read on 5 Oct 2026.</li>
+    <li>Bai, F., et al. M3D: <a href="https://arxiv.org/abs/2404.00578">arXiv:2404.00578</a> (2024); code <a href="https://github.com/BAAI-DCAI/M3D">BAAI-DCAI/M3D</a>.</li>
+    <li>Wang, X., et al. LongLLaVA: <a href="https://arxiv.org/abs/2409.02889">arXiv:2409.02889</a> (2024); <a href="https://huggingface.co/FreedomIntelligence/LongLLaVAMed-9B">LongLLaVAMed-9B model card</a>.</li>
+    <li>DeepSeek-AI. <a href="https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B">DeepSeek-R1-Distill-Llama-8B model card</a> (2025).</li>
+    <li>FIGO 2018 staging: National Cancer Institute, <a href="https://www.cancer.gov/types/cervical/hp/cervical-treatment-pdq">Cervical Cancer Treatment (PDQ)</a>, staging tables adapted from the FIGO Committee for Gynecologic Oncology.</li>
+    <li>Jain, S., et al. RadGraph: <a href="https://arxiv.org/abs/2106.14463">arXiv:2106.14463</a> (2021). Yu, F., et al. RadCliQ: <a href="https://doi.org/10.1016/j.patter.2023.100802">Patterns 4(9), 100802</a> (2023). Delbrouck, J.-B., et al. RadGraph-F1: <a href="https://arxiv.org/abs/2210.12186">arXiv:2210.12186</a> (2022).</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Zhang et al., MICCAI 2025 (LNCS 15964, pp. 78–88). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the rebuttal, the released code or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
