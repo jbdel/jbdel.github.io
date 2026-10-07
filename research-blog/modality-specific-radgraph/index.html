@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modality-specific RadGraph, read for report-generation evaluation</title>
+<meta name="description" content="A report-generation-evaluation reading of a MICCAI 2025 paper that labels 800 cardiac MRI, CTPA, head CT and ultrasound reports with RadGraph’s schema: the released extractors behind RadGraph-F1 average 0.41 to 0.56 relation F1 per modality there, fine-tuning on 70 to 210 reports lifts most scores, and no generated report is scored.">
+<meta property="og:title" content="Modality-specific RadGraph, read for report-generation evaluation">
+<meta property="og:description" content="A report-generation-evaluation reading of a MICCAI 2025 paper that labels 800 cardiac MRI, CTPA, head CT and ultrasound reports with RadGraph’s schema: the released extractors behind RadGraph-F1 average 0.41 to 0.56 relation F1 per modality there, fine-tuning on 70 to 210 reports lifts most scores, and no generated report is scored.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/modality-specific-radgraph/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/modality-specific-radgraph/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Modality-specific RadGraph, read for report-generation evaluation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/modality-specific-radgraph/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/modality-specific-radgraph/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0302-Paper4672.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/4672_paper.pdf">PDF</a>
+      <a href="https://github.com/tonikroos7/RadGraph-Multimodality">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Report-generation evaluation</p>
+    <h1>Modality-specific RadGraph, read for report-generation evaluation</h1>
+    <p class="dek">RadGraph-F1 scores generated reports with an extractor trained on chest X-ray reports or, for RadGraph-XL, on four anatomy–modality pairs. A MICCAI 2025 paper labels 800 cardiac MRI, CTPA, head CT and ultrasound reports and measures how well those extractors read them, and what fine-tuning on 70 to 210 reports adds, without scoring a generated report.</p>
+    <div class="meta">
+      <span><b>Paper</b> Haoyue Guan, Yuwei Dai, … Craig Jones, Harrison Bai. <a href="https://papers.miccai.org/miccai-2025/0302-Paper4672.html"><i>Enhancing Radiology Report Interpretation through Modality-Specific RadGraph Fine-Tuning</i></a>. MICCAI 2025, LNCS 15966, pp. 216–225</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 6 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a> · <a href="/research-blog/?tag=main">Main</a></span>
+      <span><b>Disclosure</b> I am the first author of RadGraph-XL, one of the paper’s two baselines, and of the 2022 paper behind the radgraph package’s RadGraph-F1, and the main contributor to that package, which the authors’ repository points to. RadGraph, the other baseline, is by Jain et al. (2021); I am not among its authors.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">800</div><div class="l">reports labelled with RadGraph’s schema: cardiac MRI, CTPA, head CT, abdominal ultrasound</div></div>
+    <div class="tile" role="listitem"><div class="v">15–45</div><div class="l">test reports per modality; no repeat runs or intervals reported<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.69</div><div class="l">mean relation F1 on cardiac MRI after fine-tuning, against 0.41 (RadGraph) and 0.54 (RadGraph-XL)<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">25 of 28</div><div class="l">category scores in which the fine-tuned model is highest</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our arithmetic: 15% of each modality’s reports, the paper’s split; plain means of Table 3’s three relation scores.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A test of the extractor behind RadGraph-F1, on reports it wasn’t trained on.</strong> Released RadGraph and RadGraph-XL are scored against two annotators’ consensus labels, next to a RadGraph-style model fine-tuned on each modality.</li>
+      <li><strong>Fine-tuning lifts most scores, most on cardiac MRI and head CT.</strong> Averaged over Table 3, the fine-tuned models reach 0.80 entity F1 and 0.63 relation F1, against 0.72 and 0.55 for the better released model; on CTPA and ultrasound entities the lead is 0.02 to 0.04.</li>
+      <li><strong>Not a like-for-like comparison.</strong> Only the fine-tuned model has seen the modality and these annotators’ labels, and by our estimate several scores rest on about ten test items.</li>
+      <li><strong>What it doesn’t test.</strong> No generated report is scored, so the effect on RadGraph-F1 is open, and the promised annotations and weights are not out.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report-generation evaluation</h2>
+  <p>RadGraph-F1 doesn’t compare the reports word for word. It runs an extractor over the generated report and the reference and compares what comes out: entities labelled as anatomy or as an observation that is present, absent or uncertain, and the relations between them.</p>
+  <div class="eq">RG_E&nbsp; = F1 of the two sets of (span, label)<br>RG_ER = the same, with a has-relation flag on each entity<br><span class="c"># rewards.py, radgraph package; its README calls RG_ER the widely reported one</span></div>
+  <p>So the score is only as good as the extractor on that kind of report. RadGraph’s was trained on chest X-ray reports, RadGraph-XL’s on chest X-ray, chest CT, abdomen/pelvis CT and brain MR. CT and MRI report generators already publish RadGraph-F1, and two papers read in this series didn’t say which RadGraph-F1 they ran (<a href="/research-blog/merlin-report-generation/">Merlin</a>, <a href="/research-blog/cervical-rg-report-generation/">Cervical-RG</a>). This paper asks the prior question for four other kinds of report. It sits with the series’ posts on <a href="/research-blog/spec-cxr-report-evaluation/">SPEC-CXR</a> and <a href="/research-blog/phrase-grounded-fact-checking/">phrase-grounded fact-checking</a>.</p>
+
+  <figure id="fig-arms">
+    <div class="flow" role="img" aria-label="Three extractors label the same held-out reports: RadGraph and RadGraph-XL as released, and a RadGraph-style model fine-tuned on the modality">
+      <div class="row">
+        <div class="box frozen"><span class="state">as released</span><div class="t1">RadGraph</div><div class="t2">Jain et al., 2021 · DyGIE++ on PubMedBERT, built on 500 chest X-ray reports</div></div>
+        <div class="shape">modality reports seen: 0</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="box frozen"><span class="state">as released</span><div class="t1">RadGraph-XL</div><div class="t2">Delbrouck et al., 2024 · 2,300 reports: chest X-ray, chest CT, abdomen/pelvis CT, brain MR</div></div>
+        <div class="shape">modality reports seen: 0</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="box train"><span class="state">trained here</span><div class="t1">RadGraph + fine-tuning</div><div class="t2">DyGIE++ on BiomedBERT, trained on RadGraph’s reports, then on one modality’s training split</div></div>
+        <div class="shape">modality reports seen: 70–210</div>
+      </div>
+      <div class="conn"><div>each labels the same held-out reports</div><div></div></div>
+      <div class="row">
+        <div class="box"><div class="t1">Test split of each modality</div><div class="t2">Consensus labels; a hit needs the exact span and label, and for a relation both entities too</div></div>
+        <div class="shape">15 · 30 · 45 · 30 reports</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>not trained on these reports</span>
+        <span><i style="background:var(--ink)"></i>trained on them</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — Three extractors, one test set: only one has seen the modality.</b> The released models label the test reports without training on them (the rebuttal calls it zero-shot), and the paper names no checkpoints. BiomedBERT is PubMedBERT’s new name, so the fine-tuned arm keeps RadGraph’s architecture and encoder family. Report counts apply the 70/15/15 split to each modality (our arithmetic). Sources: §2, §3.1–3.2, the rebuttal.</figcaption>
+  </figure>
+</section>
+
+<section id="data" data-toc="The data">
+  <h2><span class="n">02</span>The data: 800 reports, four modalities</h2>
+  <p>The four exams are cardiac MRI, CT pulmonary angiography (CTPA), head CT and abdominal ultrasound. For each, two radiologists or trainees labelled every report independently and then agreed on one version, after training on RadGraph’s guidelines. The schema is RadGraph’s: four entity labels and three relations (modify, located at, suggestive of).</p>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col"></th><th scope="col" class="num">Cardiac MRI</th><th scope="col" class="num">CTPA</th><th scope="col" class="num">Head CT</th><th scope="col" class="num">Abdominal US</th></tr></thead><tbody><tr><th scope="row">Reports</th><td class="num">100</td><td class="num">200</td><td class="num">300</td><td class="num">200</td></tr><tr><th scope="row">Train / validation / test reports*</th><td class="num">70 / 15 / 15</td><td class="num">140 / 30 / 30</td><td class="num">210 / 45 / 45</td><td class="num">140 / 30 / 30</td></tr><tr><th scope="row">Entities</th><td class="num">2,326</td><td class="num">5,893</td><td class="num">4,362</td><td class="num">2,232</td></tr><tr><th scope="row">Relations</th><td class="num">1,776</td><td class="num">4,520</td><td class="num">3,345</td><td class="num">1,538</td></tr><tr><th scope="row">Entities per report*</th><td class="num">23</td><td class="num">29</td><td class="num">15</td><td class="num">11</td></tr><tr><th scope="row">Uncertain observations (≈ in test*)</th><td class="num">57 (≈9)</td><td class="num">247 (≈37)</td><td class="num">74 (≈11)</td><td class="num">152 (≈23)</td></tr><tr><th scope="row">Suggestive-of relations (≈ in test*)</th><td class="num">90 (≈14)</td><td class="num">302 (≈45)</td><td class="num">112 (≈17)</td><td class="num">163 (≈24)</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — The new data.</b> Counts from the paper’s Table 1. * Our arithmetic: the 70/15/15 split per modality; entities per report; ≈ in test is 15% of the total, assuming the labels spread evenly over reports. The paper prints 32.9% for ultrasound’s absent observations; 430 of 2,232 is 19.3%. Sources: §2.2, §3.1.</p>
+
+  <p>Two things in it matter for the scores. The rare labels are rare: uncertain observations are 1.7% to 6.8% of entities and suggestive-of 3.3% to 10.6% of relations, about 9 and 14 items in the 15 cardiac MRI test reports <span class="tag">derived</span>. And the paper’s 60% increase over RadGraph holds for reports, 800 against the 500 of RadGraph’s development set, not for labels: 14,813 entities against 14,579, because these reports carry 11 to 29 entities each against 29 in RadGraph’s <span class="tag">derived</span>.</p>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">03</span>Results: 28 scores on one scale</h2>
+  <p>Table 3 gives an F1 for each label on each modality’s test reports.</p>
+
+  <figure id="fig-table3">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 336" role="img" aria-label="F1 per category in Table 3: three extractors on four kinds of report" style="min-width:660px" xmlns="http://www.w3.org/2000/svg"><circle cx="5.0" cy="9.0" r="4.4" class="f-emph ring"/><text x="15.0" y="9.0" class="t t-small" text-anchor="start" dominant-baseline="central">RadGraph + fine-tuning</text><polygon points="181.2,2.9 186.7,13.1 175.7,13.1" class="f-mid ring"/><text x="191.2" y="9.0" class="t t-small" text-anchor="start" dominant-baseline="central">RadGraph, as released</text><rect x="347.0" y="5.0" width="7.9" height="7.9" rx="1.5" class="f-ctx ring"/><text x="361.0" y="9.0" class="t t-small" text-anchor="start" dominant-baseline="central">RadGraph-XL, as released</text><text x="106.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">Cardiac MRI</text><text x="106.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">15 test reports</text><line x1="106.0" y1="72.0" x2="106.0" y2="308.0" class="grid"/><line x1="141.8" y1="72.0" x2="141.8" y2="308.0" class="grid"/><line x1="177.5" y1="72.0" x2="177.5" y2="308.0" class="grid"/><line x1="213.2" y1="72.0" x2="213.2" y2="308.0" class="grid"/><line x1="249.0" y1="72.0" x2="249.0" y2="308.0" class="grid"/><text x="106.0" y="322.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">0.2</text><text x="177.5" y="322.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><text x="249.0" y="322.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">1.0</text><g class="hit" tabindex="0" data-tip="Cardiac MRI · Anatomy: RadGraph 0.827 · RadGraph-XL 0.826 · fine-tuned 0.955 · about 147 in the test split (our estimate)"><line x1="218.1" y1="109.0" x2="241.0" y2="109.0" class="grid-strong"/><rect x="213.8" y="104.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="218.1,102.5 224.0,113.5 212.1,113.5" class="f-mid ring"/><circle cx="241.0" cy="109.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="96.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Obs. present: RadGraph 0.701 · RadGraph-XL 0.732 · fine-tuned 0.871 · about 176 in the test split (our estimate)"><line x1="195.6" y1="135.0" x2="225.9" y2="135.0" class="grid-strong"/><rect x="197.0" y="130.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="195.6,128.5 201.5,139.5 189.6,139.5" class="f-mid ring"/><circle cx="225.9" cy="135.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="122.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Obs. absent: RadGraph 0.659 · RadGraph-XL 0.720 · fine-tuned 0.757 · about 17 in the test split (our estimate)"><line x1="188.0" y1="161.0" x2="205.6" y2="161.0" class="grid-strong"/><rect x="194.8" y="156.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="188.0,154.5 194.0,165.5 182.1,165.5" class="f-mid ring"/><circle cx="205.6" cy="161.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="148.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Obs. uncertain: RadGraph 0.207 · RadGraph-XL 0.343 · fine-tuned 0.424 · about 9 in the test split (our estimate)"><line x1="107.3" y1="187.0" x2="146.0" y2="187.0" class="grid-strong"/><rect x="127.4" y="182.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="107.3,180.5 113.2,191.5 101.3,191.5" class="f-mid ring"/><circle cx="146.0" cy="187.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="174.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Modify: RadGraph 0.503 · RadGraph-XL 0.643 · fine-tuned 0.847 · about 185 in the test split (our estimate)"><line x1="160.2" y1="243.0" x2="221.7" y2="243.0" class="grid-strong"/><rect x="181.0" y="238.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="160.2,236.5 166.1,247.5 154.2,247.5" class="f-mid ring"/><circle cx="221.7" cy="243.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="230.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Located at: RadGraph 0.472 · RadGraph-XL 0.550 · fine-tuned 0.775 · about 68 in the test split (our estimate)"><line x1="154.6" y1="269.0" x2="208.8" y2="269.0" class="grid-strong"/><rect x="164.4" y="264.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="154.6,262.5 160.6,273.5 148.7,273.5" class="f-mid ring"/><circle cx="208.8" cy="269.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="256.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Cardiac MRI · Suggestive of: RadGraph 0.261 · RadGraph-XL 0.440 · fine-tuned 0.444 · about 14 in the test split (our estimate)"><line x1="116.9" y1="295.0" x2="149.6" y2="295.0" class="grid-strong"/><rect x="144.8" y="290.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="116.9,288.5 122.8,299.5 111.0,299.5" class="f-mid ring"/><circle cx="149.6" cy="295.0" r="5.0" class="f-emph ring"/><rect x="106.0" y="282.0" width="143.0" height="26.0" class="hitbox"/></g><text x="275.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">CTPA</text><text x="275.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">30 test reports</text><line x1="275.0" y1="72.0" x2="275.0" y2="308.0" class="grid"/><line x1="310.8" y1="72.0" x2="310.8" y2="308.0" class="grid"/><line x1="346.5" y1="72.0" x2="346.5" y2="308.0" class="grid"/><line x1="382.2" y1="72.0" x2="382.2" y2="308.0" class="grid"/><line x1="418.0" y1="72.0" x2="418.0" y2="308.0" class="grid"/><text x="275.0" y="322.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">0.2</text><text x="346.5" y="322.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><text x="418.0" y="322.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">1.0</text><g class="hit" tabindex="0" data-tip="CTPA · Anatomy: RadGraph 0.900 · RadGraph-XL 0.923 · fine-tuned 0.925 · about 401 in the test split (our estimate)"><line x1="400.1" y1="109.0" x2="404.6" y2="109.0" class="grid-strong"/><rect x="400.1" y="104.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="400.1,102.5 406.1,113.5 394.2,113.5" class="f-mid ring"/><circle cx="404.6" cy="109.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="96.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Obs. present: RadGraph 0.785 · RadGraph-XL 0.753 · fine-tuned 0.822 · about 382 in the test split (our estimate)"><line x1="379.6" y1="135.0" x2="386.2" y2="135.0" class="grid-strong"/><rect x="369.7" y="130.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="379.6,128.5 385.5,139.5 373.6,139.5" class="f-mid ring"/><circle cx="386.2" cy="135.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="122.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Obs. absent: RadGraph 0.795 · RadGraph-XL 0.862 · fine-tuned 0.860 · about 64 in the test split (our estimate)"><line x1="381.4" y1="161.0" x2="393.0" y2="161.0" class="grid-strong"/><rect x="389.2" y="156.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="381.4,154.5 387.3,165.5 375.4,165.5" class="f-mid ring"/><circle cx="393.0" cy="161.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="148.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Obs. uncertain: RadGraph 0.595 · RadGraph-XL 0.549 · fine-tuned 0.656 · about 37 in the test split (our estimate)"><line x1="345.6" y1="187.0" x2="356.5" y2="187.0" class="grid-strong"/><rect x="333.2" y="182.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="345.6,180.5 351.5,191.5 339.7,191.5" class="f-mid ring"/><circle cx="356.5" cy="187.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="174.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Modify: RadGraph 0.580 · RadGraph-XL 0.626 · fine-tuned 0.664 · about 488 in the test split (our estimate)"><line x1="342.9" y1="243.0" x2="357.9" y2="243.0" class="grid-strong"/><rect x="347.0" y="238.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="342.9,236.5 348.9,247.5 337.0,247.5" class="f-mid ring"/><circle cx="357.9" cy="243.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="230.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Located at: RadGraph 0.464 · RadGraph-XL 0.466 · fine-tuned 0.468 · about 144 in the test split (our estimate)"><line x1="322.2" y1="269.0" x2="322.9" y2="269.0" class="grid-strong"/><rect x="318.4" y="264.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="322.2,262.5 328.1,273.5 316.3,273.5" class="f-mid ring"/><circle cx="322.9" cy="269.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="256.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CTPA · Suggestive of: RadGraph 0.590 · RadGraph-XL 0.526 · fine-tuned 0.608 · about 45 in the test split (our estimate)"><line x1="344.7" y1="295.0" x2="347.9" y2="295.0" class="grid-strong"/><rect x="329.1" y="290.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="344.7,288.5 350.6,299.5 338.8,299.5" class="f-mid ring"/><circle cx="347.9" cy="295.0" r="5.0" class="f-emph ring"/><rect x="275.0" y="282.0" width="143.0" height="26.0" class="hitbox"/></g><text x="444.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">Head CT</text><text x="444.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">45 test reports</text><line x1="444.0" y1="72.0" x2="444.0" y2="308.0" class="grid"/><line x1="479.8" y1="72.0" x2="479.8" y2="308.0" class="grid"/><line x1="515.5" y1="72.0" x2="515.5" y2="308.0" class="grid"/><line x1="551.2" y1="72.0" x2="551.2" y2="308.0" class="grid"/><line x1="587.0" y1="72.0" x2="587.0" y2="308.0" class="grid"/><text x="444.0" y="322.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">0.2</text><text x="515.5" y="322.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><text x="587.0" y="322.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">1.0</text><g class="hit" tabindex="0" data-tip="Head CT · Anatomy: RadGraph 0.886 · RadGraph-XL 0.900 · fine-tuned 0.912 · about 265 in the test split (our estimate)"><line x1="566.6" y1="109.0" x2="571.3" y2="109.0" class="grid-strong"/><rect x="565.0" y="104.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="566.6,102.5 572.6,113.5 560.7,113.5" class="f-mid ring"/><circle cx="571.3" cy="109.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="96.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Obs. present: RadGraph 0.671 · RadGraph-XL 0.653 · fine-tuned 0.833 · about 232 in the test split (our estimate)"><line x1="528.2" y1="135.0" x2="557.1" y2="135.0" class="grid-strong"/><rect x="520.8" y="130.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="528.2,128.5 534.1,139.5 522.3,139.5" class="f-mid ring"/><circle cx="557.1" cy="135.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="122.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Obs. absent: RadGraph 0.772 · RadGraph-XL 0.793 · fine-tuned 0.896 · about 146 in the test split (our estimate)"><line x1="546.2" y1="161.0" x2="568.4" y2="161.0" class="grid-strong"/><rect x="545.9" y="156.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="546.2,154.5 552.2,165.5 540.3,165.5" class="f-mid ring"/><circle cx="568.4" cy="161.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="148.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Obs. uncertain: RadGraph 0.444 · RadGraph-XL 0.400 · fine-tuned 0.667 · about 11 in the test split (our estimate)"><line x1="487.6" y1="187.0" x2="527.5" y2="187.0" class="grid-strong"/><rect x="475.6" y="182.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="487.6,180.5 493.6,191.5 481.7,191.5" class="f-mid ring"/><circle cx="527.5" cy="187.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="174.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Modify: RadGraph 0.555 · RadGraph-XL 0.675 · fine-tuned 0.797 · about 361 in the test split (our estimate)"><line x1="507.5" y1="243.0" x2="550.7" y2="243.0" class="grid-strong"/><rect x="524.8" y="238.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="507.5,236.5 513.4,247.5 501.5,247.5" class="f-mid ring"/><circle cx="550.7" cy="243.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="230.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Located at: RadGraph 0.415 · RadGraph-XL 0.488 · fine-tuned 0.602 · about 124 in the test split (our estimate)"><line x1="482.4" y1="269.0" x2="515.9" y2="269.0" class="grid-strong"/><rect x="491.3" y="264.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="482.4,262.5 488.4,273.5 476.5,273.5" class="f-mid ring"/><circle cx="515.9" cy="269.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="256.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · Suggestive of: RadGraph 0.370 · RadGraph-XL 0.514 · fine-tuned 0.400 · about 17 in the test split (our estimate)"><line x1="474.4" y1="295.0" x2="479.8" y2="295.0" class="grid-strong"/><rect x="496.0" y="290.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="474.4,288.5 480.3,299.5 468.4,299.5" class="f-mid ring"/><circle cx="479.8" cy="295.0" r="5.0" class="f-emph ring"/><rect x="444.0" y="282.0" width="143.0" height="26.0" class="hitbox"/></g><text x="613.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">Ultrasound</text><text x="613.0" y="55.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">30 test reports</text><line x1="613.0" y1="72.0" x2="613.0" y2="308.0" class="grid"/><line x1="648.8" y1="72.0" x2="648.8" y2="308.0" class="grid"/><line x1="684.5" y1="72.0" x2="684.5" y2="308.0" class="grid"/><line x1="720.2" y1="72.0" x2="720.2" y2="308.0" class="grid"/><line x1="756.0" y1="72.0" x2="756.0" y2="308.0" class="grid"/><text x="613.0" y="322.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">0.2</text><text x="684.5" y="322.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.6</text><text x="756.0" y="322.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">1.0</text><g class="hit" tabindex="0" data-tip="Ultrasound · Anatomy: RadGraph 0.872 · RadGraph-XL 0.889 · fine-tuned 0.876 · about 110 in the test split (our estimate)"><line x1="733.1" y1="109.0" x2="733.8" y2="109.0" class="grid-strong"/><rect x="732.0" y="104.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="733.1,102.5 739.1,113.5 727.2,113.5" class="f-mid ring"/><circle cx="733.8" cy="109.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="96.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Obs. present: RadGraph 0.810 · RadGraph-XL 0.815 · fine-tuned 0.843 · about 137 in the test split (our estimate)"><line x1="722.0" y1="135.0" x2="727.9" y2="135.0" class="grid-strong"/><rect x="718.8" y="130.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="722.0,128.5 728.0,139.5 716.1,139.5" class="f-mid ring"/><circle cx="727.9" cy="135.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="122.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Obs. absent: RadGraph 0.876 · RadGraph-XL 0.891 · fine-tuned 0.897 · about 64 in the test split (our estimate)"><line x1="733.8" y1="161.0" x2="737.6" y2="161.0" class="grid-strong"/><rect x="732.4" y="156.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="733.8,154.5 739.8,165.5 727.9,165.5" class="f-mid ring"/><circle cx="737.6" cy="161.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="148.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Obs. uncertain: RadGraph 0.595 · RadGraph-XL 0.546 · fine-tuned 0.615 · about 23 in the test split (our estimate)"><line x1="683.6" y1="187.0" x2="687.2" y2="187.0" class="grid-strong"/><rect x="670.7" y="182.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="683.6,180.5 689.5,191.5 677.7,191.5" class="f-mid ring"/><circle cx="687.2" cy="187.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="174.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Modify: RadGraph 0.616 · RadGraph-XL 0.685 · fine-tuned 0.730 · about 148 in the test split (our estimate)"><line x1="687.4" y1="243.0" x2="707.7" y2="243.0" class="grid-strong"/><rect x="695.6" y="238.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="687.4,236.5 693.3,247.5 681.4,247.5" class="f-mid ring"/><circle cx="707.7" cy="243.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="230.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Located at: RadGraph 0.555 · RadGraph-XL 0.629 · fine-tuned 0.655 · about 58 in the test split (our estimate)"><line x1="676.5" y1="269.0" x2="694.3" y2="269.0" class="grid-strong"/><rect x="685.5" y="264.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="676.5,262.5 682.4,273.5 670.5,273.5" class="f-mid ring"/><circle cx="694.3" cy="269.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="256.0" width="143.0" height="26.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Ultrasound · Suggestive of: RadGraph 0.426 · RadGraph-XL 0.377 · fine-tuned 0.576 · about 24 in the test split (our estimate)"><line x1="653.4" y1="295.0" x2="680.2" y2="295.0" class="grid-strong"/><rect x="640.5" y="290.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><polygon points="653.4,288.5 659.3,299.5 647.5,299.5" class="f-mid ring"/><circle cx="680.2" cy="295.0" r="5.0" class="f-emph ring"/><rect x="613.0" y="282.0" width="143.0" height="26.0" class="hitbox"/></g><text x="0.0" y="86.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Entities</text><text x="94.0" y="109.0" class="t" text-anchor="end" dominant-baseline="central">Anatomy</text><text x="94.0" y="135.0" class="t" text-anchor="end" dominant-baseline="central">Obs. present</text><text x="94.0" y="161.0" class="t" text-anchor="end" dominant-baseline="central">Obs. absent</text><text x="94.0" y="187.0" class="t" text-anchor="end" dominant-baseline="central">Obs. uncertain</text><text x="0.0" y="220.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">Relations</text><text x="94.0" y="243.0" class="t" text-anchor="end" dominant-baseline="central">Modify</text><text x="94.0" y="269.0" class="t" text-anchor="end" dominant-baseline="central">Located at</text><text x="94.0" y="295.0" class="t" text-anchor="end" dominant-baseline="central">Suggestive of</text></svg></div>
+    <figcaption><b>Figure 2 — The fine-tuned model is highest in 25 of 28 scores; the released models score lowest on relations and, over all seven labels, on cardiac MRI.</b> One row per label; the line joins RadGraph and RadGraph + fine-tuning. No repeat runs or intervals are reported, on 15 to 45 test reports per modality; by our estimate the uncertain and suggestive-of rows rest on 9 to 45 test items each. Source: Table 3.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Modality · label</th><th scope="col" class="num">RadGraph</th><th scope="col" class="num">RadGraph-XL</th><th scope="col" class="num">Fine-tuned</th><th scope="col" class="num">Lead*</th><th scope="col" class="num">≈ in test*</th></tr></thead><tbody><tr><th scope="row">Cardiac MRI · Anatomy</th><td class="num">0.827</td><td class="num">0.826</td><td class="num">0.955</td><td class="num">+0.128</td><td class="num">147</td></tr><tr><th scope="row">Cardiac MRI · Obs. present</th><td class="num">0.701</td><td class="num">0.732</td><td class="num">0.871</td><td class="num">+0.139</td><td class="num">176</td></tr><tr><th scope="row">Cardiac MRI · Obs. absent</th><td class="num">0.659</td><td class="num">0.720</td><td class="num">0.757</td><td class="num">+0.037</td><td class="num">17</td></tr><tr><th scope="row">Cardiac MRI · Obs. uncertain</th><td class="num">0.207</td><td class="num">0.343</td><td class="num">0.424</td><td class="num">+0.081</td><td class="num">9</td></tr><tr><th scope="row">Cardiac MRI · Modify</th><td class="num">0.503</td><td class="num">0.643</td><td class="num">0.847</td><td class="num">+0.204</td><td class="num">185</td></tr><tr><th scope="row">Cardiac MRI · Located at</th><td class="num">0.472</td><td class="num">0.550</td><td class="num">0.775</td><td class="num">+0.225</td><td class="num">68</td></tr><tr><th scope="row">Cardiac MRI · Suggestive of</th><td class="num">0.261</td><td class="num">0.440</td><td class="num">0.444</td><td class="num">+0.004</td><td class="num">14</td></tr><tr><th scope="row">CTPA · Anatomy</th><td class="num">0.900</td><td class="num">0.923</td><td class="num">0.925</td><td class="num">+0.002</td><td class="num">401</td></tr><tr><th scope="row">CTPA · Obs. present</th><td class="num">0.785</td><td class="num">0.753</td><td class="num">0.822</td><td class="num">+0.037</td><td class="num">382</td></tr><tr><th scope="row">CTPA · Obs. absent</th><td class="num">0.795</td><td class="num">0.862</td><td class="num">0.860</td><td class="num">-0.002</td><td class="num">64</td></tr><tr><th scope="row">CTPA · Obs. uncertain</th><td class="num">0.595</td><td class="num">0.549</td><td class="num">0.656</td><td class="num">+0.061</td><td class="num">37</td></tr><tr><th scope="row">CTPA · Modify</th><td class="num">0.580</td><td class="num">0.626</td><td class="num">0.664</td><td class="num">+0.038</td><td class="num">488</td></tr><tr><th scope="row">CTPA · Located at</th><td class="num">0.464</td><td class="num">0.466</td><td class="num">0.468</td><td class="num">+0.002</td><td class="num">144</td></tr><tr><th scope="row">CTPA · Suggestive of</th><td class="num">0.590</td><td class="num">0.526</td><td class="num">0.608</td><td class="num">+0.018</td><td class="num">45</td></tr><tr><th scope="row">Head CT · Anatomy</th><td class="num">0.886</td><td class="num">0.900</td><td class="num">0.912</td><td class="num">+0.012</td><td class="num">265</td></tr><tr><th scope="row">Head CT · Obs. present</th><td class="num">0.671</td><td class="num">0.653</td><td class="num">0.833</td><td class="num">+0.162</td><td class="num">232</td></tr><tr><th scope="row">Head CT · Obs. absent</th><td class="num">0.772</td><td class="num">0.793</td><td class="num">0.896</td><td class="num">+0.103</td><td class="num">146</td></tr><tr><th scope="row">Head CT · Obs. uncertain</th><td class="num">0.444</td><td class="num">0.400</td><td class="num">0.667</td><td class="num">+0.223</td><td class="num">11</td></tr><tr><th scope="row">Head CT · Modify</th><td class="num">0.555</td><td class="num">0.675</td><td class="num">0.797</td><td class="num">+0.122</td><td class="num">361</td></tr><tr><th scope="row">Head CT · Located at</th><td class="num">0.415</td><td class="num">0.488</td><td class="num">0.602</td><td class="num">+0.114</td><td class="num">124</td></tr><tr><th scope="row">Head CT · Suggestive of</th><td class="num">0.370</td><td class="num">0.514</td><td class="num">0.400</td><td class="num">-0.114</td><td class="num">17</td></tr><tr><th scope="row">Ultrasound · Anatomy</th><td class="num">0.872</td><td class="num">0.889</td><td class="num">0.876</td><td class="num">-0.013</td><td class="num">110</td></tr><tr><th scope="row">Ultrasound · Obs. present</th><td class="num">0.810</td><td class="num">0.815</td><td class="num">0.843</td><td class="num">+0.028</td><td class="num">137</td></tr><tr><th scope="row">Ultrasound · Obs. absent</th><td class="num">0.876</td><td class="num">0.891</td><td class="num">0.897</td><td class="num">+0.006</td><td class="num">64</td></tr><tr><th scope="row">Ultrasound · Obs. uncertain</th><td class="num">0.595</td><td class="num">0.546</td><td class="num">0.615</td><td class="num">+0.020</td><td class="num">23</td></tr><tr><th scope="row">Ultrasound · Modify</th><td class="num">0.616</td><td class="num">0.685</td><td class="num">0.730</td><td class="num">+0.045</td><td class="num">148</td></tr><tr><th scope="row">Ultrasound · Located at</th><td class="num">0.555</td><td class="num">0.629</td><td class="num">0.655</td><td class="num">+0.026</td><td class="num">58</td></tr><tr><th scope="row">Ultrasound · Suggestive of</th><td class="num">0.426</td><td class="num">0.377</td><td class="num">0.576</td><td class="num">+0.150</td><td class="num">24</td></tr></tbody></table><p class="sm" style="margin:8px 0 0">* Lead: the fine-tuned model minus the better released model. ≈ in test: 15% of the label’s total in the paper’s Table 1, our estimate.</p></div></details>
+  </figure>
+
+  <p>Three things stand out:</p>
+  <ol class="num-list">
+    <li><strong>Relations are the weak half.</strong> Per modality, the released models average 0.41 to 0.56 relation F1 and 0.60 to 0.79 entity F1 <span class="tag">derived</span>, and RG_ER keys each entity on whether it has a relation.</li>
+    <li><strong>Cardiac MRI is where they fall furthest.</strong> Over all seven labels, both released models score lowest there <span class="tag">derived</span>. Their relation scores are 0.26 to 0.50 for RadGraph and 0.44 to 0.64 for RadGraph-XL; fine-tuned on 70 reports, 0.44 to 0.85.</li>
+    <li><strong>Elsewhere the lead is smaller, sometimes inside the noise.</strong> Per modality, the fine-tuned model leads the better released one by 0.019 on ultrasound entities and 0.044 on CTPA entities <span class="tag">derived</span>. RadGraph-XL is highest in three scores, by 0.002, 0.013 and 0.114; the paper puts the last, head CT suggestive-of, at three true positives, “a minimal practical difference”. With about ten items, one item moves F1 by about 0.1 <span class="tag">derived</span>, whichever model leads.</li>
+  </ol>
+
+  <p>The paper sums Table 3 up in two averages. Recomputed:</p>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col"></th><th scope="col" class="num">Entity mean*</th><th scope="col" class="num">in the text</th><th scope="col" class="num">Relation mean*</th><th scope="col" class="num">in the text</th></tr></thead><tbody><tr class="ours"><th scope="row">RadGraph + fine-tuning</th><td class="num">0.8006</td><td class="num">0.801</td><td class="num">0.6305</td><td class="num">0.621†</td></tr><tr><th scope="row">RadGraph-XL</th><td class="num">0.7247</td><td class="num">0.712†</td><td class="num">0.5516</td><td class="num">0.541†</td></tr><tr><th scope="row">RadGraph</th><td class="num">0.7122</td><td class="num">0.725†</td><td class="num">0.4839</td><td class="num">0.484</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 2 — Table 3’s averages, recomputed.</b> * Plain means of the 16 entity and 12 relation scores; four decimals because one is exactly 0.6305. † Differs by more than rounding: the text swaps the released models’ entity averages and prints two relation averages about 0.01 low. Sources: Table 3, §3.3.</p>
+
+  <div class="callout">
+    <span class="label">Micro or macro?</span>
+    <p>The paper calls its averages macro F1. In the text, 0.801 is a plain mean of Table 3’s entity scores, which fits. But seven of the eight F1 values in the paper’s Table 2 equal, within rounding, the harmonic mean of the printed precision and recall, which is how the DyGIE++ metric code in the release computes its pooled, micro F1; a mean of per-label F1s would usually come out lower. That fits micro but doesn’t prove it: macro precision and recall combined the same way would match too.</p>
+    <p>Tables 4 and 5 give the same models values Table 3 doesn’t: RadGraph scores 0.795 on entities in Table 4 against 0.712 averaged over Table 3, and Table 5’s 70% run, presumably the whole head CT training split, 0.849 and 0.733 against Table 3’s 0.827 and 0.600. Table 4 calls its values macro F1 too; neither table says what it averages over.</p>
+  </div>
+</section>
+
+<section id="howmany" data-toc="How many reports?">
+  <h2><span class="n">04</span>How many reports does a new modality need?</h2>
+  <p>Table 5 retrains the head CT model on growing shares of the data. If the shares are of the 300 head CT reports, 10% is 30 reports and 70% the whole training split <span class="tag">derived</span>.</p>
+
+  <figure id="fig-table5">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 318" role="img" aria-label="Head CT: entity and relation F1 against the share of reports used for training" style="min-width:580px" xmlns="http://www.w3.org/2000/svg"><circle cx="5.0" cy="10.0" r="4.6" class="f-emph ring"/><text x="15.0" y="10.0" class="t t-small" text-anchor="start" dominant-baseline="central">Entities</text><rect x="88.5" y="5.9" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="102.6" y="10.0" class="t t-small" text-anchor="start" dominant-baseline="central">Relations</text><line x1="64.0" y1="239.0" x2="690.0" y2="239.0" class="grid"/><text x="54.0" y="239.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.6</text><line x1="64.0" y1="174.0" x2="690.0" y2="174.0" class="grid"/><text x="54.0" y="174.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.7</text><line x1="64.0" y1="109.0" x2="690.0" y2="109.0" class="grid"/><text x="54.0" y="109.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.8</text><line x1="64.0" y1="44.0" x2="690.0" y2="44.0" class="grid"/><text x="54.0" y="44.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">0.9</text><text x="98.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10%</text><text x="98.0" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30</text><text x="196.7" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">20%</text><text x="196.7" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">60</text><text x="295.3" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30%</text><text x="295.3" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">90</text><text x="394.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">40%</text><text x="394.0" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">120</text><text x="492.7" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50%</text><text x="492.7" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">150</text><text x="591.3" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">60%</text><text x="591.3" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">180</text><text x="690.0" y="267.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">70%</text><text x="690.0" y="283.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">210</text><text x="0.0" y="283.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">reports</text><text x="0.0" y="267.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">share</text><polyline points="98.0,123.9 196.7,133.7 295.3,89.5 394.0,91.5 492.7,96.7 591.3,114.2 690.0,77.2" class="ci ci-emph" fill="none"/><g class="hit" tabindex="0" data-tip="Head CT · 10% of the reports (30) · entities F1 0.777"><circle cx="98.0" cy="123.9" r="4.6" class="f-emph ring"/><text x="98.0" y="110.9" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.777</text><rect x="86.0" y="111.9" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 20% of the reports (60) · entities F1 0.762"><circle cx="196.7" cy="133.7" r="4.6" class="f-emph ring"/><text x="196.7" y="120.7" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.762</text><rect x="184.7" y="121.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 30% of the reports (90) · entities F1 0.830"><circle cx="295.3" cy="89.5" r="4.6" class="f-emph ring"/><text x="295.3" y="76.5" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.830</text><rect x="283.3" y="77.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 40% of the reports (120) · entities F1 0.827"><circle cx="394.0" cy="91.5" r="4.6" class="f-emph ring"/><text x="394.0" y="78.5" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.827</text><rect x="382.0" y="79.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 50% of the reports (150) · entities F1 0.819"><circle cx="492.7" cy="96.7" r="4.6" class="f-emph ring"/><text x="492.7" y="83.7" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.819</text><rect x="480.7" y="84.7" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 60% of the reports (180) · entities F1 0.792"><circle cx="591.3" cy="114.2" r="4.6" class="f-emph ring"/><text x="591.3" y="101.2" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.792</text><rect x="579.3" y="102.2" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 70% of the reports (210) · entities F1 0.849"><circle cx="690.0" cy="77.2" r="4.6" class="f-emph ring"/><text x="690.0" y="64.2" class="t t-small t-num t-strong" text-anchor="middle" dominant-baseline="central">0.849</text><rect x="678.0" y="65.2" width="24.0" height="24.0" class="hitbox"/></g><polyline points="98.0,220.8 196.7,190.2 295.3,184.4 394.0,180.5 492.7,179.9 591.3,200.6 690.0,152.6" class="ci" fill="none"/><g class="hit" tabindex="0" data-tip="Head CT · 10% of the reports (30) · relations F1 0.628"><rect x="93.9" y="216.7" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="98.0" y="235.8" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.628</text><rect x="86.0" y="208.8" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 20% of the reports (60) · relations F1 0.675"><rect x="192.5" y="186.1" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="196.7" y="205.2" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.675</text><rect x="184.7" y="178.2" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 30% of the reports (90) · relations F1 0.684"><rect x="291.2" y="180.3" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="295.3" y="199.4" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.684</text><rect x="283.3" y="172.4" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 40% of the reports (120) · relations F1 0.690"><rect x="389.9" y="176.4" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="394.0" y="195.5" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.690</text><rect x="382.0" y="168.5" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 50% of the reports (150) · relations F1 0.691"><rect x="488.5" y="175.7" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="492.7" y="194.9" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.691</text><rect x="480.7" y="167.9" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 60% of the reports (180) · relations F1 0.659"><rect x="587.2" y="196.5" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="591.3" y="215.6" class="t t-small t-num" text-anchor="middle" dominant-baseline="central">0.659</text><rect x="579.3" y="188.6" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Head CT · 70% of the reports (210) · relations F1 0.733"><rect x="685.9" y="148.4" width="8.3" height="8.3" rx="1.5" class="f-ctx ring"/><text x="690.0" y="167.6" class="t t-small t-num t-strong" text-anchor="middle" dominant-baseline="central">0.733</text><rect x="678.0" y="140.6" width="24.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — On head CT, 90 reports get within 0.02 entity F1 of 210, and neighbouring points move by up to 0.07.</b> No repeat runs are reported, on 45 head CT test reports; report counts assume the shares are of all 300 head CT reports. The 70% point doesn’t reproduce Table 3’s head CT averages (see the callout above). Source: Table 5.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Share of head CT reports</th><th scope="col" class="num">Reports*</th><th scope="col" class="num">Entity F1</th><th scope="col" class="num">Relation F1</th></tr></thead><tbody><tr><th scope="row">10%</th><td class="num">30</td><td class="num">0.777</td><td class="num">0.628</td></tr><tr><th scope="row">20%</th><td class="num">60</td><td class="num">0.762</td><td class="num">0.675</td></tr><tr><th scope="row">30%</th><td class="num">90</td><td class="num">0.830</td><td class="num">0.684</td></tr><tr><th scope="row">40%</th><td class="num">120</td><td class="num">0.827</td><td class="num">0.690</td></tr><tr><th scope="row">50%</th><td class="num">150</td><td class="num">0.819</td><td class="num">0.691</td></tr><tr><th scope="row">60%</th><td class="num">180</td><td class="num">0.792</td><td class="num">0.659</td></tr><tr><th scope="row">70%</th><td class="num">210</td><td class="num">0.849</td><td class="num">0.733</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Entity F1 gets close with few reports, as the paper notes: 30 give 0.777 and 90 give 0.830, against 0.849 with 210. Relations lag: 0.684 at 90 reports against 0.733 at 210. And on 45 test reports the curve is noisy: 180 reports score 0.027 and 0.032 below 150, then 210 jump by 0.057 and 0.074 <span class="tag">derived</span>. With no released model on Table 5’s scale, it can’t say how few reports it takes to beat them.</p>
+  <p>Table 4’s single model for all four modalities scores 0.854 on entities and 0.694 on relations, against 0.795 and 0.526 for RadGraph and 0.745 and 0.541 for RadGraph-XL. Its numbers can’t be set against Table 3’s, so whether one model does better than four stays open.</p>
+</section>
+
+<section id="radgraph-f1" data-toc="For RadGraph-F1">
+  <h2><span class="n">05</span>Reading it for RadGraph-F1</h2>
+  <p>The paper scores extraction against human labels. It never runs RadGraph-F1 and leaves downstream tasks to future work; after the rebuttal, one reviewer still missed a downstream validation.</p>
+  <div class="callout soft">
+    <span class="label">What extraction errors do to the metric <span class="tag">our observation</span></span>
+    <p>An extraction error doesn’t enter RadGraph-F1 one for one, because the same extractor reads both reports. A finding it misses in both drops out, unscored. A finding it labels differently in two wordings, present in one and uncertain in the other, or related in only one, turns a match into an error.</p>
+    <p>So relation F1 of 0.26 to 0.64 on cardiac MRI means that RG_ER there compares two unreliable readings. How much that moves scores, and the ranking of report generators, is the experiment the paper doesn’t run.</p>
+  </div>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>The release:</strong> the abstract promises the model and data, and the rebuttal code, weights and annotations, the last under a data use agreement. On 6 October 2026 the paper page lists no dataset, and the repository, filled in February 2026, holds a copy of the DyGIE++ framework and an inference script adapted from RadGraph’s, whose last line calls a function the file never defines. There are no weights, no training configuration for these models and no evaluation script for the paper’s tables.</li>
+    <li><strong>A like-for-like arm:</strong> a reviewer called the comparison potentially less equitable because neither released model was fine-tuned on the new reports; the rebuttal answers that the authors’ model, pre-trained on RadGraph’s data, is in effect a fine-tuned RadGraph, and that RadGraph-XL’s annotations weren’t released (the MIMIC part went on PhysioNet in September 2025, after the review). The fine-tuned model also learned the annotators’ conventions, which the rebuttal says are finer where earlier RadGraph annotations erred, and a hit needs the exact span. The annotators were tested on part of RadGraph’s data, but their agreement with its labels isn’t given.</li>
+    <li><strong>Uncertainty:</strong> no repeat runs or intervals, no inter-annotator agreement, and no rule for the 70/15/15 split beyond the rebuttal’s word that the parts don’t overlap.</li>
+    <li><strong>Which checkpoints:</strong> none are named. The README points to RadGraph 1.0.0 and to version 0.1.18 of the radgraph package (June 2025), which ships four extractors, two of them RadGraph-XL models.</li>
+    <li><strong>The reports themselves:</strong> where the 800 come from, from which years and which sections were labelled are not stated.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">07</span>Takeaways for scoring CT and MRI reports</h2>
+  <ol class="num-list">
+    <li><strong>Check the extractor on your modality before trusting RadGraph-F1 there.</strong> Off the shelf, the released models averaged 0.41 to 0.56 relation F1 per modality here. A few dozen labelled reports are enough to measure it.</li>
+    <li><strong>Report RG_E next to RG_ER on a new modality.</strong> Relations were the weaker half of extraction in every modality, and RG_ER depends on them.</li>
+    <li><strong>If you can label about a hundred reports, fine-tune.</strong> On head CT, 90 reports came within 0.02 entity F1 of 210, with no repeat runs reported.</li>
+    <li><strong>Name the extractor and its version.</strong> On the same reports, the two released models’ mean relation F1 differs by up to 0.13 per modality, and one package version ships four extractors.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Guan, H., Dai, Y., Afyouni, S., …, Jiao, Z., Jones, C., Bai, H. <a href="https://papers.miccai.org/miccai-2025/0302-Paper4672.html">Enhancing Radiology Report Interpretation through Modality-Specific RadGraph Fine-Tuning</a>. MICCAI 2025, LNCS 15966, pp. 216–225. The page holds the reviews, the rebuttal and the meta-reviews. <a href="https://papers.miccai.org/miccai-2025/paper/4672_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04981-0_21">doi</a>. No preprint found.</li>
+    <li>Code: <a href="https://github.com/tonikroos7/RadGraph-Multimodality">tonikroos7/RadGraph-Multimodality</a> (MIT), read on 6 Oct 2026 at commit b851e5a.</li>
+    <li>Jain, S., et al. RadGraph: <a href="https://arxiv.org/abs/2106.14463">arXiv:2106.14463</a> (2021); <a href="https://physionet.org/content/radgraph/1.0.0/">PhysioNet, version 1.0.0</a>.</li>
+    <li>Delbrouck, J.-B., et al. RadGraph-XL: <a href="https://aclanthology.org/2024.findings-acl.765/">Findings of ACL 2024</a>; <a href="https://physionet.org/content/radgraph-xl/1.0.0/">PhysioNet, version 1.0.0</a> (12 Sep 2025).</li>
+    <li>Delbrouck, J.-B., et al. RadGraph-F1 (semantic rewards): <a href="https://aclanthology.org/2022.findings-emnlp.319/">Findings of EMNLP 2022</a>; the <a href="https://github.com/Stanford-AIMI/radgraph">radgraph package</a>, <code>rewards.py</code>.</li>
+    <li>Wadden, D., et al. DyGIE++: <a href="https://arxiv.org/abs/1909.03546">arXiv:1909.03546</a> (2019).</li>
+    <li>Our posts on <a href="/research-blog/spec-cxr-report-evaluation/">SPEC-CXR</a>, <a href="/research-blog/phrase-grounded-fact-checking/">phrase-grounded fact-checking</a>, <a href="/research-blog/merlin-report-generation/">Merlin</a> and <a href="/research-blog/cervical-rg-report-generation/">Cervical-RG</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Guan et al., MICCAI 2025 (LNCS 15966, pp. 216–225). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the released code or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
