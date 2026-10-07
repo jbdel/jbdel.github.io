@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoCa-CXR, read for report generation</title>
+<meta name="description" content="A report-generation reading of CoCa-CXR (MICCAI 2025), a contrastive captioner that reads the prior chest X-ray: its RadGraph F1 is 23.7 with the comparison sentences and 24.2 without, its baselines are copied, and its evidence of reading change is a classification table.">
+<meta property="og:title" content="CoCa-CXR, read for report generation">
+<meta property="og:description" content="A report-generation reading of CoCa-CXR (MICCAI 2025), a contrastive captioner that reads the prior chest X-ray: its RadGraph F1 is 23.7 with the comparison sentences and 24.2 without, its baselines are copied, and its evidence of reading change is a classification table.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/coca-cxr-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/coca-cxr-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="CoCa-CXR, read for report generation: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/coca-cxr-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/coca-cxr-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0159-Paper2248.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/2248_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2502.20509">arXiv</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Chest X-ray report generation</p>
+    <h1>CoCa-CXR, read for report generation</h1>
+    <p class="dek">CoCa-CXR reads a chest X-ray next to the previous one and writes what it sees and what changed. Its report score is no higher when it writes the changes, so this post reads what that score can see, how the training text was rewritten, and whose runs fill the comparison tables.</p>
+    <div class="meta">
+      <span><b>Paper</b> Yixiong Chen, Shawn Xu, … Alan L. Yuille, Lin Yang. <a href="https://papers.miccai.org/miccai-2025/0159-Paper2248.html"><i>CoCa-CXR: Contrastive Captioners Learn Strong Temporal Structures for Chest X-Ray Vision-Language Understanding</i></a>. MICCAI 2025, LNCS 15965, pp. 78–88</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 6 Oct 2026</span>
+      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a> · <a href="/research-blog/?tag=main">Main</a></span>
+      <span><b>Disclosure</b> I am the first author of RadGraph-F1, of the same family as the “RadGraph F1” this paper reports. The paper doesn’t name its implementation; its rebuttal cites another group’s version (Yu et al., 2023).</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">11 × 11</div><div class="l">prior-image tokens each current-image token can attend to, on a 48 × 48 grid</div></div>
+    <div class="tile" role="listitem"><div class="v">23.7</div><div class="l">RadGraph F1 with the comparisons written; 24.2 without, 24.4 for Med-Gemini-2D (copied)</div></div>
+    <div class="tile" role="listitem"><div class="v">+4.8</div><div class="l">points of macro-accuracy over BioViL-T’s published runs on MS-CXR-T progression</div></div>
+    <div class="tile" role="listitem"><div class="v">4 of 5</div><div class="l">Med-ST values printed under the wrong finding in the comparison table<sup>*</sup></div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Our comparison with Med-ST’s own Table 1.</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>A captioner that sees both films.</strong> CoCa reads the current and the prior X-ray, and one new block lets each current-image token look at a window of the prior’s. Gemini split the MIMIC-CXR reports into descriptions and comparisons; Chest ImaGenome added boxes.</li>
+      <li><strong>The report score is no higher with the comparisons.</strong> RadGraph F1 is 23.7 with them and 24.2 without. The abstract’s “comparable to Med-Gemini” is the second, set against rows copied from the Med-Gemini paper; neither CoCa-CXR row has a test size or interval.</li>
+      <li><strong>The evidence of reading change is a classification table.</strong> 65.0 against 60.2 for BioViL-T’s published runs, mostly on pneumothorax, on a test part the paper doesn’t define; the ablation credits the windowed block with 4.0 points.</li>
+      <li><strong>What we can’t tell.</strong> Whether the prior image improves the report at all, and what text the reports were scored against. Neither code nor data is released.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why it matters">
+  <h2><span class="n">01</span>Why this paper matters for report generation</h2>
+  <p>Radiologists read a chest X-ray against the previous one and say what changed. In MIMIC-CXR’s official test split, 88.6% of the 2,461 samples with a findings section have a prior study, by MAIRA-2’s count. A single-image generator can only drop those sentences or invent them; Flamingo-CXR, which shares three authors with this paper, removed every training report that mentioned a prior study for that reason.</p>
+  <p>CoCa-CXR gives the model the prior image. <a href="/research-blog/diff-rrg-report-generation/">Diff-RRG</a>, read earlier in this series, passes the prior image to a frozen LLM as fourteen status words; here the prior’s image tokens reach the report decoder.</p>
+
+  <figure id="fig-stack">
+    <div class="flow" role="img" aria-label="CoCa-CXR: current and prior chest X-ray, a ViT encoder frozen after stage 1, a regional cross-attention block trained in stages 2 and 3, pooled tokens, and a multimodal text decoder trained in stages 1 and 3, on top of a unimodal text decoder frozen after stage 1, that writes the report">
+      <div class="row">
+        <div class="box"><div class="t1">Current and prior chest X-ray</div><div class="t2">Padded to square and resized; no registration described</div></div>
+        <div class="shape">2 × 768 × 768 px</div>
+      </div>
+      <div class="conn"><div>the same encoder reads each film</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">frozen</span><div class="t1">ViT image encoder (CoCa)</div><div class="t2">Trained in stage 1 on single images and their descriptions; size not given</div></div>
+        <div class="shape">48 × 48 = 2,304<br>tokens per film</div>
+      </div>
+      <div class="conn"><div>each current token attends to an 11 × 11 window of prior tokens</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Regional cross-attention block</div><div class="t2">Self-attention on the current film, windowed cross-attention to the prior, a feed-forward layer</div></div>
+        <div class="shape">2,304 compared tokens</div>
+      </div>
+      <div class="conn"><div>current, prior and compared tokens, average-pooled 3 × 3 (derived)</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Multimodal text decoder (CoCa)</div><div class="t2">Cross-attends to the pooled tokens, on top of CoCa’s unimodal text decoder (frozen); writes the report, or one word after “[condition] is”</div></div>
+        <div class="shape">16 × 16 = 256 tokens per grid*<br>→ findings + impression</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>frozen in stages 2 and 3</span>
+        <span><i style="background:var(--ink)"></i>trained in stage 3</span>
+        <span>* or 256 in all: the paper doesn’t say</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The prior film reaches the report decoder twice: as its own tokens and through one windowed block.</b> States as in stage 3, read off the icons of the paper’s Figure 1: stage 1 trains CoCa alone, stage 2 the new block alone, stage 3 the block and the multimodal decoder. Sources: Sections 3 and 4.1, Figure 1.</figcaption>
+  </figure>
+
+  <p>The paper describes no step that aligns the two films, and in the windowed block each token looks at most five tokens away in the prior: 80 of 768 pixels, about a tenth of the image’s width <span class="tag">derived</span>. A patient positioned differently can move the matching region out of the window. The model’s size isn’t given.</p>
+</section>
+
+<section id="data" data-toc="The training text">
+  <h2><span class="n">02</span>The training text: Gemini and Chest ImaGenome</h2>
+  <p>The four training sets come from MIMIC-CXR’s official training split, without the MS-CXR-T pairs used for testing.</p>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Set</th><th scope="col" class="num">Samples</th><th scope="col">Target text</th><th scope="col" class="num">Share, stages 2–3</th></tr></thead><tbody><tr><th scope="row" style="white-space:normal;min-width:140px">1. Clean image–report pairs (one image)</th><td class="num">224,487</td><td style="white-space:normal;min-width:220px">Findings and impression, rewritten by Gemini to what this image alone shows</td><td class="num">20%</td></tr><tr><th scope="row" style="white-space:normal;min-width:140px">2. Image pairs and filtered reports</th><td class="num">132,320</td><td style="white-space:normal;min-width:220px">Findings and impression as written, kept when the report compares with the prior</td><td class="num">25%</td></tr><tr><th scope="row" style="white-space:normal;min-width:140px">3. Image pairs and comparison sentences</th><td class="num">259,562</td><td style="white-space:normal;min-width:220px">The comparison sentences only, extracted by Gemini; each pair also reversed, with the text reversed</td><td class="num">25%</td></tr><tr><th scope="row" style="white-space:normal;min-width:140px">4. Image pairs and abnormal organs</th><td class="num">758,344</td><td style="white-space:normal;min-width:220px">From Chest ImaGenome: “[condition] [progress] at [organ]” with a box in each image; pairs also reversed</td><td class="num">30%</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — Four training sets; Gemini wrote the target text of two.</b> Stage 1 uses set 1 alone; the shares are the batch mix of stages 2 and 3. Sources: Table 1, Sections 2 and 4.1.</p>
+  <p>Gemini, shown worked examples, rewrites the reports: as what the current image alone shows (a worsening effusion becomes a present one; an unchanged finding whose current state can’t be inferred is dropped), and as their comparison sentences, also reversed for the swapped pair (“new” becomes “resolved”). The prompts appear only in the arXiv version, the Gemini version isn’t named, and no check of either rewrite is reported. Set 3’s 259,562 samples are 98% of twice set 2’s 132,320 pairs <span class="tag">derived</span>, so about half its comparison text is likely Gemini’s reversals.</p>
+  <p>Set 4 comes from Chest ImaGenome’s automatically built scene graphs: boxes from an atlas-based extraction, and “improved”, “worsened” or “no change” from a rule-based reading of the reports. MS-CXR-T, the progression benchmark of section 04, was built from the same Chest ImaGenome labels, each checked by a radiologist against the report.</p>
+</section>
+
+<section id="reports" data-toc="Report generation">
+  <h2><span class="n">03</span>Report generation: what the table can say</h2>
+  <p>The paper’s report table compares CoCa-CXR with six published systems on MIMIC-CXR. All six rows are copied cell for cell from the Med-Gemini paper’s Table 8, a phrase of its caption included, and six of CoCa-CXR’s nine authors also sign that paper.</p>
+
+  <figure id="fig-report">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 330" role="img" aria-label="RadGraph F1, BLEU-4 and ROUGE-L for every row of the paper&#x27;s report table" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">CoCa-CXR with its comparisons</text><rect x="222.4" y="6.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="237.4" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">CoCa-CXR, description only</text><rect x="425.9" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="440.9" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">Copied from Med-Gemini’s Table 8</text><text x="196.0" y="42.0" class="t t-head" text-anchor="start" dominant-baseline="central">RadGraph F1</text><line x1="196.0" y1="54.0" x2="196.0" y2="300.0" class="zero"/><text x="196.0" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="243.2" y1="54.0" x2="243.2" y2="300.0" class="grid"/><text x="243.2" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10</text><line x1="290.5" y1="54.0" x2="290.5" y2="300.0" class="grid"/><text x="290.5" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">20</text><line x1="337.7" y1="54.0" x2="337.7" y2="300.0" class="grid"/><text x="337.7" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30</text><text x="391.3" y="42.0" class="t t-head" text-anchor="start" dominant-baseline="central">BLEU-4</text><line x1="391.3" y1="54.0" x2="391.3" y2="300.0" class="zero"/><text x="391.3" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="438.6" y1="54.0" x2="438.6" y2="300.0" class="grid"/><text x="438.6" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10</text><line x1="485.8" y1="54.0" x2="485.8" y2="300.0" class="grid"/><text x="485.8" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">20</text><line x1="533.0" y1="54.0" x2="533.0" y2="300.0" class="grid"/><text x="533.0" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30</text><text x="586.7" y="42.0" class="t t-head" text-anchor="start" dominant-baseline="central">ROUGE-L</text><line x1="586.7" y1="54.0" x2="586.7" y2="300.0" class="zero"/><text x="586.7" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="633.9" y1="54.0" x2="633.9" y2="300.0" class="grid"/><text x="633.9" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">10</text><line x1="681.1" y1="54.0" x2="681.1" y2="300.0" class="grid"/><text x="681.1" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">20</text><line x1="728.4" y1="54.0" x2="728.4" y2="300.0" class="grid"/><text x="728.4" y="314.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">30</text><text x="0.0" y="74.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">Findings + impression</text><text x="184.0" y="96.0" class="t" text-anchor="end" dominant-baseline="central">Med-Gemini-2D</text><g class="hit" tabindex="0" data-tip="Med-Gemini-2D · findings + impression · RadGraph F1 24.4"><path class="f-ctx" d="M196.0,90.0H307.3Q311.3,90.0 311.3,94.0V98.0Q311.3,102.0 307.3,102.0H196.0Z"/><text x="316.3" y="96.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">24.4</text><rect x="196.0" y="84.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Med-Gemini-2D · findings + impression · BLEU-4 20.5"><path class="f-ctx" d="M391.3,90.0H484.2Q488.2,90.0 488.2,94.0V98.0Q488.2,102.0 484.2,102.0H391.3Z"/><text x="493.2" y="96.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">20.5</text><rect x="391.3" y="84.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Med-Gemini-2D · findings + impression · ROUGE-L 28.3"><path class="f-ctx" d="M586.7,90.0H716.4Q720.4,90.0 720.4,94.0V98.0Q720.4,102.0 716.4,102.0H586.7Z"/><text x="725.4" y="96.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">28.3</text><rect x="586.7" y="84.0" width="165.3" height="24.0" class="hitbox"/></g><text x="184.0" y="120.0" class="t t-strong" text-anchor="end" dominant-baseline="central">CoCa-CXR, description only</text><g class="hit" tabindex="0" data-tip="CoCa-CXR, description only · findings + impression · RadGraph F1 24.2"><path class="f-mid" d="M196.0,114.0H306.3Q310.3,114.0 310.3,118.0V122.0Q310.3,126.0 306.3,126.0H196.0Z"/><text x="315.3" y="120.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">24.2</text><rect x="196.0" y="108.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CoCa-CXR, description only · findings + impression · BLEU-4 18.6"><path class="f-mid" d="M391.3,114.0H475.2Q479.2,114.0 479.2,118.0V122.0Q479.2,126.0 475.2,126.0H391.3Z"/><text x="484.2" y="120.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">18.6</text><rect x="391.3" y="108.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CoCa-CXR, description only · findings + impression · ROUGE-L 27.8"><path class="f-mid" d="M586.7,114.0H714.0Q718.0,114.0 718.0,118.0V122.0Q718.0,126.0 714.0,126.0H586.7Z"/><text x="723.0" y="120.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">27.8</text><rect x="586.7" y="108.0" width="165.3" height="24.0" class="hitbox"/></g><text x="184.0" y="144.0" class="t t-strong" text-anchor="end" dominant-baseline="central">CoCa-CXR, with comparisons</text><g class="hit" tabindex="0" data-tip="CoCa-CXR, with comparisons · findings + impression · RadGraph F1 23.7"><path class="f-emph" d="M196.0,138.0H304.0Q308.0,138.0 308.0,142.0V146.0Q308.0,150.0 304.0,150.0H196.0Z"/><text x="313.0" y="144.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">23.7</text><rect x="196.0" y="132.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CoCa-CXR, with comparisons · findings + impression · BLEU-4 18.7"><path class="f-emph" d="M391.3,138.0H475.7Q479.7,138.0 479.7,142.0V146.0Q479.7,150.0 475.7,150.0H391.3Z"/><text x="484.7" y="144.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">18.7</text><rect x="391.3" y="132.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CoCa-CXR, with comparisons · findings + impression · ROUGE-L 27.5"><path class="f-emph" d="M586.7,138.0H712.6Q716.6,138.0 716.6,142.0V146.0Q716.6,150.0 712.6,150.0H586.7Z"/><text x="721.6" y="144.0" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">27.5</text><rect x="586.7" y="132.0" width="165.3" height="24.0" class="hitbox"/></g><text x="184.0" y="168.0" class="t" text-anchor="end" dominant-baseline="central">Flamingo-CXR</text><g class="hit" tabindex="0" data-tip="Flamingo-CXR · findings + impression · RadGraph F1 20.5"><path class="f-ctx" d="M196.0,162.0H288.8Q292.8,162.0 292.8,166.0V170.0Q292.8,174.0 288.8,174.0H196.0Z"/><text x="297.8" y="168.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">20.5</text><rect x="196.0" y="156.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Flamingo-CXR · findings + impression · BLEU-4 10.1"><path class="f-ctx" d="M391.3,162.0H435.0Q439.0,162.0 439.0,166.0V170.0Q439.0,174.0 435.0,174.0H391.3Z"/><text x="444.0" y="168.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">10.1</text><rect x="391.3" y="156.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Flamingo-CXR · findings + impression · ROUGE-L 29.7"><path class="f-ctx" d="M586.7,162.0H723.0Q727.0,162.0 727.0,166.0V170.0Q727.0,174.0 723.0,174.0H586.7Z"/><text x="732.0" y="168.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">29.7</text><rect x="586.7" y="156.0" width="165.3" height="24.0" class="hitbox"/></g><text x="184.0" y="192.0" class="t" text-anchor="end" dominant-baseline="central">CvT-21DistillGPT2</text><g class="hit" tabindex="0" data-tip="CvT-21DistillGPT2 · findings + impression · RadGraph F1 15.4"><path class="f-ctx" d="M196.0,186.0H264.7Q268.7,186.0 268.7,190.0V194.0Q268.7,198.0 264.7,198.0H196.0Z"/><text x="273.7" y="192.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">15.4</text><rect x="196.0" y="180.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT-21DistillGPT2 · findings + impression · BLEU-4 12.4"><path class="f-ctx" d="M391.3,186.0H445.9Q449.9,186.0 449.9,190.0V194.0Q449.9,198.0 445.9,198.0H391.3Z"/><text x="454.9" y="192.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">12.4</text><rect x="391.3" y="180.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CvT-21DistillGPT2 · findings + impression · ROUGE-L 28.5"><path class="f-ctx" d="M586.7,186.0H717.3Q721.3,186.0 721.3,190.0V194.0Q721.3,198.0 717.3,198.0H586.7Z"/><text x="726.3" y="192.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">28.5</text><rect x="586.7" y="180.0" width="165.3" height="24.0" class="hitbox"/></g><text x="0.0" y="218.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">Findings only</text><text x="184.0" y="240.0" class="t" text-anchor="end" dominant-baseline="central">Med-PaLM M, 12B</text><g class="hit" tabindex="0" data-tip="Med-PaLM M, 12B · findings only · RadGraph F1 25.2"><path class="f-ctx" d="M196.0,234.0H311.0Q315.0,234.0 315.0,238.0V242.0Q315.0,246.0 311.0,246.0H196.0Z"/><text x="320.0" y="240.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">25.2</text><rect x="196.0" y="228.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Med-PaLM M, 12B · findings only · BLEU-4 10.4"><path class="f-ctx" d="M391.3,234.0H436.5Q440.5,234.0 440.5,238.0V242.0Q440.5,246.0 436.5,246.0H391.3Z"/><text x="445.5" y="240.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">10.4</text><rect x="391.3" y="228.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Med-PaLM M, 12B · findings only · ROUGE-L 26.2"><path class="f-ctx" d="M586.7,234.0H706.4Q710.4,234.0 710.4,238.0V242.0Q710.4,246.0 706.4,246.0H586.7Z"/><text x="715.4" y="240.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">26.2</text><rect x="586.7" y="228.0" width="165.3" height="24.0" class="hitbox"/></g><text x="184.0" y="264.0" class="t" text-anchor="end" dominant-baseline="central">M² Transformer</text><g class="hit" tabindex="0" data-tip="M² Transformer · findings only · RadGraph F1 22.0"><path class="f-ctx" d="M196.0,258.0H295.9Q299.9,258.0 299.9,262.0V266.0Q299.9,270.0 295.9,270.0H196.0Z"/><text x="304.9" y="264.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">22.0</text><rect x="196.0" y="252.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="M² Transformer · findings only · BLEU-4 11.4"><path class="f-ctx" d="M391.3,258.0H441.2Q445.2,258.0 445.2,262.0V266.0Q445.2,270.0 441.2,270.0H391.3Z"/><text x="450.2" y="264.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">11.4</text><rect x="391.3" y="252.0" width="165.3" height="24.0" class="hitbox"/></g><text x="592.7" y="264.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">not reported</text><text x="184.0" y="288.0" class="t" text-anchor="end" dominant-baseline="central">CXR-RePaiR</text><g class="hit" tabindex="0" data-tip="CXR-RePaiR · findings only · RadGraph F1 9.1"><path class="f-ctx" d="M196.0,282.0H235.0Q239.0,282.0 239.0,286.0V290.0Q239.0,294.0 235.0,294.0H196.0Z"/><text x="244.0" y="288.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">9.1</text><rect x="196.0" y="276.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CXR-RePaiR · findings only · BLEU-4 2.1"><path class="f-ctx" d="M391.3,282.0H397.3Q401.3,282.0 401.3,286.0V290.0Q401.3,294.0 397.3,294.0H391.3Z"/><text x="406.3" y="288.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">2.1</text><rect x="391.3" y="276.0" width="165.3" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="CXR-RePaiR · findings only · ROUGE-L 14.3"><path class="f-ctx" d="M586.7,282.0H650.2Q654.2,282.0 654.2,286.0V290.0Q654.2,294.0 650.2,294.0H586.7Z"/><text x="659.2" y="288.0" class="t t-small t-num" text-anchor="start" dominant-baseline="central">14.3</text><rect x="586.7" y="276.0" width="165.3" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 2 — In RadGraph F1, CoCa-CXR scores 0.2 below Med-Gemini-2D’s copied row without its comparisons, and 0.7 below with them.</b> All three metrics on one 0–35 scale, in %. CoCa-CXR’s two rows are single numbers, with no interval or test-set size. Sources: Table 3; Med-Gemini (arXiv:2405.03162), Table 8.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Row</th><th scope="col">Sections</th><th scope="col" class="num">RadGraph F1</th><th scope="col" class="num">BLEU-4</th><th scope="col" class="num">ROUGE-L</th><th scope="col">Source</th></tr></thead><tbody><tr><th scope="row" style="white-space:normal;min-width:150px">Med-Gemini-2D</th><td>F + I</td><td class="num">24.4</td><td class="num">20.5</td><td class="num">28.3</td><td>Med-Gemini paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">CoCa-CXR, description only</th><td>F + I</td><td class="num">24.2</td><td class="num">18.6</td><td class="num">27.8</td><td>this paper</td></tr><tr class="ours"><th scope="row" style="white-space:normal;min-width:150px">CoCa-CXR, with comparisons</th><td>F + I</td><td class="num">23.7</td><td class="num">18.7</td><td class="num">27.5</td><td>this paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">Flamingo-CXR</th><td>F + I</td><td class="num">20.5</td><td class="num">10.1</td><td class="num">29.7</td><td>Med-Gemini paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">CvT-21DistillGPT2</th><td>F + I</td><td class="num">15.4</td><td class="num">12.4</td><td class="num">28.5</td><td>Med-Gemini paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">Med-PaLM M, 12B</th><td>F</td><td class="num">25.2</td><td class="num">10.4</td><td class="num">26.2</td><td>Med-Gemini paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">M² Transformer</th><td>F</td><td class="num">22.0</td><td class="num">11.4</td><td class="num">–</td><td>Med-Gemini paper</td></tr><tr><th scope="row" style="white-space:normal;min-width:150px">CXR-RePaiR</th><td>F</td><td class="num">9.1</td><td class="num">2.1</td><td class="num">14.3</td><td>Med-Gemini paper</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Two things limit the comparison:</p>
+  <ol class="num-list">
+    <li><strong>The test sets differ.</strong> Med-Gemini-2D’s 24.4 comes from 912 test cases (frontal views), scored with Yu et al.’s RadGraph package after lowercasing; Flamingo-CXR’s 20.5 from 1,931. CoCa-CXR gives no split, size or scorer for its rows and cites no RadGraph paper; its rebuttal points to Yu et al.</li>
+    <li><strong>No intervals.</strong> For scale, MAIRA-1’s bootstrap interval for RadGraph-F1 on 2,461 MIMIC-CXR test samples (findings only) runs from 23.7 to 24.8; on 912 cases it would be about 1.6 times as wide <span class="tag">derived</span>. Gaps of 0.2 and 0.7 sit inside it.</li>
+  </ol>
+
+  <h3>What the comparisons cost</h3>
+  <p>The longitudinal claim sits in the last two rows: 23.7 with the comparison sentences, 24.2 without, the number in the abstract. The authors’ reading is that at the 65% accuracy they measure on progression classification, leaving the comparisons out does as well. F1’s arithmetic says more:</p>
+  <div class="eq">added sentences raise a report’s F1 exactly when<br>(their entities found in the reference) / (entities they add) &gt; F1 / 2<br><span class="c"># our derivation, for F1 over one report’s set of entities, or of relations</span></div>
+  <p>For a report scoring near 0.24, the bar is about one in eight <span class="tag">derived</span>. RadGraph F1 averages reports (and, in Yu et al.’s scorer, entity and relation F1), so over a test set the bar is approximate: if the comparisons were simply added to the same descriptions and scored against the same references, about one in eight or fewer of the entities and relations they added matched. Two readings fit. RadGraph F1 matches exact words, and counts change words such as “increased” as observations, so a right “progression” against the reference’s “worsening” would be a miss on both sides. Or writing comparisons also changed the descriptions. The paper can’t separate the two, and doesn’t say whether its references keep their comparison sentences.</p>
+
+  <div class="callout">
+    <span class="label">The authors’ own example <span class="tag">our observation</span></span>
+    <p>In the paper’s Figure 2, from the MIMIC-CXR validation set, the reference has similar cardiomediastinal contours, worse edema and slightly larger effusions. The generated report has a stable heart and mediastinum, progressing edema and unchanged effusions: two comparisons right in meaning but not in wording, one wrong. With the films swapped, the edema statement reverses, as the reversed training pairs teach.</p>
+  </div>
+</section>
+
+<section id="progression" data-toc="Progression">
+  <h2><span class="n">04</span>Progression: the evidence that it reads change</h2>
+  <p>The paper’s test of reading change is a classification: the decoder finishes “[condition] is” with worsened, unchanged or improved, for five findings of MS-CXR-T. The score is macro-accuracy, the mean recall over the three classes, so a constant answer gets 33.3.</p>
+
+  <figure id="fig-mscxrt">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 489" role="img" aria-label="Average macro-accuracy on MS-CXR-T for published rows, CoCa-CXR and its ablation" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><text x="754.0" y="12.0" class="t t-small t-muted" text-anchor="end" dominant-baseline="central">Average</text><line x1="312.0" y1="28.0" x2="312.0" y2="457.0" class="grid"/><text x="312.0" y="471.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">40</text><line x1="430.1" y1="28.0" x2="430.1" y2="457.0" class="grid"/><text x="430.1" y="471.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50</text><line x1="548.2" y1="28.0" x2="548.2" y2="457.0" class="grid"/><text x="548.2" y="471.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">60</text><line x1="666.4" y1="28.0" x2="666.4" y2="457.0" class="grid"/><text x="666.4" y="471.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">70</text><line x1="550.6" y1="24.0" x2="550.6" y2="457.0" class="floor"/><text x="546.6" y="12.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">BioViL-T 60.2</text><text x="0.0" y="50.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">Published rows, copied into the paper’s table</text><text x="300.0" y="71.5" class="t" text-anchor="end" dominant-baseline="central">BioViL-T</text><g class="hit" tabindex="0" data-tip="BioViL-T: 60.2"><line x1="312.0" y1="71.5" x2="550.6" y2="71.5" class="track"/><circle cx="550.6" cy="71.5" r="4.8" class="f-ctx ring"/><rect x="312.0" y="60.5" width="250.6" height="22.0" class="hitbox"/></g><text x="754.0" y="71.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">60.2</text><text x="300.0" y="94.5" class="t" text-anchor="end" dominant-baseline="central">BioViL w/reg (printed as “BioViL”)</text><g class="hit" tabindex="0" data-tip="BioViL w/reg (printed as “BioViL”): 57.8"><line x1="312.0" y1="94.5" x2="522.3" y2="94.5" class="track"/><circle cx="522.3" cy="94.5" r="4.8" class="f-ctx ring"/><rect x="312.0" y="83.5" width="222.3" height="22.0" class="hitbox"/></g><text x="754.0" y="94.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">57.8</text><text x="300.0" y="117.5" class="t" text-anchor="end" dominant-baseline="central">CNN + Transformer</text><g class="hit" tabindex="0" data-tip="CNN + Transformer: 49.5"><line x1="312.0" y1="117.5" x2="424.2" y2="117.5" class="track"/><circle cx="424.2" cy="117.5" r="4.8" class="f-ctx ring"/><rect x="312.0" y="106.5" width="124.2" height="22.0" class="hitbox"/></g><text x="754.0" y="117.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">49.5</text><text x="300.0" y="140.5" class="t" text-anchor="end" dominant-baseline="central">CheXRelNet</text><g class="hit" tabindex="0" data-tip="CheXRelNet: 45.2"><line x1="312.0" y1="140.5" x2="373.4" y2="140.5" class="track"/><circle cx="373.4" cy="140.5" r="4.8" class="f-ctx ring"/><rect x="312.0" y="129.5" width="73.4" height="22.0" class="hitbox"/></g><text x="754.0" y="140.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">45.2</text><text x="300.0" y="163.5" class="t" text-anchor="end" dominant-baseline="central">Med-ST (another protocol, see Table 2)</text><g class="hit" tabindex="0" data-tip="Med-ST (another protocol, see Table 2): 61.1"><line x1="312.0" y1="163.5" x2="561.2" y2="163.5" class="track"/><rect x="556.9" y="159.2" width="8.6" height="8.6" rx="1.5" class="f-ctx ring"/><rect x="312.0" y="152.5" width="261.2" height="22.0" class="hitbox"/></g><text x="754.0" y="163.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">61.1</text><text x="0.0" y="191.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">CoCa-CXR, four seeds</text><text x="300.0" y="212.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Test part</text><g class="hit" tabindex="0" data-tip="Test part: 65.0"><line x1="312.0" y1="212.5" x2="607.3" y2="212.5" class="track"/><circle cx="607.3" cy="212.5" r="4.8" class="f-emph ring"/><rect x="312.0" y="201.5" width="307.3" height="22.0" class="hitbox"/></g><text x="754.0" y="212.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">65.0</text><text x="300.0" y="235.5" class="t t-strong" text-anchor="end" dominant-baseline="central">Validation part</text><g class="hit" tabindex="0" data-tip="Validation part: 69.2"><line x1="312.0" y1="235.5" x2="656.9" y2="235.5" class="track"/><circle cx="656.9" cy="235.5" r="4.8" class="f-emph ring"/><rect x="312.0" y="224.5" width="356.9" height="22.0" class="hitbox"/></g><text x="754.0" y="235.5" class="t t-small t-num t-strong" text-anchor="end" dominant-baseline="central">69.2</text><text x="0.0" y="263.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">CoCa-CXR without one part (test part)</text><text x="300.0" y="284.5" class="t" text-anchor="end" dominant-baseline="central">Without filtering the comparing pairs (set 2)</text><g class="hit" tabindex="0" data-tip="Without filtering the comparing pairs (set 2): 64.0"><line x1="312.0" y1="284.5" x2="595.5" y2="284.5" class="track"/><circle cx="595.5" cy="284.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="273.5" width="295.5" height="22.0" class="hitbox"/></g><text x="754.0" y="284.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">64.0</text><text x="300.0" y="307.5" class="t" text-anchor="end" dominant-baseline="central">Without cleaning the descriptions (set 1)</text><g class="hit" tabindex="0" data-tip="Without cleaning the descriptions (set 1): 63.6"><line x1="312.0" y1="307.5" x2="590.8" y2="307.5" class="track"/><circle cx="590.8" cy="307.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="296.5" width="290.8" height="22.0" class="hitbox"/></g><text x="754.0" y="307.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">63.6</text><text x="300.0" y="330.5" class="t" text-anchor="end" dominant-baseline="central">Without stage 2</text><g class="hit" tabindex="0" data-tip="Without stage 2: 61.3"><line x1="312.0" y1="330.5" x2="563.6" y2="330.5" class="track"/><circle cx="563.6" cy="330.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="319.5" width="263.6" height="22.0" class="hitbox"/></g><text x="754.0" y="330.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">61.3</text><text x="300.0" y="353.5" class="t" text-anchor="end" dominant-baseline="central">Without the windowed block</text><g class="hit" tabindex="0" data-tip="Without the windowed block: 61.0"><line x1="312.0" y1="353.5" x2="560.1" y2="353.5" class="track"/><circle cx="560.1" cy="353.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="342.5" width="260.1" height="22.0" class="hitbox"/></g><text x="754.0" y="353.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">61.0</text><text x="300.0" y="376.5" class="t" text-anchor="end" dominant-baseline="central">Without the comparison sentences (set 3)</text><g class="hit" tabindex="0" data-tip="Without the comparison sentences (set 3): 60.7"><line x1="312.0" y1="376.5" x2="556.5" y2="376.5" class="track"/><circle cx="556.5" cy="376.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="365.5" width="256.5" height="22.0" class="hitbox"/></g><text x="754.0" y="376.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">60.7</text><text x="300.0" y="399.5" class="t" text-anchor="end" dominant-baseline="central">Without set 4’s organs and boxes</text><g class="hit" tabindex="0" data-tip="Without set 4’s organs and boxes: 60.5"><line x1="312.0" y1="399.5" x2="554.2" y2="399.5" class="track"/><circle cx="554.2" cy="399.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="388.5" width="254.2" height="22.0" class="hitbox"/></g><text x="754.0" y="399.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">60.5</text><text x="300.0" y="422.5" class="t" text-anchor="end" dominant-baseline="central">Without stages 1 and 2</text><g class="hit" tabindex="0" data-tip="Without stages 1 and 2: 58.4"><line x1="312.0" y1="422.5" x2="529.4" y2="422.5" class="track"/><circle cx="529.4" cy="422.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="411.5" width="229.4" height="22.0" class="hitbox"/></g><text x="754.0" y="422.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">58.4</text><text x="300.0" y="445.5" class="t" text-anchor="end" dominant-baseline="central">Without the contrastive loss</text><g class="hit" tabindex="0" data-tip="Without the contrastive loss: 58.3"><line x1="312.0" y1="445.5" x2="528.2" y2="445.5" class="track"/><circle cx="528.2" cy="445.5" r="4.8" class="f-mid ring"/><rect x="312.0" y="434.5" width="228.2" height="22.0" class="hitbox"/></g><text x="754.0" y="445.5" class="t t-small t-num" text-anchor="end" dominant-baseline="central">58.3</text></svg></div>
+    <figcaption><b>Figure 3 — Without the windowed block, set 4’s organs and boxes, or the comparison sentences, CoCa-CXR scores within a point of BioViL-T.</b> Average over five findings, in %; the dashed line is the paper’s average of BioViL-T’s published runs. The paper gives seed spreads per finding for its own two rows, none for the ablation. Sources: Tables 2 and 4.</figcaption>
+    <details class="data"><summary>Show as table</summary><div class="table-wrap"><table class="data stack"><thead><tr><th scope="col">Row</th><th scope="col" class="num">Con.</th><th scope="col" class="num">Pl. eff.</th><th scope="col" class="num">Pneumon.</th><th scope="col" class="num">Pneumoth.</th><th scope="col" class="num">Edema</th><th scope="col" class="num">Avg</th></tr></thead><tbody><tr><th scope="row" style="white-space:normal;min-width:180px">BioViL-T</th><td class="num">61.1</td><td class="num">67.0</td><td class="num">61.9</td><td class="num">42.6</td><td class="num">68.5</td><td class="num">60.2</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">BioViL w/reg (printed as “BioViL”)</th><td class="num">56.0</td><td class="num">63.0</td><td class="num">60.2</td><td class="num">42.5</td><td class="num">67.5</td><td class="num">57.8</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">CNN + Transformer</th><td class="num">44.0</td><td class="num">61.3</td><td class="num">45.1</td><td class="num">31.5</td><td class="num">65.5</td><td class="num">49.5</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">CheXRelNet</th><td class="num">47</td><td class="num">47</td><td class="num">47</td><td class="num">36</td><td class="num">49</td><td class="num">45.2</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Med-ST, its own Table 1 (accuracy, cross-validation)</th><td class="num">60.6</td><td class="num">58.5</td><td class="num">65.0</td><td class="num">54.2</td><td class="num">67.4</td><td class="num">61.1</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Med-ST, as printed in this paper</th><td class="num">60.6</td><td class="num">67.4</td><td class="num">58.5</td><td class="num">65.0</td><td class="num">54.2</td><td class="num">61.1</td></tr><tr class="ours"><th scope="row" style="white-space:normal;min-width:180px">CoCa-CXR (test)</th><td class="num">69.6<span class="ci">± 2.5</span></td><td class="num">68.1<span class="ci">± 1.5</span></td><td class="num">56.4<span class="ci">± 0.8</span></td><td class="num">59.3<span class="ci">± 2.6</span></td><td class="num">71.8<span class="ci">± 0.8</span></td><td class="num">65.0</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">CoCa-CXR (val.)</th><td class="num">70.4<span class="ci">± 0.5</span></td><td class="num">69.6<span class="ci">± 1.7</span></td><td class="num">61.4<span class="ci">± 1.6</span></td><td class="num">72.8<span class="ci">± 1.1</span></td><td class="num">71.8<span class="ci">± 0.3</span></td><td class="num">69.2</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without filtering the comparing pairs (set 2)</th><td class="num">65.2</td><td class="num">71.2</td><td class="num">54.9</td><td class="num">57.9</td><td class="num">70.9</td><td class="num">64.0</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without cleaning the descriptions (set 1)</th><td class="num">64.8</td><td class="num">70.0</td><td class="num">58.5</td><td class="num">56.4</td><td class="num">68.4</td><td class="num">63.6</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without stage 2</th><td class="num">61.3</td><td class="num">69.1</td><td class="num">55.8</td><td class="num">52.4</td><td class="num">67.9</td><td class="num">61.3</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without the windowed block</th><td class="num">58.8</td><td class="num">70.5</td><td class="num">58.8</td><td class="num">47.2</td><td class="num">69.6</td><td class="num">61.0</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without the comparison sentences (set 3)</th><td class="num">59.8</td><td class="num">65.3</td><td class="num">60.6</td><td class="num">47.7</td><td class="num">69.9</td><td class="num">60.7</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without set 4’s organs and boxes</th><td class="num">54.2</td><td class="num">69.1</td><td class="num">59.9</td><td class="num">53.2</td><td class="num">65.9</td><td class="num">60.5</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without stages 1 and 2</th><td class="num">58.5</td><td class="num">65.5</td><td class="num">58.9</td><td class="num">46.2</td><td class="num">62.9</td><td class="num">58.4</td></tr><tr><th scope="row" style="white-space:normal;min-width:180px">Without the contrastive loss</th><td class="num">57.4</td><td class="num">68.5</td><td class="num">49.8</td><td class="num">45.0</td><td class="num">70.7</td><td class="num">58.3</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>CoCa-CXR is tested on a “test” part of MS-CXR-T, which is released as one set of 1,326 pairs with no split; the paper says neither how the part was drawn nor how big it is. Its validation part scores 4.2 points higher on average and 13.5 on pneumothorax, which shows how far these numbers can move between parts of the benchmark; the ± in the paper’s table are spreads over four seeds. The lead is uneven too. Pneumothorax gives 16.7 of the net 24.1 points summed over the five findings, 69%, and CoCa-CXR is 5.5 points behind on pneumonia <span class="tag">derived</span>.</p>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col"></th><th scope="col">BioViL-T, its paper</th><th scope="col">Med-ST, its paper</th><th scope="col">CoCa-CXR</th></tr></thead><tbody><tr><th scope="row" style="white-space:normal;min-width:80px">Classifier</th><td style="white-space:normal;min-width:130px">an image encoder and a head, fine-tuned per finding</td><td style="white-space:normal;min-width:130px">an SVM on frozen features of both images</td><td style="white-space:normal;min-width:130px">the next word after “[condition] is”</td></tr><tr><th scope="row" style="white-space:normal;min-width:80px">Trained on</th><td style="white-space:normal;min-width:130px">Chest ImaGenome labels, 3,795 to 26,320 pairs per finding</td><td style="white-space:normal;min-width:130px">MS-CXR-T itself, by 10-fold cross-validation</td><td style="white-space:normal;min-width:130px">CXR-4, Chest ImaGenome statements included</td></tr><tr><th scope="row" style="white-space:normal;min-width:80px">Tested on</th><td style="white-space:normal;min-width:130px">the MS-CXR-T benchmark, 1,326 pairs</td><td style="white-space:normal;min-width:130px">the same pairs, in rotation</td><td style="white-space:normal;min-width:130px">a “test” part of MS-CXR-T, size not given</td></tr><tr><th scope="row" style="white-space:normal;min-width:80px">Score</th><td style="white-space:normal;min-width:130px">macro-accuracy</td><td style="white-space:normal;min-width:130px">“accuracy”</td><td style="white-space:normal;min-width:130px">macro-accuracy</td></tr><tr><th scope="row" style="white-space:normal;min-width:80px">Runs</th><td style="white-space:normal;min-width:130px">4 seeds</td><td style="white-space:normal;min-width:130px">3 seeds</td><td style="white-space:normal;min-width:130px">4 seeds</td></tr><tr><th scope="row" style="white-space:normal;min-width:80px">Average</th><td style="white-space:normal;min-width:130px">60.2</td><td style="white-space:normal;min-width:130px">61.1</td><td style="white-space:normal;min-width:130px">65.0</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 2 — Three protocols in one comparison table.</b> BioViL-T prints no average; 60.2 is the paper’s. Sources: Table 2; BioViL-T (arXiv:2301.04558), Table 2 and Appendix F; Med-ST (arXiv:2405.19654), Table 1 and Section 4.</p>
+
+  <p>The Med-ST row is also pasted in Med-ST’s column order (consolidation, edema, effusion, pneumonia, pneumothorax) under headers in another order, so four of its five values sit under the wrong finding <span class="tag">derived</span>. Its edema, 67.4, is printed as pleural effusion, and its pneumothorax, 54.2, as edema; the average is unaffected.</p>
+  <p>Within the paper, the ablation is the cleanest evidence: without the windowed block the average falls by 4.0 points, without set 4’s organs and boxes by 4.5, without the comparison sentences by 4.3. All of it is classification; no ablation touches the reports.</p>
+</section>
+
+<section id="gaps" data-toc="What's missing">
+  <h2><span class="n">05</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>The report test:</strong> split, size, scorer, decoding, and whether the references keep their comparison sentences.</li>
+    <li><strong>A report ablation:</strong> no single-image row and no report score without the windowed block, so nothing shows that the prior image improves the report.</li>
+    <li><strong>The MS-CXR-T split:</strong> how the 1,326 pairs became a validation and a test part, their sizes, and which pairs were kept out of training.</li>
+    <li><strong>The release:</strong> no code, and the data awaits institutional approval, per the rebuttal. The MICCAI text points to a supplement for per-structure box accuracy that wasn’t submitted; arXiv v1 has it.</li>
+    <li><strong>The reviews:</strong> the reviewer who scored 2 found the windowed block incremental to CoCa and the purpose of each training set unclear, and still recommended rejection after the rebuttal. The others (4 and 5) asked for the Gemini prompts, BLEU and ROUGE, and MAIRA-2; the rebuttal promised all three, and the final paper adds BLEU and ROUGE.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">06</span>Takeaways for building a longitudinal report generator</h2>
+  <ol class="num-list">
+    <li><strong>Score the comparison sentences on their own.</strong> Whole-report RadGraph F1 gave 23.7 with them and 24.2 without. Finding-level checks of change exist: the temporal metric in our <a href="/research-blog/diff-rrg-report-generation/">Diff-RRG post</a>, and the comparison attribute of <a href="/research-blog/spec-cxr-report-evaluation/">SPEC-CXR</a>, which also scored Med-Gemini.</li>
+    <li><strong>Print the single-image row, and score both settings against the same references.</strong> Otherwise a longitudinal generator can’t show what the prior image adds.</li>
+    <li><strong>A local window over the prior counted on classification:</strong> 4.0 points in the ablation. Size it against how far patients move between films; here it reaches a tenth of the image’s width.</li>
+    <li><strong>Check LLM-rewritten targets before training on them.</strong> Gemini wrote the targets of 484,049 training samples here, with no check reported <span class="tag">derived</span>.</li>
+    <li><strong>Copy baselines with their protocol and their column order.</strong> One row here comes from cross-validation on the benchmark itself, with four values under the wrong finding.</li>
+  </ol>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Chen, Y., Xu, S., Sellergren, A., Matias, Y., Hassidim, A., Shetty, S., Golden, D., Yuille, A. L., Yang, L. <a href="https://papers.miccai.org/miccai-2025/0159-Paper2248.html">CoCa-CXR: Contrastive Captioners Learn Strong Temporal Structures for Chest X-Ray Vision-Language Understanding</a>. MICCAI 2025, LNCS 15965, pp. 78–88 (Johns Hopkins University, Google Research). The page holds the reviews and the rebuttal. <a href="https://papers.miccai.org/miccai-2025/paper/2248_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04978-0_8">doi</a> · <a href="https://arxiv.org/abs/2502.20509">arXiv:2502.20509</a> v1 (27 Feb 2025; adds the Gemini prompts and per-structure box accuracy; its report table has RadGraph F1 only).</li>
+    <li>Yang, L., Xu, S., Sellergren, A., et al. Advancing multimodal medical capabilities of Gemini (Med-Gemini): <a href="https://arxiv.org/abs/2405.03162">arXiv:2405.03162</a> (Tables 2 and 8, Section A.3).</li>
+    <li>Tanno, R., et al. Flamingo-CXR: <a href="https://arxiv.org/abs/2311.18260">arXiv:2311.18260</a> v3. Hyland, S. L., et al. MAIRA-1: <a href="https://arxiv.org/abs/2311.13668">arXiv:2311.13668</a> (Table 5). Bannur, S., et al. MAIRA-2: <a href="https://arxiv.org/abs/2406.04449">arXiv:2406.04449</a> (Table 1).</li>
+    <li>Bannur, S., et al. BioViL-T (CVPR 2023): <a href="https://arxiv.org/abs/2301.04558">arXiv:2301.04558</a> v2. <a href="https://physionet.org/content/ms-cxr-t/1.0.0/">MS-CXR-T on PhysioNet</a>. Yang, J., et al. Med-ST: <a href="https://arxiv.org/abs/2405.19654">arXiv:2405.19654</a> v1. <a href="https://physionet.org/content/chest-imagenome/1.0.0/">Chest ImaGenome on PhysioNet</a>.</li>
+    <li>Jain, S., et al. RadGraph: <a href="https://arxiv.org/abs/2106.14463">arXiv:2106.14463</a>. Yu, F., et al. Evaluating progress in automatic chest X-ray radiology report generation. Patterns 4(9), 2023: <a href="https://doi.org/10.1016/j.patter.2023.100802">doi</a>; code <a href="https://github.com/rajpurkarlab/CXR-Report-Metric">rajpurkarlab/CXR-Report-Metric</a>. Delbrouck, J.-B., et al. RadGraph-F1: <a href="https://arxiv.org/abs/2210.12186">arXiv:2210.12186</a>.</li>
+    <li>Yu, J., et al. CoCa: <a href="https://arxiv.org/abs/2205.01917">arXiv:2205.01917</a>.</li>
+    <li>Our posts on <a href="/research-blog/diff-rrg-report-generation/">Diff-RRG</a> and <a href="/research-blog/spec-cxr-report-evaluation/">SPEC-CXR</a>.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Chen et al., MICCAI 2025 (LNCS 15965, pp. 78–88). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to another source. Figures were generated with Python from the papers’ tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
