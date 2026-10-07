@@ -348,7 +348,7 @@ footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
     <div class="tile" role="listitem"><div class="v">25,494</div><div class="l">CT–report pairs released: the abdominal benchmark later models use</div></div>
     <div class="tile" role="listitem"><div class="v">490</div><div class="l">visual tokens per scan reach the language model<sup>*</sup></div></div>
     <div class="tile" role="listitem"><div class="v">0.10</div><div class="l">recall over 30 findings, when a later paper scored Merlin’s test reports</div></div>
-    <div class="tile" role="listitem"><div class="v">0.293</div><div class="l">full-report RadGraph-F1 in the table; the chart shows about 0.37<sup>*</sup></div></div>
+    <div class="tile" role="listitem"><div class="v">0.293</div><div class="l">full-report RadGraph-F1, the value the paper prints; its chart draws about 0.37<sup>*</sup></div></div>
   </div>
   <p class="sm" style="margin:6px 0 0">* Our arithmetic from the Methods, and our measurement of the paper’s chart (<a href="#results">section 05</a>).</p>
 
@@ -488,7 +488,7 @@ report = " ".join(generate(head, ct, o) <span class="k">for</span> o <span class
 
   <div class="callout">
     <span class="label">One value, two versions <span class="tag">our observation</span></span>
-    <p>In Supplementary Table 8, the full-report RadGraph-F1 pair (0.008 for RadFM, 0.293 for Merlin) is identical to the musculoskeletal row above it. In the chart of the same data, Extended Data Fig. 3b, Merlin’s full-report bar is clearly taller than the musculoskeletal one. We measured the bars: the 13 section bars reproduce the table to within 0.003, and the full-report bar comes out at about 0.37. The other three full-report values agree between table and chart, and the pair is already in the June 2024 preprint. Until this is clarified, quote the value with its source.</p>
+    <p>In Supplementary Table 8, the full-report RadGraph-F1 pair (0.008 for RadFM, 0.293 for Merlin) is identical to the musculoskeletal row above it. In the chart of the same data, Extended Data Fig. 3b, Merlin’s full-report bar is clearly taller than the musculoskeletal one. We measured the bars: the 13 section bars reproduce the table to within 0.003, and the full-report bar comes out at about 0.37. The other three full-report values agree between table and chart, and the pair is already in the June 2024 preprint. This post goes with the value the paper prints, 0.293.</p>
   </div>
 </section>
 
@@ -538,7 +538,7 @@ report = " ".join(generate(head, ct, o) <span class="k">for</span> o <span class
 <section id="takeaways" data-toc="Takeaways">
   <h2><span class="n">09</span>Takeaways for building a CT report generator</h2>
   <ol class="num-list">
-    <li><strong>Quote Merlin’s report numbers with their source.</strong> The same model has a RadGraph-F1 of 0.187, 0.237, 0.293 or about 0.37, depending on who computed it.</li>
+    <li><strong>Quote Merlin’s report numbers with their source.</strong> The same model has a RadGraph-F1 of 0.187, 0.237 or 0.293, depending on who computed it.</li>
     <li><strong>Score findings, not only text.</strong> A recall of 0.10 over 30 findings is invisible in BLEU, ROUGE-2, BERT score and RadGraph-F1.</li>
     <li><strong>Score per section, next to a trivial baseline, and mind section length.</strong> A 0.88 on a section that is nearly always normal says little, and BLEU-4 tops out at 0.03 on a three-token section.</li>
     <li><strong>Generate the report as a whole, and clean the targets.</strong> Independent passes contradicted each other, and slice numbers in the training reports came back as inventions.</li>
