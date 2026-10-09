@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CoCa-CXR, read for report generation</title>
+<title>CoCa-CXR, writing what changed doesn’t lift its score</title>
 <meta name="description" content="A report-generation reading of CoCa-CXR (MICCAI 2025), a contrastive captioner that reads the prior chest X-ray: its RadGraph F1 is 23.7 with the comparison sentences and 24.2 without, its baselines are copied, and its evidence of reading change is a classification table.">
-<meta property="og:title" content="CoCa-CXR, read for report generation">
+<meta property="og:title" content="CoCa-CXR, writing what changed doesn’t lift its score">
 <meta property="og:description" content="A report-generation reading of CoCa-CXR (MICCAI 2025), a contrastive captioner that reads the prior chest X-ray: its RadGraph F1 is 23.7 with the comparison sentences and 24.2 without, its baselines are copied, and its evidence of reading change is a classification table.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://jbdel.github.io/research-blog/coca-cxr-report-generation/">
@@ -15,7 +15,7 @@
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="CoCa-CXR, read for report generation: title card">
+<meta property="og:image:alt" content="CoCa-CXR, writing what changed doesn’t lift its score: title card">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://jbdel.github.io/research-blog/coca-cxr-report-generation/og.png">
 <link rel="canonical" href="https://jbdel.github.io/research-blog/coca-cxr-report-generation/">
@@ -326,7 +326,7 @@ footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
 <div class="hero" id="top">
   <div class="in">
     <p class="kicker">Research blog · Chest X-ray report generation</p>
-    <h1>CoCa-CXR, read for report generation</h1>
+    <h1>CoCa-CXR, writing what changed doesn’t lift its score</h1>
     <p class="dek">CoCa-CXR reads a chest X-ray next to the previous one and writes what it sees and what changed. Its report score is no higher when it writes the changes, so this post reads what that score can see, how the training text was rewritten, and whose runs fill the comparison tables.</p>
     <div class="meta">
       <span><b>Paper</b> Yixiong Chen, Shawn Xu, … Alan L. Yuille, Lin Yang. <a href="https://papers.miccai.org/miccai-2025/0159-Paper2248.html"><i>CoCa-CXR: Contrastive Captioners Learn Strong Temporal Structures for Chest X-Ray Vision-Language Understanding</i></a>. MICCAI 2025, LNCS 15965, pp. 78–88</span>

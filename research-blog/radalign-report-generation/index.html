@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RadAlign, read for report generation</title>
+<title>RadAlign, the report writer that never sees the image</title>
 <meta name="description" content="A report-generation reading of RadAlign (MICCAI 2025): an off-the-shelf LLM writes chest X-ray reports from five predicted labels, a looked-up paragraph and seven retrieved reports. GREEN rises from 0.634 to 0.678 while its count of false findings, printed in the first arXiv version, rises from 384 to 701.">
-<meta property="og:title" content="RadAlign, read for report generation">
+<meta property="og:title" content="RadAlign, the report writer that never sees the image">
 <meta property="og:description" content="A report-generation reading of RadAlign (MICCAI 2025): an off-the-shelf LLM writes chest X-ray reports from five predicted labels, a looked-up paragraph and seven retrieved reports. GREEN rises from 0.634 to 0.678 while its count of false findings, printed in the first arXiv version, rises from 384 to 701.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://jbdel.github.io/research-blog/radalign-report-generation/">
@@ -15,7 +15,7 @@
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:image:alt" content="RadAlign, read for report generation: title card">
+<meta property="og:image:alt" content="RadAlign, the report writer that never sees the image: title card">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://jbdel.github.io/research-blog/radalign-report-generation/og.png">
 <link rel="canonical" href="https://jbdel.github.io/research-blog/radalign-report-generation/">
@@ -327,7 +327,7 @@ footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
 <div class="hero" id="top">
   <div class="in">
     <p class="kicker">Research blog · Chest X-ray report generation</p>
-    <h1>RadAlign, read for report generation</h1>
+    <h1>RadAlign, the report writer that never sees the image</h1>
     <p class="dek">RadAlign trains a small classifier, then lets an off-the-shelf LLM write the chest X-ray report from its predictions and seven retrieved reports. It reports a GREEN of 0.678 against 0.634 for a 2021 baseline; this post reads what the LLM is told about the image, and what that gain is made of.</p>
     <div class="meta">
       <span><b>Paper</b> Difei Gu, Yunhe Gao, … Mu Zhou, Dimitris Metaxas. <a href="https://papers.miccai.org/miccai-2025/0741-Paper3308.html"><i>RadAlign: Advancing Radiology Report Generation with Vision-Language Concept Alignment</i></a>. MICCAI 2025, LNCS 15966, pp. 484–494</span>
