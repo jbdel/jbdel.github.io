@@ -332,7 +332,7 @@ footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
       <span><b>Paper</b> Jung Oh Lee, Junwoo Cho, … Donggeun Yoo, Taesoo Kim (Lunit). <a href="https://papers.miccai.org/miccai-2025/0856-Paper3344.html"><i>SPEC-CXR: Advancing Clinical Safety through Entity-Level Performance Evaluation of Chest X-ray Report Generation</i></a>. MICCAI 2025, LNCS 15966, pp. 594–604</span>
       <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
       <span><b>Published</b> 5 Oct 2026</span>
-      <span><b>Reading time</b> ~8 min</span>
+      <span><b>Reading time</b> ~9 min</span>
       <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a> · <a href="/research-blog/?tag=main">Main</a></span>
       <span><b>Disclosure</b> I am a co-author of GREEN and RadGraph-F1, two of the metrics this paper positions itself against.</span>
     </div>
@@ -489,6 +489,16 @@ footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
     <li><strong>Publish the averaging rule and the support.</strong> CXRReportGen’s 0.189 becomes 0.203 on the 13 groups behind MAIRA-2’s 0.205.</li>
     <li><strong>Don’t rank LLM error counts on ReXVal alone.</strong> The best five sit between 0.76 and 0.79, under an inter-expert bound of 0.81, and 200 pairs don’t separate them.</li>
   </ol>
+</section>
+
+<section id="use" data-toc="Use it today">
+  <h2><span class="n">07</span>What you can use today</h2>
+  <ul>
+    <li><strong>The scorer.</strong> <a href="https://github.com/lunit-io/spec-cxr">lunit-io/spec-cxr</a> is Python code with a Dockerfile. <code>run_evaluation.py --gt … --pred … --model …</code> takes two JSON files of reports matched by study ID and writes a per-finding table (presence precision, recall and F1, with the counts behind them) and each report’s error count by type. The location, severity and comparison verdicts of each finding come from scoring one pair with <code>SPECCXRMetric</code>; the paper’s attribute accuracies aren’t computed. The LLM judge is called through the OpenAI or Anthropic API: GPT-4o by default; the README also names Claude Sonnet 4, which Anthropic has since <a href="https://docs.claude.com/en/docs/about-claude/model-deprecations">retired</a>.</li>
+    <li><strong>The licence.</strong> Lunit’s own: non-commercial research and evaluation only, not for clinical use; modified versions stay in-house, and the code may be passed on only unmodified, under the same licence.</li>
+    <li><strong>The checklist.</strong> The 122 findings and diagnoses are plain YAML files in the repository (<code>configs/finding.yaml</code> and <code>configs/ddx.yaml</code>): a ready list for a per-finding table, even without the scorer, under the same licence.</li>
+    <li><strong>How to use it well.</strong> Name the judge and keep it fixed: across the paper’s eight, agreement with radiologists runs from 0.597 to 0.777, but the best, Claude 3.5 Sonnet, has been retired from Anthropic’s API, and o1 and o3-mini leave <a href="https://developers.openai.com/api/docs/deprecations">OpenAI’s API</a> on 23 October 2026. The release runs a two-step variant of the validated pipeline, so check a sample by hand. Report the per-finding table next to any report-level number.</li>
+  </ul>
 </section>
 
 <section id="appendix" data-toc="Sources">
