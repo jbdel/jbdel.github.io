@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CT-Bench, a four-choice lesion exam where GPT-4V scores 28%</title>
+<meta name="description" content="CT-Bench adds a description and a size to 20,335 DeepLesion CT lesions and builds 2,850 four-choice questions on them: what the release holds, and what its baselines say.">
+<meta property="og:title" content="CT-Bench, a four-choice lesion exam where GPT-4V scores 28%">
+<meta property="og:description" content="CT-Bench adds a description and a size to 20,335 DeepLesion CT lesions and builds 2,850 four-choice questions on them: what the release holds, and what its baselines say.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/ct-bench-lesion-benchmark/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/ct-bench-lesion-benchmark/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="CT-Bench, a four-choice lesion exam where GPT-4V scores 28%: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/ct-bench-lesion-benchmark/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/ct-bench-lesion-benchmark/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://www.melba-journal.org/papers/2026:036.html">Paper</a>
+      <a href="https://www.melba-journal.org/pdf/2026:036.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2602.14879">arXiv</a>
+      <a href="https://kaggle.com/datasets/cd1661d6d6aeab08b8eb99b58885b4489d76fc5ac07d5aac76cae577e6426e2f">Data</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · CT lesion description and question answering</p>
+    <h1>CT-Bench, a four-choice lesion exam where GPT-4V scores 28%</h1>
+    <p class="dek">CT-Bench gives 20,335 lesions from NIH’s DeepLesion a curated description and a size, and adds 2,850 four-choice questions about them. What the release holds, how to use it, and what its baseline numbers can and can’t tell you.</p>
+    <div class="meta">
+      <span><b>Paper</b> Qingqing Zhu, Qiao Jin, … Ronald M. Summers, Zhiyong Lu (NIH). <a href="https://www.melba-journal.org/papers/2026:036.html"><i>CT-Bench: A Comprehensive Benchmark for Multimodal AI in Computed Tomography Analysis</i></a>. Machine Learning for Biomedical Imaging (MELBA) 2026:036, pp. 739–757, Special Issue on MICCAI Open Data 2026</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 12 Oct 2026</span>
+      <span><b>Reading time</b> ~10 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=melba-2026">MELBA 2026</a> · <a href="/research-blog/?tag=miccai-open-data">MICCAI Open Data</a></span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">20,335</div><div class="l">CT lesions with a curated description, a size and a bounding box</div></div>
+    <div class="tile" role="listitem"><div class="v">2,850</div><div class="l">four-choice questions in seven tasks, 1,900 of them for testing</div></div>
+    <div class="tile" role="listitem"><div class="v">28.4%</div><div class="l">GPT-4V on the test questions; guessing gives 25%</div></div>
+    <div class="tile" role="listitem"><div class="v">80.4%</div><div class="l">two senior radiologists, on 100 sampled cases</div></div>
+  </div>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>The release is the contribution.</strong> 20,335 lesions from 7,795 CT studies of 3,793 patients, each with a key slice, a box, a one-sentence description and a size. On Kaggle (15.14 GB) under CC BY-NC-SA 4.0: free for research, not for commercial use.</li>
+      <li><strong>General models sat near guessing.</strong> On 1,900 test questions, GPT-4V scores 28.4% and Gemini 1.5 Pro 33.8%; nothing newer was run. The best model as released, BiomedCLIP, is at 38.1%.</li>
+      <li><strong>Training on the lesions helps mostly when the lesion is boxed.</strong> Fine-tuned BiomedCLIP goes from 41.0% to 62.0% where a box marks the lesion; a second copy, trained without boxes, goes from 34.9% to 41.4% where nothing does. The headline total, 50.3%, is the box-trained model’s.</li>
+      <li><strong>The human yardstick is thin.</strong> Two senior radiologists average 80.4% and a junior doctor 58.2%, on 100 cases spread over 13 task settings.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="Why lesion by lesion">
+  <h2><span class="n">01</span>What a report must get right, lesion by lesion</h2>
+  <p>Much of a CT report is a list of lesions: where each one is, what it is, how big, what it looks like. The public data behind CT report generators mostly doesn’t work at that grain. <a href="/research-blog/merlin-report-generation/">Merlin</a> and CT-RATE pair a whole volume with a whole report, so nothing in them ties a sentence to a place in the image. DeepLesion, NIH’s 2018 release, marks lesions on key slices with a box and two diameters, and has no words.</p>
+  <p>CT-Bench, from NIH and with DeepLesion’s senior author among its authors, adds the words. It appeared in MELBA’s special issue on MICCAI Open Data, so the paper is mostly the description of a resource in two parts: a set of lesions with text, and an exam built on them.</p>
+
+  <figure id="fig-flow">
+    <div class="flow" role="img" aria-label="How CT-Bench is built: DeepLesion lesions are matched to the report sentence that bookmarks them; a fine-tuned GPT-4 drafts a description and a size, which people review; the result is a lesion set with patient-level splits, and a four-choice exam drawn from its validation and test parts">
+      <div class="row">
+        <div class="box"><div class="t1">DeepLesion (NIH)</div><div class="t2">Key CT slices with a box and two diameters per lesion, bookmarked by radiologists. No text.</div></div>
+        <div class="shape">32,735 lesions<br>as released</div>
+      </div>
+      <div class="conn"><div>each lesion matched to the report sentence that carries its bookmark</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">LLM + review</span><div class="t1">Description and size</div><div class="t2">A fine-tuned GPT-4 drafts both from the sentence; annotators correct them and a medically trained expert verifies.</div></div>
+        <div class="shape">one sentence<br>+ size per lesion</div>
+      </div>
+      <div class="conn"><div>lesions without a usable sentence or box are dropped</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">part 1</span><div class="t1">Lesion Image and Metadata Set</div><div class="t2">Slice, box, description, size, body part and lesion type. Split by patient.</div></div>
+        <div class="shape">20,335 lesions<br>15,380 / 1,758 / 3,197</div>
+      </div>
+      <div class="conn"><div>questions written from validation and test lesions; a doctor picks three plausible wrong answers</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">part 2</span><div class="t1">QA benchmark</div><div class="t2">Seven tasks, four choices each, most asked twice: with and without a box drawn on the image.</div></div>
+        <div class="shape">2,850 questions<br>950 + 1,900</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--ink)"></i>model-assisted annotation</span>
+        <span><i style="border:2px solid var(--ink)"></i>released</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — DeepLesion gets its words, then an exam.</b> The two released parts are outlined. Sources: Sections 5.1 to 5.10; Tables 1 and 3; the DeepLesion count is from its public release.</figcaption>
+  </figure>
+</section>
+
+<section id="data" data-toc="The lesion set">
+  <h2><span class="n">02</span>The lesion set</h2>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Split</th><th scope="col" class="num">Patients</th><th scope="col" class="num">Studies</th><th scope="col" class="num">Lesions</th></tr></thead><tbody><tr><th scope="row">Training</th><td class="num">2,835</td><td class="num">5,875</td><td class="num">15,380</td></tr><tr><th scope="row">Validation</th><td class="num">342</td><td class="num">667</td><td class="num">1,758</td></tr><tr><th scope="row">Test</th><td class="num">616</td><td class="num">1,253</td><td class="num">3,197</td></tr><tr class="ours"><th scope="row">Total</th><td class="num">3,793</td><td class="num">7,795</td><td class="num">20,335</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — The lesion set, split by patient.</b> No patient is in two splits. Source: Table 1.</p>
+  <p>DeepLesion’s public release holds 32,735 lesions, so CT-Bench keeps about 62% of them <span class="tag">derived</span>: those with a valid box and a report sentence that could be tied to the lesion without ambiguity.</p>
+  <p>Each lesion has a description of one sentence (where it is, what it is, sometimes what it suggests), a size as text, the box, and DeepLesion’s metadata: age, sex, pixel and slice spacing, display window. A second file maps each description to standard radiology terms: a lesion type and a body part for over 98% of lesions, but an imaging property such as “enhancing” or “calcified” for only 4,841 lesions (23.8%). Scanner and contrast phase aren’t available.</p>
+  <p>The sentences were not written from scratch. A GPT-4 model, fine-tuned on 500 curated cases, drafted each description and size from the radiologist’s original sentence; people then reviewed every draft: two annotators and a medically trained expert for validation and test lesions, one annotator and a medical professional for training lesions. The paper shows why the medical check matters: in the first round, annotators with a PhD but no medical training were right 56% to 73% of the time, the one with an MD 93%. It gives no error rate for the released descriptions.</p>
+  <div class="callout soft">
+    <span class="label">What this means for report generation <span class="tag">our observation</span></span>
+    <p>The descriptions are standardised on purpose: the annotation rules drop comparisons that one image can’t support, such as “largest”, and the size sits in its own field. A model trained on this set learns to name one marked lesion in one sentence. It doesn’t learn to compare with a prior scan, to choose which lesions deserve a sentence, or to write an impression.</p>
+  </div>
+</section>
+
+<section id="exam" data-toc="The exam">
+  <h2><span class="n">03</span>The exam</h2>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Task</th><th scope="col">The model sees</th><th scope="col">and picks</th><th scope="col" class="num">Test questions</th><th scope="col" class="num">Validation</th></tr></thead><tbody><tr><th scope="row">Describe the lesion (Img2txt)</th><td style="white-space:normal">one CT slice</td><td style="white-space:normal">one of four lesion descriptions</td><td class="num">200 + 200</td><td class="num">100 + 100</td></tr><tr><th scope="row">Describe it, with context (CT2txt)</th><td style="white-space:normal">nine consecutive slices</td><td style="white-space:normal">one of four lesion descriptions</td><td class="num">200 + 200</td><td class="num">100 + 100</td></tr><tr><th scope="row">Find the image (Txt2img)</th><td style="white-space:normal">a lesion description</td><td style="white-space:normal">one of four CT slices</td><td class="num">200 + 200</td><td class="num">100 + 100</td></tr><tr><th scope="row">Find the box (Txt2bbox)</th><td style="white-space:normal">a lesion description</td><td style="white-space:normal">one of four boxed slices</td><td class="num">100</td><td class="num">50</td></tr><tr><th scope="row">Name an attribute (Img2attrib)</th><td style="white-space:normal">one CT slice</td><td style="white-space:normal">one of four attributes (place, type or property)</td><td class="num">100 + 100</td><td class="num">50 + 50</td></tr><tr><th scope="row">Name an attribute, with context (CT2attrib)</th><td style="white-space:normal">nine consecutive slices</td><td style="white-space:normal">one of four attributes</td><td class="num">100 + 100</td><td class="num">50 + 50</td></tr><tr><th scope="row">Estimate the size (Img2size)</th><td style="white-space:normal">one CT slice</td><td style="white-space:normal">one of four size ranges</td><td class="num">100 + 100</td><td class="num">50 + 50</td></tr><tr class="ours"><th scope="row">All seven</th><td></td><td></td><td class="num">900 + 1,000</td><td class="num">450 + 500</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 2 — Seven tasks, four choices each.</b> Question counts are without + with a box drawn around the lesion; “find the box” exists only with boxes. Sources: Table 3; Appendix B.3.</p>
+  <p>Wrong answers drawn at random were too easy, the authors report, so they are picked to be hard: BiomedCLIP, an image-text model, retrieves lesions that look similar, and a doctor chooses three plausible wrong answers among them. The same questions come in two formats, one for models that score an image against each text (CLIP-style) and one for chat models.</p>
+  <div class="callout">
+    <span class="label">Is guessing really 25% on the size task? <span class="tag">our observation</span></span>
+    <p>The size task always offers the same four ranges: under 1 cm, 1 to 3 cm, 3 to 10 cm, over 10 cm. In the lesion set, 58.1% of lesions fall in the second one. If the questions follow that mix, answering “1 to 3 cm” every time would beat every model in the paper, whose best size score is 50%. The paper doesn’t give the answer mix of its questions; count it before reading that task against 25%.</p>
+  </div>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">04</span>What the baselines score</h2>
+  <figure id="fig-total">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 394" role="img" aria-label="Total accuracy on the CT-Bench question set by reader or model, with guessing at 25%" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">human readers, 100 sampled cases</text><rect x="241.4" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="256.4" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">fine-tuned on CT-Bench</text><rect x="419.6" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="434.6" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">as released</text><line x1="262.0" y1="36.0" x2="262.0" y2="364.0" class="grid"/><text x="262.0" y="378.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0%</text><line x1="371.5" y1="36.0" x2="371.5" y2="364.0" class="floor"/><text x="371.5" y="378.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">25%</text><line x1="481.0" y1="36.0" x2="481.0" y2="364.0" class="grid"/><text x="481.0" y="378.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50%</text><line x1="590.5" y1="36.0" x2="590.5" y2="364.0" class="grid"/><text x="590.5" y="378.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">75%</text><line x1="700.0" y1="36.0" x2="700.0" y2="364.0" class="grid"/><text x="700.0" y="378.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100%</text><text x="376.5" y="28.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">guessing, 25%</text><text x="250.0" y="53.5" class="t" text-anchor="end" dominant-baseline="central">Two senior radiologists (mean)</text><g class="hit" tabindex="0" data-tip="Two senior radiologists (mean): 80.4% · 79.2 and 81.5 on 100 sampled cases"><path class="f-mid" d="M262.0,46.5H610.2Q614.2,46.5 614.2,50.5V56.5Q614.2,60.5 610.2,60.5H262.0Z"/><text x="621.2" y="53.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">80.4</text><rect x="262.0" y="41.5" width="402.2" height="24.0" class="hitbox"/></g><text x="250.0" y="80.5" class="t" text-anchor="end" dominant-baseline="central">Junior doctor</text><g class="hit" tabindex="0" data-tip="Junior doctor: 58.2% · 100 sampled cases"><path class="f-mid" d="M262.0,73.5H512.9Q516.9,73.5 516.9,77.5V83.5Q516.9,87.5 512.9,87.5H262.0Z"/><text x="523.9" y="80.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">58.2</text><rect x="262.0" y="68.5" width="304.9" height="24.0" class="hitbox"/></g><text x="250.0" y="107.5" class="t t-strong" text-anchor="end" dominant-baseline="central">BiomedCLIP, fine-tuned with boxes</text><g class="hit" tabindex="0" data-tip="BiomedCLIP, fine-tuned with boxes: 50.3% · 1,900 test questions"><path class="f-emph" d="M262.0,100.5H478.3Q482.3,100.5 482.3,104.5V110.5Q482.3,114.5 478.3,114.5H262.0Z"/><text x="489.3" y="107.5" class="t t-small t-num t-strong" text-anchor="start" dominant-baseline="central">50.3</text><rect x="262.0" y="95.5" width="270.3" height="24.0" class="hitbox"/></g><text x="250.0" y="134.5" class="t" text-anchor="end" dominant-baseline="central">BiomedCLIP, fine-tuned without boxes</text><g class="hit" tabindex="0" data-tip="BiomedCLIP, fine-tuned without boxes: 40.7% · 1,900 test questions"><path class="f-emph" d="M262.0,127.5H436.3Q440.3,127.5 440.3,131.5V137.5Q440.3,141.5 436.3,141.5H262.0Z"/><text x="447.3" y="134.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">40.7</text><rect x="262.0" y="122.5" width="228.3" height="24.0" class="hitbox"/></g><text x="250.0" y="161.5" class="t" text-anchor="end" dominant-baseline="central">BiomedCLIP</text><g class="hit" tabindex="0" data-tip="BiomedCLIP: 38.1% · 1,900 test questions"><path class="f-ctx" d="M262.0,154.5H424.9Q428.9,154.5 428.9,158.5V164.5Q428.9,168.5 424.9,168.5H262.0Z"/><text x="435.9" y="161.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">38.1</text><rect x="262.0" y="149.5" width="216.9" height="24.0" class="hitbox"/></g><text x="250.0" y="188.5" class="t" text-anchor="end" dominant-baseline="central">Gemini 1.5 Pro</text><g class="hit" tabindex="0" data-tip="Gemini 1.5 Pro: 33.8% · 1,900 test questions"><path class="f-ctx" d="M262.0,181.5H406.0Q410.0,181.5 410.0,185.5V191.5Q410.0,195.5 406.0,195.5H262.0Z"/><text x="417.0" y="188.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">33.8</text><rect x="262.0" y="176.5" width="198.0" height="24.0" class="hitbox"/></g><text x="250.0" y="215.5" class="t" text-anchor="end" dominant-baseline="central">Dragonfly</text><g class="hit" tabindex="0" data-tip="Dragonfly: 31.7% · 1,900 test questions"><path class="f-ctx" d="M262.0,208.5H396.8Q400.8,208.5 400.8,212.5V218.5Q400.8,222.5 396.8,222.5H262.0Z"/><text x="407.8" y="215.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">31.7</text><rect x="262.0" y="203.5" width="188.8" height="24.0" class="hitbox"/></g><text x="250.0" y="242.5" class="t" text-anchor="end" dominant-baseline="central">GPT-4V</text><g class="hit" tabindex="0" data-tip="GPT-4V: 28.4% · 1,900 test questions"><path class="f-ctx" d="M262.0,235.5H382.4Q386.4,235.5 386.4,239.5V245.5Q386.4,249.5 382.4,249.5H262.0Z"/><text x="393.4" y="242.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">28.4</text><rect x="262.0" y="230.5" width="174.4" height="24.0" class="hitbox"/></g><text x="250.0" y="269.5" class="t" text-anchor="end" dominant-baseline="central">PMC-CLIP</text><g class="hit" tabindex="0" data-tip="PMC-CLIP: 26.9% · 1,900 test questions"><path class="f-ctx" d="M262.0,262.5H375.8Q379.8,262.5 379.8,266.5V272.5Q379.8,276.5 375.8,276.5H262.0Z"/><text x="386.8" y="269.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">26.9</text><rect x="262.0" y="257.5" width="167.8" height="24.0" class="hitbox"/></g><text x="250.0" y="296.5" class="t" text-anchor="end" dominant-baseline="central">RadFM</text><g class="hit" tabindex="0" data-tip="RadFM: 15.3% · 1,900 test questions; zero on two task cells"><path class="f-ctx" d="M262.0,289.5H325.0Q329.0,289.5 329.0,293.5V299.5Q329.0,303.5 325.0,303.5H262.0Z"/><text x="336.0" y="296.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">15.3</text><rect x="262.0" y="284.5" width="117.0" height="24.0" class="hitbox"/></g><text x="250.0" y="323.5" class="t" text-anchor="end" dominant-baseline="central">LLaVA-Med</text><g class="hit" tabindex="0" data-tip="LLaVA-Med: 14.5% · 1,900 test questions; zero on five task cells"><path class="f-ctx" d="M262.0,316.5H321.5Q325.5,316.5 325.5,320.5V326.5Q325.5,330.5 321.5,330.5H262.0Z"/><text x="332.5" y="323.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">14.5</text><rect x="262.0" y="311.5" width="113.5" height="24.0" class="hitbox"/></g><text x="250.0" y="350.5" class="t" text-anchor="end" dominant-baseline="central">RadFM, fine-tuned on captions</text><g class="hit" tabindex="0" data-tip="RadFM, fine-tuned on captions: 0.0% · zero on every task"><text x="269.0" y="350.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">0.0</text><rect x="262.0" y="338.5" width="50.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 2 — Models as released top out at 38%; fine-tuning takes the best one to 50%, still far from the senior readers.</b> Total accuracy over all tasks. Models answered the 1,900 test questions; the readers answered 100 sampled cases, so their bars are rougher (Section 05) and not on the same questions. Sources: Tables 4 and S11.</figcaption>
+    <details class="data"><summary>Show every task as a table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Model or reader</th><th scope="col" class="num">Describe (1) w/o</th><th scope="col" class="num">Describe (1) w/</th><th scope="col" class="num">Describe (9) w/o</th><th scope="col" class="num">Describe (9) w/</th><th scope="col" class="num">Find the image w/o</th><th scope="col" class="num">Find the image w/</th><th scope="col" class="num">Find the box w/</th><th scope="col" class="num">Attribute (1) w/o</th><th scope="col" class="num">Attribute (1) w/</th><th scope="col" class="num">Attribute (9) w/o</th><th scope="col" class="num">Attribute (9) w/</th><th scope="col" class="num">Size w/o</th><th scope="col" class="num">Size w/</th><th scope="col" class="num">Avg w/o</th><th scope="col" class="num">Avg w/</th><th scope="col" class="num">Total</th></tr></thead><tbody><tr class="ours"><th scope="row">BiomedCLIP, fine-tuned with boxes</th><td class="num">38.5</td><td class="num">68</td><td class="num">40.5</td><td class="num">62</td><td class="num">29</td><td class="num">57.5</td><td class="num">67</td><td class="num">44</td><td class="num">67</td><td class="num">44</td><td class="num">65</td><td class="num">30</td><td class="num">46</td><td class="num">37.11</td><td class="num">62.00</td><td class="num">50.26</td></tr><tr><th scope="row">BiomedCLIP, fine-tuned without boxes</th><td class="num">42</td><td class="num">42</td><td class="num">41</td><td class="num">43</td><td class="num">32</td><td class="num">36</td><td class="num">29</td><td class="num">54</td><td class="num">45</td><td class="num">46</td><td class="num">48</td><td class="num">43</td><td class="num">36</td><td class="num">41.44</td><td class="num">40.00</td><td class="num">40.66</td></tr><tr><th scope="row">BiomedCLIP</th><td class="num">38</td><td class="num">42.5</td><td class="num">37</td><td class="num">42</td><td class="num">26.5</td><td class="num">34.5</td><td class="num">35</td><td class="num">44</td><td class="num">57</td><td class="num">37</td><td class="num">42</td><td class="num">30</td><td class="num">38</td><td class="num">34.89</td><td class="num">41.00</td><td class="num">38.11</td></tr><tr><th scope="row">Gemini 1.5 Pro</th><td class="num">27</td><td class="num">38.5</td><td class="num">27</td><td class="num">25</td><td class="num">32.5</td><td class="num">30</td><td class="num">36</td><td class="num">40</td><td class="num">51</td><td class="num">36</td><td class="num">37</td><td class="num">32</td><td class="num">50</td><td class="num">31.22</td><td class="num">36.10</td><td class="num">33.79</td></tr><tr><th scope="row">Dragonfly</th><td class="num">27</td><td class="num">26.5</td><td class="num">24.5</td><td class="num">26.5</td><td class="num">29.5</td><td class="num">26.5</td><td class="num">26</td><td class="num">49</td><td class="num">51</td><td class="num">44</td><td class="num">42</td><td class="num">37</td><td class="num">33</td><td class="num">32.44</td><td class="num">31.10</td><td class="num">31.72</td></tr><tr><th scope="row">GPT-4V</th><td class="num">27.5</td><td class="num">26.5</td><td class="num">24</td><td class="num">22</td><td class="num">28</td><td class="num">25</td><td class="num">30</td><td class="num">37</td><td class="num">44</td><td class="num">31</td><td class="num">38</td><td class="num">30</td><td class="num">23</td><td class="num">28.56</td><td class="num">28.20</td><td class="num">28.36</td></tr><tr><th scope="row">PMC-CLIP</th><td class="num">30</td><td class="num">33</td><td class="num">30.5</td><td class="num">30.5</td><td class="num">24.5</td><td class="num">24.5</td><td class="num">19</td><td class="num">27</td><td class="num">28</td><td class="num">26</td><td class="num">29</td><td class="num">20</td><td class="num">16</td><td class="num">27.00</td><td class="num">26.80</td><td class="num">26.89</td></tr><tr><th scope="row">RadFM</th><td class="num">25</td><td class="num">25</td><td class="num">25</td><td class="num">24.5</td><td class="num">3.5</td><td class="num">5</td><td class="num">3</td><td class="num">18</td><td class="num">18</td><td class="num">17</td><td class="num">19</td><td class="num">0</td><td class="num">0</td><td class="num">15.78</td><td class="num">14.90</td><td class="num">15.31</td></tr><tr><th scope="row">LLaVA-Med</th><td class="num">23.5</td><td class="num">22.5</td><td class="num">25.5</td><td class="num">25</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">21</td><td class="num">20</td><td class="num">21</td><td class="num">21</td><td class="num">0</td><td class="num">0</td><td class="num">15.56</td><td class="num">13.60</td><td class="num">14.53</td></tr><tr><th scope="row">RadFM, fine-tuned</th><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td></tr><tr><th scope="row">Senior radiologist 1</th><td class="num">100</td><td class="num">90</td><td class="num">80</td><td class="num">60</td><td class="num">80</td><td class="num">70</td><td class="num">100</td><td class="num">60</td><td class="num">100</td><td class="num">40</td><td class="num">100</td><td class="num">40</td><td class="num">100</td><td class="num">66</td><td class="num">90</td><td class="num">79.2</td></tr><tr><th scope="row">Senior radiologist 2</th><td class="num">70</td><td class="num">100</td><td class="num">80</td><td class="num">70</td><td class="num">80</td><td class="num">70</td><td class="num">100</td><td class="num">60</td><td class="num">100</td><td class="num">60</td><td class="num">100</td><td class="num">80</td><td class="num">100</td><td class="num">70.5</td><td class="num">90.5</td><td class="num">81.5</td></tr><tr><th scope="row">Junior doctor</th><td class="num">50</td><td class="num">80</td><td class="num">70</td><td class="num">50</td><td class="num">30</td><td class="num">40</td><td class="num">80</td><td class="num">60</td><td class="num">80</td><td class="num">40</td><td class="num">100</td><td class="num">0</td><td class="num">40</td><td class="num">45.5</td><td class="num">68.5</td><td class="num">58.15</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>Three things to read off it:</p>
+  <ol class="num-list">
+    <li><strong>General chat models were close to guessing.</strong> GPT-4V scores 28.4%; on 1,900 questions, pure guessing lands in 25 ± 1.9 <span class="tag">derived</span>. On the four “describe the lesion” settings it gets 27.5, 26.5, 24.0 and 22.0, all inside the 25 ± 6 that the arXiv version prints for guessing on 200 questions. Gemini 1.5 Pro reaches 33.8%. Both are models of 2023–2024 and no later one was run: the numbers date the baseline, they don’t describe current models.</li>
+    <li><strong>Far below 25% means not answering.</strong> RadFM and LLaVA-Med total 15.3% and 14.5%, with zeros or near-zeros on the image-retrieval and size tasks. A guesser practically can’t score 0 on 100 or 200 four-choice questions, so these rows most likely measure whether a model returns a usable letter, not whether it reads CT <span class="tag">our observation</span>. RadFM fine-tuned on the captions scores zero on every task. The journal version prints those rows without comment; the arXiv version reads them as catastrophic forgetting.</li>
+    <li><strong>Fine-tuning helps mostly with the box.</strong> BiomedCLIP leads the models as released at 38.1%. Trained on the lesion set with boxes drawn, it goes from 41.0% to 62.0% on with-box questions, 21 points. A second copy trained without boxes goes from 34.9% to 41.4% on questions without them, about 7 points. The box-trained model scores 37.1% on questions without a box. The “fine-tuned” row of the paper’s summary table is the box-trained model.</li>
+  </ol>
+
+  <figure id="fig-tasks">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 302" role="img" aria-label="Accuracy per task with the lesion boxed, for GPT-4V and BiomedCLIP before and after fine-tuning" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><polygon points="6.0,4.7 11.8,15.3 0.2,15.3" class="f-ctx ring"/><text x="17.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">GPT-4V</text><rect x="79.2" y="7.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><text x="94.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">BiomedCLIP, as released</text><circle cx="267.4" cy="11.0" r="4.6" class="f-emph ring"/><text x="278.4" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">BiomedCLIP, fine-tuned with boxes</text><text x="760.0" y="32.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">senior readers</text><text x="760.0" y="46.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">correct / cases</text><line x1="170.0" y1="58.0" x2="170.0" y2="272.0" class="grid"/><text x="170.0" y="286.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0%</text><line x1="287.5" y1="58.0" x2="287.5" y2="272.0" class="floor"/><text x="287.5" y="286.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">25%</text><line x1="405.0" y1="58.0" x2="405.0" y2="272.0" class="grid"/><text x="405.0" y="286.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50%</text><line x1="522.5" y1="58.0" x2="522.5" y2="272.0" class="grid"/><text x="522.5" y="286.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">75%</text><line x1="640.0" y1="58.0" x2="640.0" y2="272.0" class="grid"/><text x="640.0" y="286.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100%</text><text x="292.5" y="50.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">guessing</text><text x="156.0" y="77.0" class="t" text-anchor="end" dominant-baseline="central">Describe (1 slice)</text><g class="hit" tabindex="0" data-tip="Img2txt, with box (200 questions) · GPT-4V 26.5%, BiomedCLIP, as released 42.5%, BiomedCLIP, fine-tuned with boxes 68% · senior readers 19 of 20 cases"><line x1="294.6" y1="77.0" x2="489.6" y2="77.0" class="ci"/><polygon points="294.6,70.7 300.3,81.3 288.8,81.3" class="f-ctx ring"/><rect x="366.0" y="73.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="489.6" cy="77.0" r="4.6" class="f-emph ring"/><text x="760.0" y="77.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">19 / 20</text><rect x="166.0" y="65.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="107.0" class="t" text-anchor="end" dominant-baseline="central">Describe (9 slices)</text><g class="hit" tabindex="0" data-tip="CT2txt, with box (200 questions) · GPT-4V 22%, BiomedCLIP, as released 42%, BiomedCLIP, fine-tuned with boxes 62% · senior readers 13 of 20 cases"><line x1="273.4" y1="107.0" x2="461.4" y2="107.0" class="ci"/><polygon points="273.4,100.7 279.1,111.3 267.6,111.3" class="f-ctx ring"/><rect x="363.6" y="103.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="461.4" cy="107.0" r="4.6" class="f-emph ring"/><text x="760.0" y="107.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">13 / 20</text><rect x="166.0" y="95.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="137.0" class="t" text-anchor="end" dominant-baseline="central">Find the image</text><g class="hit" tabindex="0" data-tip="Txt2img, with box (200 questions) · GPT-4V 25%, BiomedCLIP, as released 34.5%, BiomedCLIP, fine-tuned with boxes 57.5% · senior readers 14 of 20 cases"><line x1="287.5" y1="137.0" x2="440.2" y2="137.0" class="ci"/><polygon points="287.5,130.7 293.2,141.3 281.8,141.3" class="f-ctx ring"/><rect x="328.4" y="133.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="440.2" cy="137.0" r="4.6" class="f-emph ring"/><text x="760.0" y="137.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">14 / 20</text><rect x="166.0" y="125.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="167.0" class="t" text-anchor="end" dominant-baseline="central">Find the box</text><g class="hit" tabindex="0" data-tip="Txt2bbox, with box (100 questions) · GPT-4V 30%, BiomedCLIP, as released 35%, BiomedCLIP, fine-tuned with boxes 67% · senior readers 20 of 20 cases"><line x1="311.0" y1="167.0" x2="484.9" y2="167.0" class="ci"/><polygon points="311.0,160.7 316.8,171.3 305.2,171.3" class="f-ctx ring"/><rect x="330.7" y="163.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="484.9" cy="167.0" r="4.6" class="f-emph ring"/><text x="760.0" y="167.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">20 / 20</text><rect x="166.0" y="155.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="197.0" class="t" text-anchor="end" dominant-baseline="central">Attribute (1 slice)</text><g class="hit" tabindex="0" data-tip="Img2attrib, with box (100 questions) · GPT-4V 44%, BiomedCLIP, as released 57%, BiomedCLIP, fine-tuned with boxes 67% · senior readers 10 of 10 cases"><line x1="376.8" y1="197.0" x2="484.9" y2="197.0" class="ci"/><polygon points="376.8,190.7 382.6,201.3 371.1,201.3" class="f-ctx ring"/><rect x="434.1" y="193.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="484.9" cy="197.0" r="4.6" class="f-emph ring"/><text x="760.0" y="197.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">10 / 10</text><rect x="166.0" y="185.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="227.0" class="t" text-anchor="end" dominant-baseline="central">Attribute (9 slices)</text><g class="hit" tabindex="0" data-tip="CT2attrib, with box (100 questions) · GPT-4V 38%, BiomedCLIP, as released 42%, BiomedCLIP, fine-tuned with boxes 65% · senior readers 10 of 10 cases"><line x1="348.6" y1="227.0" x2="475.5" y2="227.0" class="ci"/><polygon points="348.6,220.7 354.4,231.3 342.9,231.3" class="f-ctx ring"/><rect x="363.6" y="223.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="475.5" cy="227.0" r="4.6" class="f-emph ring"/><text x="760.0" y="227.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">10 / 10</text><rect x="166.0" y="215.0" width="594.0" height="24.0" class="hitbox"/></g><text x="156.0" y="257.0" class="t" text-anchor="end" dominant-baseline="central">Size</text><g class="hit" tabindex="0" data-tip="Img2size, with box (100 questions) · GPT-4V 23%, BiomedCLIP, as released 38%, BiomedCLIP, fine-tuned with boxes 46% · senior readers 10 of 10 cases"><line x1="278.1" y1="257.0" x2="386.2" y2="257.0" class="ci"/><polygon points="278.1,250.7 283.9,261.3 272.4,261.3" class="f-ctx ring"/><rect x="344.8" y="253.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="386.2" cy="257.0" r="4.6" class="f-emph ring"/><text x="760.0" y="257.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">10 / 10</text><rect x="166.0" y="245.0" width="594.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — With the lesion boxed, fine-tuning lifts every task: by 8 points on size, by 32 on finding the box.</b> Accuracy per task on the with-box test questions (200 for the first three tasks, 100 for the others). The right-hand column counts the correct answers of the two senior readers together, on 10 or 5 cases each. Source: Table S11; cases per reader from the arXiv version.</figcaption>
+  </figure>
+</section>
+
+<section id="readers" data-toc="The human yardstick">
+  <h2><span class="n">05</span>How solid is the human yardstick?</h2>
+  <p>The exam’s reference is three readers: two senior radiologists and a junior doctor with radiology experience, on 100 cases in total. The arXiv version gives the layout: 10 cases for each setting of the description, retrieval and box tasks, 5 for each setting of the attribute and size tasks. One case is worth 10 or 20 points in its cell.</p>
+
+  <figure id="fig-readers">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 252" role="img" aria-label="Accuracy with and without the lesion boxed, for three readers and three models, with 95% intervals" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="136.0" width="760.0" height="28.0" class="band"/><text x="176.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Lesion not marked</text><text x="176.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">readers: 45 cases · models: 900 questions</text><line x1="176.0" y1="48.0" x2="176.0" y2="220.0" class="grid"/><text x="176.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0%</text><line x1="240.2" y1="48.0" x2="240.2" y2="220.0" class="grid"/><text x="240.2" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">25%</text><line x1="304.5" y1="48.0" x2="304.5" y2="220.0" class="grid"/><text x="304.5" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50%</text><line x1="368.8" y1="48.0" x2="368.8" y2="220.0" class="grid"/><text x="368.8" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">75%</text><line x1="433.0" y1="48.0" x2="433.0" y2="220.0" class="grid"/><text x="433.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100%</text><line x1="240.2" y1="42.0" x2="240.2" y2="220.0" class="floor"/><text x="244.2" y="42.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central"></text><g class="hit" tabindex="0" data-tip="Senior radiologist 1 · Lesion not marked 66.0 (95% interval 51.4–78.1)"><line x1="308.1" y1="66.0" x2="376.7" y2="66.0" class="ci"/><circle cx="345.6" cy="66.0" r="4.6" class="f-ctx ring"/><rect x="333.6" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Senior radiologist 2 · Lesion not marked 70.5 (95% interval 56.0–81.8)"><line x1="319.9" y1="94.0" x2="386.2" y2="94.0" class="ci"/><circle cx="357.2" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="345.2" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Junior doctor · Lesion not marked 45.5 (95% interval 31.9–59.8)"><line x1="257.9" y1="122.0" x2="329.7" y2="122.0" class="ci"/><circle cx="292.9" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="280.9" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BiomedCLIP, fine-tuned · Lesion not marked 37.1 (95% interval 34.0–40.3)"><line x1="263.4" y1="150.0" x2="279.6" y2="150.0" class="ci ci-emph"/><circle cx="271.4" cy="150.0" r="4.6" class="f-emph ring"/><text x="287.6" y="150.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">37.1</text><rect x="259.4" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BiomedCLIP, as released · Lesion not marked 34.9 (95% interval 31.8–38.1)"><line x1="257.8" y1="178.0" x2="273.8" y2="178.0" class="ci"/><circle cx="265.7" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="253.7" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4V · Lesion not marked 28.6 (95% interval 25.7–31.6)"><line x1="242.1" y1="206.0" x2="257.2" y2="206.0" class="ci"/><circle cx="249.4" cy="206.0" r="4.6" class="f-ctx ring"/><rect x="237.4" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><text x="467.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Lesion boxed</text><text x="467.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">readers: 55 cases · models: 1,000 questions</text><line x1="467.0" y1="48.0" x2="467.0" y2="220.0" class="grid"/><text x="467.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0%</text><line x1="531.2" y1="48.0" x2="531.2" y2="220.0" class="grid"/><text x="531.2" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">25%</text><line x1="595.5" y1="48.0" x2="595.5" y2="220.0" class="grid"/><text x="595.5" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">50%</text><line x1="659.8" y1="48.0" x2="659.8" y2="220.0" class="grid"/><text x="659.8" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">75%</text><line x1="724.0" y1="48.0" x2="724.0" y2="220.0" class="grid"/><text x="724.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100%</text><line x1="531.2" y1="42.0" x2="531.2" y2="220.0" class="floor"/><text x="535.2" y="42.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central"></text><g class="hit" tabindex="0" data-tip="Senior radiologist 1 · Lesion boxed 90.0 (95% interval 79.3–95.5)"><line x1="670.8" y1="66.0" x2="712.4" y2="66.0" class="ci"/><circle cx="698.3" cy="66.0" r="4.6" class="f-ctx ring"/><rect x="686.3" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Senior radiologist 2 · Lesion boxed 90.5 (95% interval 79.9–95.8)"><line x1="672.4" y1="94.0" x2="713.2" y2="94.0" class="ci"/><circle cx="699.6" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="687.6" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Junior doctor · Lesion boxed 68.5 (95% interval 55.4–79.2)"><line x1="609.3" y1="122.0" x2="670.6" y2="122.0" class="ci"/><circle cx="643.0" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="631.0" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BiomedCLIP, fine-tuned · Lesion boxed 62.0 (95% interval 59.0–65.0)"><line x1="618.5" y1="150.0" x2="633.9" y2="150.0" class="ci ci-emph"/><circle cx="626.3" cy="150.0" r="4.6" class="f-emph ring"/><text x="641.9" y="150.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">62.0</text><rect x="614.3" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="BiomedCLIP, as released · Lesion boxed 41.0 (95% interval 38.0–44.1)"><line x1="564.6" y1="178.0" x2="580.3" y2="178.0" class="ci"/><circle cx="572.4" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="560.4" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="GPT-4V · Lesion boxed 28.2 (95% interval 25.5–31.1)"><line x1="532.5" y1="206.0" x2="546.8" y2="206.0" class="ci"/><circle cx="539.5" cy="206.0" r="4.6" class="f-ctx ring"/><rect x="527.5" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><text x="162.0" y="66.0" class="t" text-anchor="end" dominant-baseline="central">Senior radiologist 1</text><text x="162.0" y="94.0" class="t" text-anchor="end" dominant-baseline="central">Senior radiologist 2</text><text x="162.0" y="122.0" class="t" text-anchor="end" dominant-baseline="central">Junior doctor</text><text x="162.0" y="150.0" class="t t-strong" text-anchor="end" dominant-baseline="central">BiomedCLIP, fine-tuned</text><text x="162.0" y="178.0" class="t" text-anchor="end" dominant-baseline="central">BiomedCLIP, as released</text><text x="162.0" y="206.0" class="t" text-anchor="end" dominant-baseline="central">GPT-4V</text></svg></div>
+    <figcaption><b>Figure 4 — With boxes, the fine-tuned model can’t be told apart from the junior doctor; both seniors stay clear of it.</b> Dots are the averages printed in the paper; the dashed line is guessing (25%); lines are our 95% Wilson intervals for 45 or 55 cases (readers) and 900 or 1,000 questions (models). Readers and models did not answer the same questions. Source: Table S11.</figcaption>
+    <details class="data"><summary>Show the readers’ averages against their task cells</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Reader</th><th scope="col" class="num">Printed, not marked</th><th scope="col" class="num">Cells give</th><th scope="col" class="num">Printed, boxed</th><th scope="col" class="num">Cells give</th><th scope="col" class="num">Printed total</th><th scope="col" class="num">Cells give</th></tr></thead><tbody><tr><th scope="row">Senior radiologist 1</th><td class="num">66</td><td class="num">33 of 45 (73.3)</td><td class="num">90</td><td class="num">47 of 55 (85.5)</td><td class="num">79.2</td><td class="num">80 of 100</td></tr><tr><th scope="row">Senior radiologist 2</th><td class="num">70.5</td><td class="num">33 of 45 (73.3)</td><td class="num">90.5</td><td class="num">49 of 55 (89.1)</td><td class="num">81.5</td><td class="num">82 of 100</td></tr><tr><th scope="row">Junior doctor</th><td class="num">45.5</td><td class="num">20 of 45 (44.4)</td><td class="num">68.5</td><td class="num">36 of 55 (65.5)</td><td class="num">58.15</td><td class="num">56 of 100</td></tr></tbody></table></div></details>
+  </figure>
+
+  <p>With boxes, the fine-tuned model’s 62.0% falls inside the junior doctor’s interval, 55% to 79%, and below both senior readers’, whose printed totals are 79.2% and 81.5%.</p>
+  <p>One caution on the readers’ averages <span class="tag">derived</span>. Counting correct cases from the task cells gives 80, 82 and 56 of 100, close to the printed totals. But the printed with-box and no-box averages don’t follow from the cells: those give the seniors 47 and 49 of 55 with boxes (85% and 89%, printed 90.0 and 90.5) and 33 of 45 each without (73%, printed 66.0 and 70.5). Neither pooling cases nor averaging tasks reproduces them, while the models’ with-box and no-box averages follow from their cells exactly. The headline survives either way: seniors at about 8 in 10, the junior doctor under 6 in 10.</p>
+</section>
+
+<section id="caption" data-toc="Free-text descriptions">
+  <h2><span class="n">06</span>Writing the description, not picking it</h2>
+  <p>The lesion set also supports the task closest to report generation: write the sentence for a lesion. The paper scores it with word-overlap and embedding metrics only.</p>
+  <p>Fine-tuned RadFM reaches a BLEU-1 of 0.24, against 0.17 for the best model as released. BERTScore sits between 0.84 and 0.89 for every system, so it separates little. None of the five metrics checks whether the organ, the side or the lesion type is right, and the paper’s one worked example shows what that leaves out: for a nodule in the left lung, 4 of the 6 printed outputs put their main finding in the right lung. The structured labels in the release (body part, lesion type) are the material for a score that could catch this; the paper doesn’t build one.</p>
+  <details class="data"><summary>Show the captioning scores as a table (with boxes; Table S10)</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Model</th><th scope="col" class="num">BLEU-1</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">ROUGE-1</th><th scope="col" class="num">BERTScore F1</th><th scope="col" class="num">SBERT cosine</th></tr></thead><tbody><tr><th scope="row">RadFM</th><td class="num">0.078</td><td class="num">0.103</td><td class="num">0.060</td><td class="num">0.853</td><td class="num">0.333</td></tr><tr><th scope="row">Dragonfly</th><td class="num">0.169</td><td class="num">0.224</td><td class="num">0.125</td><td class="num">0.868</td><td class="num">0.408</td></tr><tr><th scope="row">LLaVA-Med</th><td class="num">0.080</td><td class="num">0.167</td><td class="num">0.080</td><td class="num">0.848</td><td class="num">0.401</td></tr><tr><th scope="row">GPT-4V</th><td class="num">0.092</td><td class="num">0.192</td><td class="num">0.082</td><td class="num">0.855</td><td class="num">0.446</td></tr><tr><th scope="row">Gemini 1.5 Pro</th><td class="num">0.102</td><td class="num">0.203</td><td class="num">0.095</td><td class="num">0.858</td><td class="num">0.473</td></tr><tr class="ours"><th scope="row">RadFM, fine-tuned</th><td class="num">0.245</td><td class="num">0.238</td><td class="num">0.151</td><td class="num">0.888</td><td class="num">0.491</td></tr></tbody></table></div></details>
+</section>
+
+<section id="gaps" data-toc="What’s missing">
+  <h2><span class="n">07</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>A validation table to trust.</strong> 12 of the 91 model cells in the validation results can’t come from the 100 or 50 questions the paper gives each validation setting (24.5% of 100, 49% of 50), and each of the 12 equals the test-set value for the same model and task. Compare against the test table.</li>
+    <li><strong>Intervals, and the make-up of the questions.</strong> The journal version prints no interval (the arXiv version has them per task: about ±6 points on 200 questions). Neither gives the answer mix per task, the number of distinct lesions behind the 2,850 questions, or the split the readers’ 100 cases came from.</li>
+    <li><strong>Some of the promised files, going by name.</strong> The paper mentions preprocessing code, benchmark construction scripts and a data dictionary. The Kaggle listing shows five scripts (captioning, caption scoring, the two question runners, fine-tuning), a README and a requirements file. We read the listing, not the files.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">08</span>Takeaways for testing a CT model on lesions</h2>
+  <ol class="num-list">
+    <li><strong>Report with-box and no-box scores separately.</strong> The best model is at 62.0% with boxes and 37.1% without; one total hides whether a system finds the lesion or only describes one it is shown.</li>
+    <li><strong>Count non-answers apart from wrong answers.</strong> Two medical models total 15.3% and 14.5%, below guessing, because of zeros.</li>
+    <li><strong>Treat the human reference as “about 80%”.</strong> It is 100 cases and two readers; with boxes, each senior’s interval starts below 80%.</li>
+    <li><strong>For generated text, score the facts.</strong> Body part and lesion type are in the release; in the paper’s example, 4 of the 6 outputs had the wrong lung.</li>
+  </ol>
+</section>
+
+<section id="use" data-toc="Use it today">
+  <h2><span class="n">09</span>What you can use today</h2>
+  <ul>
+    <li><strong>The data.</strong> <a href="https://kaggle.com/datasets/cd1661d6d6aeab08b8eb99b58885b4489d76fc5ac07d5aac76cae577e6426e2f">CT_Bench on Kaggle</a> (DOI <a href="https://doi.org/10.34740/kaggle/ds/7422536">10.34740/kaggle/ds/7422536</a>): 15.14 GB, about 80,200 files. Neither the paper nor the Kaggle page links a code repository; the scripts ship inside the dataset.</li>
+    <li><strong>The licence.</strong> CC BY-NC-SA 4.0, on the Kaggle page and in the paper: use and adapt it for non-commercial work, credit the authors, share what you derive under the same licence. Commercial use isn’t allowed. The paper adds: research only, not for clinical decisions, no attempt at re-identification.</li>
+    <li><strong>The files, by name.</strong> <code>lesion_nobox/</code> and <code>lesion_bbox/</code>: key slices as 8-bit PNG, without and with the box drawn. <code>Metadata.csv</code>: lesion id, description, size, split. <code>CT-Bench-Final-Merged-with-DeepLesion-Metadata .csv</code> (the name has a space before the extension): the same lesions with box coordinates, diameters, spacing, window, age and sex. <code>CT-Bench Lesion Ontology Mapping.csv</code>: lesion type, body part and property terms. <code>qa_clip.json</code> and <code>qa_llm.json</code>, with the image folders <code>clip/</code> and <code>llm/</code>: the questions in the two formats, split into test and validation. <code>CT-Bench-code/</code>: five scripts.</li>
+    <li><strong>Filter by the metadata.</strong> Kaggle lists 32,735 files in each lesion folder: DeepLesion’s lesion count, not CT-Bench’s 20,335 <span class="tag">our observation</span>. We read the listing, not the images; take the list of lesions from <code>Metadata.csv</code>.</li>
+    <li><strong>What you need from DeepLesion.</strong> Nothing for single-slice work. The released slices are already windowed to 8 bits; for raw Hounsfield values, or neighbouring slices for the training lesions, go back to <a href="https://nihcc.app.box.com/v/DeepLesion">DeepLesion</a> (16-bit PNG; subtract 32,768) <span class="tag">likely, not confirmed</span>: the listing shows nine-slice inputs only for the exam questions, and the paper says identifiers were replaced, so check that the merged table lets you match files.</li>
+    <li><strong>How to start.</strong> There is no loader package. Read <code>Metadata.csv</code> for description, size and split; train on the 15,380 training lesions; score on the 1,900 test questions with <code>qa_llm.json</code> (a prompt, an image, choices A to D) or <code>qa_clip.json</code> (image-text similarity).</li>
+    <li><strong>Numbers to compare with</strong> (test questions, total): guessing 25%; GPT-4V 28.4%; Gemini 1.5 Pro 33.8%; BiomedCLIP 38.1% as released and 50.3% fine-tuned (62.0% with boxes, 37.1% without). Readers, on 100 cases: senior radiologists 80.4%, junior doctor 58.2%.</li>
+  </ul>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Zhu, Q., Jin, Q., et al. CT-Bench. Machine Learning for Biomedical Imaging 2026:036, pp. 739–757 (published 21 Sep 2026): <a href="https://www.melba-journal.org/papers/2026:036.html">paper page</a> · <a href="https://www.melba-journal.org/pdf/2026:036.pdf">PDF</a> · <a href="https://doi.org/10.59275/j.melba.2026-b141">DOI</a>. The reference for every number here.</li>
+    <li>The earlier version, “CT-Bench: A Benchmark for Multimodal Lesion Understanding in Computed Tomography”: <a href="https://arxiv.org/abs/2602.14879">arXiv:2602.14879</a> v2 (19 Feb 2026). Same result tables; used here for the per-task intervals, the reader study’s layout and the remark on fine-tuned RadFM.</li>
+    <li>The <a href="https://kaggle.com/datasets/cd1661d6d6aeab08b8eb99b58885b4489d76fc5ac07d5aac76cae577e6426e2f">Kaggle dataset page</a>, read on 12 Oct 2026: licence, size, file listing and the README it displays. No data file was opened.</li>
+    <li>Yan, K., et al. DeepLesion: <a href="https://arxiv.org/abs/1710.01766">arXiv:1710.01766</a> (2017) for the preprint’s counts; the <a href="https://nihcc.app.box.com/v/DeepLesion">NIH release</a> and the <a href="https://huggingface.co/datasets/farrell236/DeepLesion">Hugging Face mirror</a> the paper links, whose card gives 32,735 lesions on 32,120 slices.</li>
+    <li>Zhang, S., et al. BiomedCLIP: <a href="https://arxiv.org/abs/2303.00915">arXiv:2303.00915</a> (2023).</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on CT-Bench (MELBA 2026:036). All numbers come from the paper, or from the source cited beside them, unless marked <em>derived</em>, <em>our observation</em> or <em>likely, not confirmed</em>. Figures were generated with Python from those numbers. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
