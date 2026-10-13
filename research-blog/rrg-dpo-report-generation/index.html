@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RRG-DPO, a cheap fix for missed findings, less for false alarms</title>
+<meta name="description" content="RRG-DPO trains report generators to prefer the true report over a look-alike with the wrong findings: recall rises in six X-ray and CT models, precision much less, and the model with the highest F1 barely moves.">
+<meta property="og:title" content="RRG-DPO, a cheap fix for missed findings, less for false alarms">
+<meta property="og:description" content="RRG-DPO trains report generators to prefer the true report over a look-alike with the wrong findings: recall rises in six X-ray and CT models, precision much less, and the model with the highest F1 barely moves.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/rrg-dpo-report-generation/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/rrg-dpo-report-generation/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="RRG-DPO, a cheap fix for missed findings, less for false alarms: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/rrg-dpo-report-generation/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/rrg-dpo-report-generation/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0795-Paper1273.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/1273_paper.pdf">PDF</a>
+      <a href="https://github.com/ccarliu/RRG-DPO">Code</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · X-ray and CT report generation</p>
+    <h1>RRG-DPO, a cheap fix for missed findings, less for false alarms</h1>
+    <p class="dek">RRG-DPO is an extra training step for report generators: show the model the true report next to a look-alike report with the wrong findings, and make it prefer the first. What it fixes in six chest X-ray and CT models, what it leaves alone, and what the released code holds.</p>
+    <div class="meta">
+      <span><b>Paper</b> Hong Liu, Dong Wei, … Yefeng Zheng, Liansheng Wang. <a href="https://papers.miccai.org/miccai-2025/0795-Paper1273.html"><i>RRG-DPO: Direct Preference Optimization for Clinically Accurate Radiology Report Generation</i></a>. MICCAI 2025, LNCS 15964, pp. 552–562</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 13 Oct 2026</span>
+      <span><b>Reading time</b> ~10 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a> · <a href="/research-blog/?tag=main">Main</a></span>
+      <span><b>Disclosure</b> I am the first author of RadGraph-F1, of the same family as the “RadGraph” score this paper reports (it cites the RadGraph dataset and names no implementation); the post uses that score, with RaTEScore, to check the labeller’s own F1. A preprint cited in section 03 tests models from the CheXpert Plus release, which I co-authored.</span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">+0.120</div><div class="l">recall of EKAGen on MIMIC-CXR, 0.367 to 0.487 after the step</div></div>
+    <div class="tile" role="listitem"><div class="v">5 vs 3</div><div class="l">models, out of six, with a significant gain in recall and in precision</div></div>
+    <div class="tile" role="listitem"><div class="v">+0.007</div><div class="l">F1 gain on the model behind the “state of the art” claim; not significant</div></div>
+    <div class="tile" role="listitem"><div class="v">4.6 h</div><div class="l">to build every training pair offline, with no LLM and no human label</div></div>
+  </div>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>The idea is in the wrong example.</strong> For each training image, RRG-DPO retrieves the 20 reports that read most like the true one, keeps the one whose findings disagree most, and trains the model to prefer the true report. No LLM writes or judges anything.</li>
+      <li><strong>It mostly recovers missed findings.</strong> Recall rises in all six models and significantly in 5 of the 6. Precision rises significantly in 3 of the 6, and by about a point or less in the other three.</li>
+      <li><strong>The model with the highest F1 barely moves.</strong> PromptMRG goes from 0.476 to 0.483 with no significant change on any metric. The paper’s “state of the art” claim is that row.</li>
+      <li><strong>The same labeller picks the pairs and scores the result.</strong> CheXbert, a chest X-ray labeller, does both, and by the paper’s description on CT reports too. RadGraph and RaTEScore, which it doesn’t control, move in the same direction, mostly by much less.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="why" data-toc="What is measured">
+  <h2><span class="n">01</span>What the experiment measures</h2>
+  <p>Report generators are trained to reproduce the reference report word by word, so a model can write fluent reports and still miss findings or invent them. The usual fixes are reinforcement learning on a clinical reward, or preference training on pairs that an LLM writes or grades.</p>
+  <p>Direct preference optimisation (DPO) needs neither a reward model nor sampling: give the model an image, a preferred report and a dispreferred one, and raise the probability of the first relative to the second, measured against a frozen copy of the starting model. The open question is where the dispreferred report comes from. RRG-DPO’s answer is the training set itself.</p>
+  <p>The experiment is clean in one respect: each of six existing generators is first trained as usual (official code; the released checkpoint for EKAGen; a re-implementation for 3D-CT-GPT), then only its text decoder is fine-tuned for three more epochs with the new objective, and the model is scored before and after. Four models write chest X-ray reports (MIMIC-CXR, 3,858 test samples) and two write chest CT reports (CT-RATE, 1,204 test volumes).</p>
+
+  <figure id="fig-flow">
+    <div class="flow" role="img" aria-label="How RRG-DPO builds a training triple: from the true report of an image, retrieve the 20 most similar training reports, keep the one whose finding labels disagree most, delete its conflicting sentences to make a third report, then fine-tune the decoder to prefer the true report">
+      <div class="row">
+        <div class="box"><div class="t1">True report of a training image</div><div class="t2">The preferred answer. Nothing is generated.</div></div>
+        <div class="shape"><span>preferred<br>(y_w)</span></div>
+      </div>
+      <div class="conn"><div>embed every training report with the text encoder of BiomedVLP; take the nearest by cosine similarity</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">retrieval</span><div class="t1">20 look-alike reports</div><div class="t2">Real reports of other studies that read like the true one.</div></div>
+        <div class="shape"><span>20 candidates</span></div>
+      </div>
+      <div class="conn"><div>label every report with CheXbert; keep the look-alike whose labels are furthest from the true report’s (Jaccard distance)</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">selection</span><div class="t1">The wrong report</div><div class="t2">Similar wording, different findings: a stand-in for a missed or invented finding.</div></div>
+        <div class="shape"><span>dispreferred (y_l)<br>14 labels compared</span></div>
+      </div>
+      <div class="conn"><div>label each of its sentences; delete those whose labels conflict with the true report</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">new</span><div class="t1">The harmless remainder</div><div class="t2">What is left of the wrong report should stay as likely as before.</div></div>
+        <div class="shape"><span>sub-preferred<br>(y_l+)</span></div>
+      </div>
+      <div class="conn"><div>all of the above done once, offline, in about 4.6 hours for the data of every experiment</div><div></div></div>
+      <div class="row">
+        <div class="box train"><span class="state">trained</span><div class="t1">Text decoder of the report generator</div><div class="t2">Three epochs: prefer the true report to the wrong one; don’t lose the true report or the harmless remainder.</div></div>
+        <div class="shape"><span>AdamW, lr 1e-7<br>one V100 GPU</span></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen)"></i>off-the-shelf model, not trained</span>
+        <span><i style="border:2px solid var(--ink)"></i>built by the method</span>
+        <span><i style="background:var(--ink)"></i>trained</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — The wrong example is a real report, chosen twice: once for similar wording, once for different findings.</b> Sources: Section 2 and the implementation paragraph of Section 3.</figcaption>
+  </figure>
+</section>
+
+<section id="method" data-toc="Pairs and loss">
+  <h2><span class="n">02</span>The pair and the loss, as code</h2>
+<pre><code><span class="c"># our reconstruction of Section 2 and Eq. 2, not the authors' code</span>
+<span class="k">def</span> pick_wrong_report(i, emb, labels, k=20):
+    near = top_k(cosine(emb[i], emb), k)     <span class="c"># look-alikes</span>
+    dist = [jaccard_dist(labels[i], labels[j]) <span class="k">for</span> j <span class="k">in</span> near]
+    <span class="k">return</span> near[argmax(dist)]                <span class="c"># disagrees most</span>
+
+<span class="k">def</span> rrg_dpo_loss(lp, ref, beta=0.3, lam=1.0, gamma=0.1):
+    <span class="c"># lp[.]: log-likelihood under the model being trained</span>
+    <span class="c"># ref[.]: the same under the frozen starting model</span>
+    <span class="c"># w: true report, l: wrong report, l+: l minus conflicts</span>
+    margin = (lp["w"] - ref["w"]) - (lp["l"] - ref["l"])
+    keep_w = relu(ref["w"] - lp["w"])        <span class="c"># DPOP term</span>
+    keep_l = relu(ref["l+"] - lp["l+"])      <span class="c"># the new term</span>
+    z = beta * margin - lam * keep_w - gamma * keep_l
+    <span class="k">return</span> -logsigmoid(z).mean()</code></pre>
+    <p>Plain DPO is the <code>margin</code> alone. DPOP, an existing variant, adds <code>keep_w</code>: a penalty when the true report becomes less likely than it was. RRG-DPO adds <code>keep_l</code>: most sentences of the wrong report would be fine for this image, so pushing the whole report down also pushes down correct content. Eq. 2 as printed applies β to the margin only; DPOP’s own formula and the released code apply it to the penalties too.</p>
+</section>
+
+<section id="ablation" data-toc="Which wrong report?">
+  <h2><span class="n">03</span>Which wrong report? The ablation</h2>
+  <figure id="fig-ablation">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 252" role="img" aria-label="Precision and recall of EKAGen on MIMIC-CXR for the six ablation rows of Table 2" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="192.0" width="760.0" height="28.0" class="band"/><text x="268.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Precision</text><text x="268.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">written findings that are right</text><line x1="281.0" y1="48.0" x2="281.0" y2="220.0" class="grid"/><text x="281.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.35</text><line x1="346.0" y1="48.0" x2="346.0" y2="220.0" class="grid"/><text x="346.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.40</text><line x1="411.0" y1="48.0" x2="411.0" y2="220.0" class="grid"/><text x="411.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.45</text><line x1="476.0" y1="48.0" x2="476.0" y2="220.0" class="grid"/><text x="476.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.50</text><line x1="418.8" y1="42.0" x2="418.8" y2="220.0" class="floor"/><text x="422.8" y="42.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">base</text><g class="hit" tabindex="0" data-tip="(a) EKAGen as released · Precision 0.456"><line x1="418.8" y1="66.0" x2="418.8" y2="66.0" class="ci"/><circle cx="418.8" cy="66.0" r="4.6" class="f-ctx ring"/><rect x="406.8" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(b) DPO, random wrong report · Precision 0.413"><line x1="362.9" y1="94.0" x2="362.9" y2="94.0" class="ci"/><circle cx="362.9" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="350.9" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(c) DPO, random one of the 20 look-alikes · Precision 0.445"><line x1="404.5" y1="122.0" x2="404.5" y2="122.0" class="ci"/><circle cx="404.5" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="392.5" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(d) DPO, the look-alike that disagrees most · Precision 0.441"><line x1="399.3" y1="150.0" x2="399.3" y2="150.0" class="ci"/><circle cx="399.3" cy="150.0" r="4.6" class="f-ctx ring"/><rect x="387.3" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(e) = (d) + keep the true report likely · Precision 0.455"><line x1="417.5" y1="178.0" x2="417.5" y2="178.0" class="ci"/><circle cx="417.5" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="405.5" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(f) = (e) + keep the harmless sentences · Precision 0.462"><line x1="426.6" y1="206.0" x2="426.6" y2="206.0" class="ci ci-emph"/><circle cx="426.6" cy="206.0" r="4.6" class="f-emph ring"/><text x="434.6" y="206.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.462</text><rect x="414.6" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><text x="516.0" y="14.0" class="t t-head" text-anchor="start" dominant-baseline="central">Recall</text><text x="516.0" y="32.0" class="t t-small t-muted" text-anchor="start" dominant-baseline="central">true findings that get written</text><line x1="529.0" y1="48.0" x2="529.0" y2="220.0" class="grid"/><text x="529.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.35</text><line x1="594.0" y1="48.0" x2="594.0" y2="220.0" class="grid"/><text x="594.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.40</text><line x1="659.0" y1="48.0" x2="659.0" y2="220.0" class="grid"/><text x="659.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.45</text><line x1="724.0" y1="48.0" x2="724.0" y2="220.0" class="grid"/><text x="724.0" y="234.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.50</text><line x1="551.1" y1="42.0" x2="551.1" y2="220.0" class="floor"/><text x="555.1" y="42.0" class="t t-tiny t-muted" text-anchor="start" dominant-baseline="central">base</text><g class="hit" tabindex="0" data-tip="(a) EKAGen as released · Recall 0.367"><line x1="551.1" y1="66.0" x2="551.1" y2="66.0" class="ci"/><circle cx="551.1" cy="66.0" r="4.6" class="f-ctx ring"/><rect x="539.1" y="54.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(b) DPO, random wrong report · Recall 0.360"><line x1="542.0" y1="94.0" x2="542.0" y2="94.0" class="ci"/><circle cx="542.0" cy="94.0" r="4.6" class="f-ctx ring"/><rect x="530.0" y="82.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(c) DPO, random one of the 20 look-alikes · Recall 0.425"><line x1="626.5" y1="122.0" x2="626.5" y2="122.0" class="ci"/><circle cx="626.5" cy="122.0" r="4.6" class="f-ctx ring"/><rect x="614.5" y="110.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(d) DPO, the look-alike that disagrees most · Recall 0.459"><line x1="670.7" y1="150.0" x2="670.7" y2="150.0" class="ci"/><circle cx="670.7" cy="150.0" r="4.6" class="f-ctx ring"/><rect x="658.7" y="138.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(e) = (d) + keep the true report likely · Recall 0.467"><line x1="681.1" y1="178.0" x2="681.1" y2="178.0" class="ci"/><circle cx="681.1" cy="178.0" r="4.6" class="f-ctx ring"/><rect x="669.1" y="166.0" width="24.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="(f) = (e) + keep the harmless sentences · Recall 0.487"><line x1="707.1" y1="206.0" x2="707.1" y2="206.0" class="ci ci-emph"/><circle cx="707.1" cy="206.0" r="4.6" class="f-emph ring"/><text x="715.1" y="206.0" class="t t-small t-strong t-num" text-anchor="start" dominant-baseline="central">0.487</text><rect x="695.1" y="194.0" width="24.0" height="24.0" class="hitbox"/></g><text x="254.0" y="66.0" class="t" text-anchor="end" dominant-baseline="central">(a) EKAGen as released</text><text x="254.0" y="94.0" class="t" text-anchor="end" dominant-baseline="central">(b) DPO, random wrong report</text><text x="254.0" y="122.0" class="t" text-anchor="end" dominant-baseline="central">(c) DPO, random one of the 20 look-alikes</text><text x="254.0" y="150.0" class="t" text-anchor="end" dominant-baseline="central">(d) DPO, the look-alike that disagrees most</text><text x="254.0" y="178.0" class="t" text-anchor="end" dominant-baseline="central">(e) = (d) + keep the true report likely</text><text x="254.0" y="206.0" class="t t-strong" text-anchor="end" dominant-baseline="central">(f) = (e) + keep the harmless sentences</text></svg></div>
+    <figcaption><b>Figure 2 — A random wrong report costs precision; the chosen one buys recall; the two extra loss terms give the precision back.</b> One dot per ablation row, EKAGen on MIMIC-CXR; the dashed line is the model as released. Both panels share one scale. Precision and recall are computed per report on 14 CheXbert labels. Source: Table 2.</figcaption>
+    <details class="data"><summary>Show all nine metrics as a table</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Row</th><th scope="col" class="num">Pre</th><th scope="col" class="num">Rec</th><th scope="col" class="num">F1</th><th scope="col" class="num">BL-4</th><th scope="col" class="num">MTR</th><th scope="col" class="num">RG-L</th><th scope="col" class="num">RadGraph</th><th scope="col" class="num">RadCliQ ↓</th><th scope="col" class="num">RaTEScore</th></tr></thead><tbody><tr><th scope="row">(a) EKAGen as released</th><td class="num">0.456*</td><td class="num">0.367*</td><td class="num">0.380*</td><td class="num">0.119</td><td class="num">0.156*</td><td class="num">0.286</td><td class="num">0.201*</td><td class="num">2.685*</td><td class="num">0.487*</td></tr><tr><th scope="row">(b) DPO, random wrong report</th><td class="num">0.413*</td><td class="num">0.360*</td><td class="num">0.359*</td><td class="num">0.082*</td><td class="num">0.154*</td><td class="num">0.256*</td><td class="num">0.142*</td><td class="num">3.023*</td><td class="num">0.474*</td></tr><tr><th scope="row">(c) DPO, random one of the 20 look-alikes</th><td class="num">0.445*</td><td class="num">0.425*</td><td class="num">0.407*</td><td class="num">0.101*</td><td class="num">0.163</td><td class="num">0.277*</td><td class="num">0.186*</td><td class="num">2.750*</td><td class="num">0.478*</td></tr><tr><th scope="row">(d) DPO, the look-alike that disagrees most</th><td class="num">0.441*</td><td class="num">0.459*</td><td class="num">0.420*</td><td class="num">0.094*</td><td class="num">0.168</td><td class="num">0.267*</td><td class="num">0.196*</td><td class="num">2.713*</td><td class="num">0.496</td></tr><tr><th scope="row">(e) = (d) + keep the true report likely</th><td class="num">0.455</td><td class="num">0.467*</td><td class="num">0.427*</td><td class="num">0.107</td><td class="num">0.172</td><td class="num">0.283</td><td class="num">0.200*</td><td class="num">2.687</td><td class="num">0.496</td></tr><tr class="ours"><th scope="row">(f) = (e) + keep the harmless sentences</th><td class="num">0.462</td><td class="num">0.487</td><td class="num">0.443</td><td class="num">0.112</td><td class="num">0.166</td><td class="num">0.286</td><td class="num">0.207</td><td class="num">2.674</td><td class="num">0.502</td></tr></tbody></table></div><p class="tcap">* differs from row (f) at p &lt; 0.05 (Wilcoxon signed-rank), as printed.</p></details>
+  </figure>
+  <ol class="num-list">
+    <li><strong>With plain DPO, random negatives make this model worse on all nine metrics.</strong> Precision falls from 0.456 to 0.413 and RadGraph from 0.201 to 0.142. This is one model, with no repeat reported; a later preprint (Random DPO, arXiv:2509.21351) reports gains from random reports on three other generators, so “random hurts” is this table’s result, not a law.</li>
+    <li><strong>Most of the recall comes from the choice of pair, with plain DPO.</strong> A random look-alike takes recall to 0.425, the most conflicting look-alike to 0.459: that is 0.092 of the final 0.120 gain, about three quarters <span class="tag">derived</span>.</li>
+    <li><strong>The loss terms are there for precision and wording.</strong> Precision stays below the released model in every row but the last, and so does ROUGE-L. DPOP (e) closes most of the precision gap, 0.441 to 0.455; the full objective brings both back to the starting level, and recall to 0.487. The new term’s own share, (e) to (f), is +0.020 recall, starred, and +0.007 precision, not starred.</li>
+  </ol>
+  <p>One inconsistency <span class="tag">our observation</span>: the paper’s Tables 1 and 2 both test the released model against the full method. Table 1 prints EKAGen’s precision change, 0.456 to 0.462, without a significance star; Table 2 stars it, and the same goes for METEOR. One of the two is off. The change is small, 0.006, but by Table 2 precision would be significant in four models, not three.</p>
+</section>
+
+<section id="results" data-toc="Six models">
+  <h2><span class="n">04</span>Six models, before and after</h2>
+  <figure id="fig-gains">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 378" role="img" aria-label="Change in recall and precision after RRG-DPO for six report generators" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><rect x="0.0" y="6.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="15.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">recall (fewer missed findings)</text><rect x="226.8" y="6.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="241.8" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">precision (smaller share of false findings)</text><rect x="535.7" y="6.0" width="10.0" height="10.0" class="f-hollow" rx="2"/><text x="550.7" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">not significant (p ≥ 0.05)</text><line x1="196.0" y1="40.0" x2="196.0" y2="344.0" class="zero"/><text x="196.0" y="358.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="294.5" y1="40.0" x2="294.5" y2="344.0" class="grid"/><text x="294.5" y="358.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.04</text><line x1="393.0" y1="40.0" x2="393.0" y2="344.0" class="grid"/><text x="393.0" y="358.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.08</text><line x1="491.5" y1="40.0" x2="491.5" y2="344.0" class="grid"/><text x="491.5" y="358.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.12</text><line x1="590.0" y1="40.0" x2="590.0" y2="344.0" class="grid"/><text x="590.0" y="358.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">+0.16</text><text x="760.0" y="28.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">F1 before → after</text><text x="184.0" y="61.0" class="t t-strong" text-anchor="end" dominant-baseline="central">CT2Rep</text><text x="184.0" y="77.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">CT · encoder-decoder</text><g class="hit" tabindex="0" data-tip="CT2Rep (CT): recall 0.073 → 0.232, precision 0.206 → 0.275"><path class="f-emph" d="M196.0,55.0H583.5Q587.5,55.0 587.5,59.0V64.0Q587.5,68.0 583.5,68.0H196.0Z"/><text x="594.5" y="61.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.159</text><path class="f-ctx" d="M196.0,70.0H361.9Q365.9,70.0 365.9,74.0V79.0Q365.9,83.0 361.9,83.0H196.0Z"/><text x="372.9" y="76.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.069</text><text x="760.0" y="69.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.099 → 0.233</text><rect x="196.0" y="49.0" width="564.0" height="40.0" class="hitbox"/></g><text x="184.0" y="111.0" class="t t-strong" text-anchor="end" dominant-baseline="central">EKAGen</text><text x="184.0" y="127.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">X-ray · encoder-decoder, 2024</text><g class="hit" tabindex="0" data-tip="EKAGen (X-ray): recall 0.367 → 0.487, precision 0.456 → 0.462 (n.s.)"><path class="f-emph" d="M196.0,105.0H487.5Q491.5,105.0 491.5,109.0V114.0Q491.5,118.0 487.5,118.0H196.0Z"/><text x="498.5" y="111.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.120</text><path class="f-hollow" d="M196.0,120.0H206.8Q210.8,120.0 210.8,124.0V129.0Q210.8,133.0 206.8,133.0H196.0Z"/><text x="217.8" y="126.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.006</text><text x="760.0" y="119.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.380 → 0.443</text><rect x="196.0" y="99.0" width="564.0" height="40.0" class="hitbox"/></g><text x="184.0" y="161.0" class="t t-strong" text-anchor="end" dominant-baseline="central">R2Gen</text><text x="184.0" y="177.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">X-ray · encoder-decoder, 2020</text><g class="hit" tabindex="0" data-tip="R2Gen (X-ray): recall 0.258 → 0.364, precision 0.347 → 0.405"><path class="f-emph" d="M196.0,155.0H453.0Q457.0,155.0 457.0,159.0V164.0Q457.0,168.0 453.0,168.0H196.0Z"/><text x="464.0" y="161.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.106</text><path class="f-ctx" d="M196.0,170.0H334.8Q338.8,170.0 338.8,174.0V179.0Q338.8,183.0 334.8,183.0H196.0Z"/><text x="345.8" y="176.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.058</text><text x="760.0" y="169.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.276 → 0.360</text><rect x="196.0" y="149.0" width="564.0" height="40.0" class="hitbox"/></g><text x="184.0" y="211.0" class="t t-strong" text-anchor="end" dominant-baseline="central">3D-CT-GPT</text><text x="184.0" y="227.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">CT · LLM-based, re-implemented</text><g class="hit" tabindex="0" data-tip="3D-CT-GPT (CT): recall 0.197 → 0.263, precision 0.335 → 0.342"><path class="f-emph" d="M196.0,205.0H354.5Q358.5,205.0 358.5,209.0V214.0Q358.5,218.0 354.5,218.0H196.0Z"/><text x="365.5" y="211.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.066</text><path class="f-ctx" d="M196.0,220.0H209.2Q213.2,220.0 213.2,224.0V229.0Q213.2,233.0 209.2,233.0H196.0Z"/><text x="220.2" y="226.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.007</text><text x="760.0" y="219.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.225 → 0.252</text><rect x="196.0" y="199.0" width="564.0" height="40.0" class="hitbox"/></g><text x="184.0" y="261.0" class="t t-strong" text-anchor="end" dominant-baseline="central">R2GenGPT</text><text x="184.0" y="277.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">X-ray · LLM-based</text><g class="hit" tabindex="0" data-tip="R2GenGPT (X-ray): recall 0.265 → 0.296, precision 0.398 → 0.409 (n.s.)"><path class="f-emph" d="M196.0,255.0H268.3Q272.3,255.0 272.3,259.0V264.0Q272.3,268.0 268.3,268.0H196.0Z"/><text x="279.3" y="261.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.031</text><path class="f-hollow" d="M196.0,270.0H219.1Q223.1,270.0 223.1,274.0V279.0Q223.1,283.0 219.1,283.0H196.0Z"/><text x="230.1" y="276.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.011</text><text x="760.0" y="269.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.318 → 0.343</text><rect x="196.0" y="249.0" width="564.0" height="40.0" class="hitbox"/></g><text x="184.0" y="311.0" class="t t-strong" text-anchor="end" dominant-baseline="central">PromptMRG</text><text x="184.0" y="327.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">X-ray · encoder-decoder, 2024</text><g class="hit" tabindex="0" data-tip="PromptMRG (X-ray): recall 0.507 → 0.516 (n.s.), precision 0.504 → 0.508 (n.s.)"><path class="f-hollow" d="M196.0,305.0H214.2Q218.2,305.0 218.2,309.0V314.0Q218.2,318.0 214.2,318.0H196.0Z"/><text x="225.2" y="311.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.009</text><path class="f-hollow" d="M196.0,320.0H201.8Q205.8,320.0 205.8,324.0V329.0Q205.8,333.0 201.8,333.0H196.0Z"/><text x="212.8" y="326.5" class="t t-small t-num" text-anchor="start" dominant-baseline="central">+0.004</text><text x="760.0" y="319.0" class="t t-small t-num" text-anchor="end" dominant-baseline="central">0.476 → 0.483 n.s.</text><rect x="196.0" y="299.0" width="564.0" height="40.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — Recall moves more than precision in every model, and nothing moves significantly in the one with the highest F1.</b> Change after RRG-DPO, in absolute units of the CheXbert-based precision and recall; models sorted by recall gain. Hollow bars carry no significance star in the paper (Wilcoxon signed-rank, p &lt; 0.05). The right-hand column is F1 before and after. No repeated runs are reported. Source: Table 1.</figcaption>
+    <details class="data"><summary>Show the six clinical metrics as a table</summary><div class="table-wrap"><table class="data stack"><thead><tr><th scope="col">Model</th><th scope="col" class="num">Precision</th><th scope="col" class="num">Recall</th><th scope="col" class="num">F1</th><th scope="col" class="num">RadGraph</th><th scope="col" class="num">RadCliQ ↓</th><th scope="col" class="num">RaTEScore</th></tr></thead><tbody><tr><th scope="row">R2Gen (X-ray)</th><td class="num"><span class="v">0.405*</span> <span class="ci">from 0.347</span></td><td class="num"><span class="v">0.364*</span> <span class="ci">from 0.258</span></td><td class="num"><span class="v">0.360*</span> <span class="ci">from 0.276</span></td><td class="num"><span class="v">0.197*</span> <span class="ci">from 0.172</span></td><td class="num"><span class="v">2.714*</span> <span class="ci">from 2.788</span></td><td class="num"><span class="v">0.505*</span> <span class="ci">from 0.483</span></td></tr><tr><th scope="row">EKAGen (X-ray)</th><td class="num"><span class="v">0.462</span> <span class="ci">from 0.456</span></td><td class="num"><span class="v">0.487*</span> <span class="ci">from 0.367</span></td><td class="num"><span class="v">0.443*</span> <span class="ci">from 0.380</span></td><td class="num"><span class="v">0.207*</span> <span class="ci">from 0.201</span></td><td class="num"><span class="v">2.674*</span> <span class="ci">from 2.685</span></td><td class="num"><span class="v">0.502*</span> <span class="ci">from 0.487</span></td></tr><tr class="ours"><th scope="row">PromptMRG (X-ray)</th><td class="num"><span class="v">0.508</span> <span class="ci">from 0.504</span></td><td class="num"><span class="v">0.516</span> <span class="ci">from 0.507</span></td><td class="num"><span class="v">0.483</span> <span class="ci">from 0.476</span></td><td class="num"><span class="v">0.191</span> <span class="ci">from 0.190</span></td><td class="num"><span class="v">2.731</span> <span class="ci">from 2.733</span></td><td class="num"><span class="v">0.488</span> <span class="ci">from 0.484</span></td></tr><tr><th scope="row">R2GenGPT (X-ray)</th><td class="num"><span class="v">0.409</span> <span class="ci">from 0.398</span></td><td class="num"><span class="v">0.296*</span> <span class="ci">from 0.265</span></td><td class="num"><span class="v">0.343*</span> <span class="ci">from 0.318</span></td><td class="num"><span class="v">0.159*</span> <span class="ci">from 0.118</span></td><td class="num"><span class="v">2.772*</span> <span class="ci">from 2.864</span></td><td class="num"><span class="v">0.454*</span> <span class="ci">from 0.430</span></td></tr><tr><th scope="row">CT2Rep (CT)</th><td class="num"><span class="v">0.275*</span> <span class="ci">from 0.206</span></td><td class="num"><span class="v">0.232*</span> <span class="ci">from 0.073</span></td><td class="num"><span class="v">0.233*</span> <span class="ci">from 0.099</span></td><td class="num"><span class="v">0.442*</span> <span class="ci">from 0.430</span></td><td class="num"><span class="v">1.978</span> <span class="ci">from 2.001</span></td><td class="num"><span class="v">0.652</span> <span class="ci">from 0.647</span></td></tr><tr><th scope="row">3D-CT-GPT (CT)</th><td class="num"><span class="v">0.342*</span> <span class="ci">from 0.335</span></td><td class="num"><span class="v">0.263*</span> <span class="ci">from 0.197</span></td><td class="num"><span class="v">0.252*</span> <span class="ci">from 0.225</span></td><td class="num"><span class="v">0.442</span> <span class="ci">from 0.435</span></td><td class="num"><span class="v">2.075*</span> <span class="ci">from 2.104</span></td><td class="num"><span class="v">0.632*</span> <span class="ci">from 0.619</span></td></tr></tbody></table></div><p class="tcap">After RRG-DPO, with the base model’s value under it. * significant against the base model, as printed. RadCliQ is lower-is-better. PromptMRG, highlighted, has the highest F1 before and after. BLEU-4, METEOR and ROUGE-L change by 0.015 or less in every model.</p></details>
+  </figure>
+
+  <p>Averaged over the six models, recall gains +0.082 and precision +0.026 <span class="tag">derived</span>. The abstract promises fewer false-positive and fewer false-negative findings; the table mostly delivers the second. Precision improves clearly for R2Gen and CT2Rep, by about 6 and 7 points, and by about a point or less in the other four. It is a hit rate: a gain means a larger share of the written findings is right, not necessarily fewer false ones.</p>
+  <p>The abstract also says every model improves on six clinical metrics. That holds for all 36 cells; 25 of the 36 carry a star <span class="tag">derived</span>. CT2Rep, which starts at the lowest recall, gains the most (0.073 to 0.232); PromptMRG, which starts at the highest, gains 0.009.</p>
+  <div class="callout">
+    <span class="label">What the “state of the art” claim rests on <span class="tag">our observation</span></span>
+    <p>The paper presents PromptMRG + RRG-DPO (precision 0.508, recall 0.516, F1 0.483) as a “new state-of-the-art” on MIMIC-CXR among peer-reviewed work, as far as the authors know. The authors’ own PromptMRG run scores an F1 of 0.476, the same as PromptMRG’s published number, so the claim is a lead of 0.007 that the paper’s own test doesn’t find significant. Read it as “matches PromptMRG”, and look for the method’s value on the models that start with a lower F1.</p>
+  </div>
+</section>
+
+<section id="metric" data-toc="Reading the metric">
+  <h2><span class="n">05</span>The labeller is both teacher and judge</h2>
+  <p>CheXbert reads a report and outputs 14 chest X-ray labels. In this paper it does three jobs: it picks the wrong report, it marks the sentences to delete, and it computes the precision, recall and F1 of the results. A model trained to separate reports that CheXbert labels differently should improve most on CheXbert’s own score, and it does in five of the six models <span class="tag">derived</span>. For EKAGen, F1 rises 17% while RadGraph and RaTEScore, which the pipeline doesn’t use, each rise 3%. They do rise, and significantly in four of the six models each, so the gain is not only the labeller agreeing with itself. But the size of the clinical gain is better read from those columns than from the headline recall.</p>
+  <div class="callout soft">
+    <span class="label">Caveat on the CT numbers <span class="tag">our observation</span></span>
+    <p>The paper describes one pipeline for both datasets: the BiomedVLP text encoder, a chest X-ray language model, for retrieval, and CheXbert’s 14 chest X-ray labels for selection and scoring. It doesn’t mention CT-RATE’s own 18 abnormality labels. Scored that way, CT2Rep’s F1 goes from 0.099 to 0.233, more than double, while its RadGraph rises 3% and its RadCliQ and RaTEScore changes are not significant. CT2Rep’s own paper reports an F1 of 0.534 with a classifier trained for CT-RATE’s labels, averaged per abnormality, on a different test set. So the CT rows show that the step transfers to a 3D model; they can’t be compared with other CT results, and they say little about findings CheXbert has no label for.</p>
+  </div>
+</section>
+
+<section id="gaps" data-toc="What’s missing">
+  <h2><span class="n">06</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>Intervals, repeats and cost.</strong> Each row is a single result with stars: no repeated runs, no confidence intervals. The cost of the three training epochs isn’t given, only the 4.6 hours of pair building.</li>
+    <li><strong>Other generators.</strong> A reviewer asked for CXRMate and for the newer LLM-based MAIRA-2, LLaVA-Rad and CXR-LLaVA; the authors left them to future work.</li>
+    <li><strong>Sensitivity to the retriever and the labeller.</strong> The rebuttal mentions preliminary runs with another retriever, with the CheXpert labeller, and with the new loss on random negatives. None of these numbers is in the paper.</li>
+    <li><strong>A look at the images.</strong> A reviewer noted that a “false positive” can be a true finding the reference report omits; the authors agreed they had seen such cases. The paper shows no generated report, and we found none of the visual analysis its text mentions in the repository.</li>
+  </ul>
+</section>
+
+<section id="code" data-toc="Code against paper">
+  <h2><span class="n">07</span>The released code against the paper</h2>
+  <p>The repository applies the method to one model, R2Gen. Its values differ from the paper’s <span class="tag">our observation</span>, read at commit <code>bc7138a</code> of 12 Jan 2026:</p>
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Setting</th><th scope="col">Paper</th><th scope="col">Repository, R2Gen example</th></tr></thead><tbody><tr><th scope="row">β, strength of the preference term</th><td style="white-space:normal">0.3</td><td style="white-space:normal">0.1</td></tr><tr><th scope="row">λ, keep the true report likely</th><td style="white-space:normal">1</td><td style="white-space:normal">0.1</td></tr><tr><th scope="row">γ, keep the harmless sentences likely</th><td style="white-space:normal">0.1</td><td style="white-space:normal">0: the term is computed, then multiplied by zero</td></tr><tr><th scope="row">Weight of the conflicting sentences</th><td style="white-space:normal">not mentioned</td><td style="white-space:normal">5× in every log-likelihood</td></tr><tr><th scope="row">Optimiser, learning rate</th><td style="white-space:normal">AdamW, 10<sup>−7</sup></td><td style="white-space:normal">Adam, 10<sup>−6</sup></td></tr><tr><th scope="row">Length of training</th><td style="white-space:normal">three epochs (about 50,800 steps at batch 16)</td><td style="white-space:normal">script: 5 epochs; README: 6,000–9,000 steps, 0.35 to 0.53 of an epoch</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 1 — Settings in the paper and in the released example.</b> Paper: Section 3. Repository: <code>modules/dpo_loss.py</code>, <code>modules/trainer.py</code>, <code>modules/datasets.py</code>, <code>main_dpo.py</code>, <code>run_mimic_cxr_dpo.sh</code> and the README. Steps per epoch assume all 270,790 training pairs at batch 16 <span class="tag">derived</span>.</p>
+  <p>Two differences matter. The new term is switched off in the example: its weight is 0, so what runs is a DPOP-style loss on the chosen pairs. And the tokens of the conflicting sentences count five times in each report’s average log-likelihood, a weighting the paper doesn’t describe. Whether the paper’s results were produced with these values is not stated; the example may simply be a different configuration: <code>main.py</code> tests by default a checkpoint from a run named <code>…p1p2_newweight01_01</code>, while the training script writes to <code>…p1_newweight01</code>.</p>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">08</span>Takeaways for training a report generator</h2>
+  <ol class="num-list">
+    <li><strong>If you add preference training, spend the effort on the negatives.</strong> On EKAGen with plain DPO, random negatives lowered all nine metrics; chosen ones gave 0.092 of the 0.120 recall gain before any change to the loss.</li>
+    <li><strong>Expect recall more than precision.</strong> Recall gained +0.082 on average, precision +0.026.</li>
+    <li><strong>Expect little where the labeller’s F1 is already high.</strong> No significant change on PromptMRG, the one such model here.</li>
+    <li><strong>Score with a tool you didn’t train with.</strong> The labeller’s own F1 rose 17% on EKAGen; RadGraph and RaTEScore rose 3%.</li>
+  </ol>
+</section>
+
+<section id="use" data-toc="Use it today">
+  <h2><span class="n">09</span>What you can use today</h2>
+  <ul>
+    <li><strong>The code.</strong> <a href="https://github.com/ccarliu/RRG-DPO">github.com/ccarliu/RRG-DPO</a>, licence AGPL-3.0: commercial use is allowed, but if you distribute a modified version or run one as a network service, you must offer its source under the same licence. Open <code>modules/datasets.py</code> (the pair selection) and <code>modules/dpo_loss.py</code> (the loss); run <code>run_mimic_cxr_dpo.sh</code> after training R2Gen with <code>main.py</code> (as committed it only tests: re-enable <code>trainer.train()</code>).</li>
+    <li><strong>What isn’t there.</strong> No trained RRG-DPO weights, no code for the other five models or for CT, and no script for the retrieval or the sentence labels, which the loader reads from files. The README links a “preference dataset” on Google Drive; we didn’t open it. You need your own credentialed copy of MIMIC-CXR and PromptMRG’s annotation file.</li>
+    <li><strong>The recipe, without the code.</strong> Embed your training reports; for each one take the 20 nearest; keep the neighbour whose finding labels differ most; train with DPO plus a term that keeps the true report likely.</li>
+    <li><strong>The rule.</strong> A wrong example teaches what it differs on: make it differ on findings, and score the result with a metric that didn’t choose the examples.</li>
+  </ul>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Liu, H., Wei, D., Xu, Z., Wu, X., Zheng, Y., Wang, L. RRG-DPO: Direct Preference Optimization for Clinically Accurate Radiology Report Generation. MICCAI 2025, LNCS 15964, pp. 552–562: <a href="https://papers.miccai.org/miccai-2025/0795-Paper1273.html">paper page with reviews and rebuttal</a> · <a href="https://papers.miccai.org/miccai-2025/paper/1273_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-04971-1_52">DOI</a>. We found no arXiv version.</li>
+    <li>The repository <a href="https://github.com/ccarliu/RRG-DPO">ccarliu/RRG-DPO</a>, read on 13 Oct 2026 at commit <code>bc7138a</code>. No data file was opened.</li>
+    <li>Rafailov, R., et al. Direct Preference Optimization. NeurIPS 2023: <a href="https://arxiv.org/abs/2305.18290">arXiv:2305.18290</a>. Pal, A., et al. DPO-Positive: <a href="https://arxiv.org/abs/2402.13228">arXiv:2402.13228</a>.</li>
+    <li>Smit, A., et al. CheXbert. EMNLP 2020: <a href="https://arxiv.org/abs/2004.09167">arXiv:2004.09167</a>.</li>
+    <li>Jin, H., et al. PromptMRG. AAAI 2024: <a href="https://arxiv.org/abs/2308.12604">arXiv:2308.12604</a> (Table 1).</li>
+    <li>Hamamci, I. E., et al. CT2Rep. MICCAI 2024: <a href="https://arxiv.org/abs/2403.06801">arXiv:2403.06801</a> (Tables 1 and 2).</li>
+    <li>Samokhin, V., et al. Random Direct Preference Optimization for Radiography Report Generation: <a href="https://arxiv.org/abs/2509.21351">arXiv:2509.21351</a> (2025).</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Liu et al., MICCAI 2025 (LNCS 15964, pp. 552–562). All numbers come from the paper unless marked <em>derived</em> or <em>our observation</em>, or attributed to the released code or another source. Figures were generated with Python from the paper’s tables. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
