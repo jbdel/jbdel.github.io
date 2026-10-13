@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gut-VLM, 7 in 10 GPT-4o endoscopy descriptions had an error</title>
+<meta name="description" content="Gut-VLM releases 1,816 GPT-4o descriptions of endoscopy images with expert tags and corrections: what it holds, and what its hallucination-aware fine-tuning result shows.">
+<meta property="og:title" content="Gut-VLM, 7 in 10 GPT-4o endoscopy descriptions had an error">
+<meta property="og:description" content="Gut-VLM releases 1,816 GPT-4o descriptions of endoscopy images with expert tags and corrections: what it holds, and what its hallucination-aware fine-tuning result shows.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://jbdel.github.io/research-blog/gut-vlm-hallucination-benchmark/">
+<meta name="author" content="Jean-Benoit Delbrouck">
+<meta property="og:site_name" content="Jean-Benoit Delbrouck · Research blog">
+<meta property="og:image" content="https://jbdel.github.io/research-blog/gut-vlm-hallucination-benchmark/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="Gut-VLM, 7 in 10 GPT-4o endoscopy descriptions had an error: title card">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://jbdel.github.io/research-blog/gut-vlm-hallucination-benchmark/og.png">
+<link rel="canonical" href="https://jbdel.github.io/research-blog/gut-vlm-hallucination-benchmark/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #666666;
+  --ink-4: #8c8c8c;
+  --rule: #e7e7e7;
+  --rule-2: #cfcfcf;
+  --panel: #f6f6f6;
+  --panel-2: #eeeeee;
+  --c-emph: #111111;
+  --c-mid: #6e6e6e;
+  --c-ctx: #a6a6a6;
+  --c-frozen: #ebebeb;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --col: 720px;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: 18px; line-height: 1.68;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration-color: var(--rule-2); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--ink); }
+::selection { background: #dcdcdc; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(1.2) blur(6px); border-bottom: 1px solid var(--rule);
+}
+.topbar .in {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--sans); font-size: 13.5px;
+}
+.brand { font-weight: 600; letter-spacing: -.01em; }
+.brand a { text-decoration: none; }
+.brand a + span { color: var(--ink-4); font-weight: 400; margin: 0 2px; }
+.brand a:last-child { color: var(--ink-3); font-weight: 500; }
+.brand a:hover { color: var(--ink); }
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { text-decoration: none; color: var(--ink-3); }
+.topbar nav a:hover { color: var(--ink); }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1180px; margin: 0 auto; padding: 64px 16px 8px; }
+.hero .in { max-width: calc(var(--col) + 276px); margin: 0 auto; padding-left: 276px; }
+.kicker { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 18px; }
+h1 {
+  font-family: var(--sans); font-weight: 700; font-size: 46px; line-height: 1.08;
+  letter-spacing: -.028em; margin: 0 0 20px; max-width: 16ch;
+}
+.dek { font-size: 21px; line-height: 1.55; color: var(--ink-2); margin: 0 0 26px; max-width: 40em; }
+.meta { font-family: var(--sans); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0 0; border-top: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+/* ---------- layout ---------- */
+.page {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, var(--col)); gap: 56px; justify-content: center;
+}
+.toc {
+  position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 88px); overflow: auto;
+  font-family: var(--sans); font-size: 13px; line-height: 1.45; padding-top: 40px;
+}
+.toc .h { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); margin: 0 0 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: grid; grid-template-columns: 24px 1fr; padding: 5px 0 5px 10px; border-left: 1px solid var(--rule); color: var(--ink-3); text-decoration: none; }
+.toc a span { color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.toc a:hover { color: var(--ink); }
+.toc a.active { color: var(--ink); border-left: 2px solid var(--ink); padding-left: 9px; font-weight: 500; }
+article { min-width: 0; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0 8px; border-top: 1px solid var(--ink); }
+.tile { padding: 14px 14px 12px 0; }
+.tile + .tile { padding-left: 14px; border-left: 1px solid var(--rule); }
+.tile .v { font-family: var(--sans); font-weight: 600; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.tile .l { font-family: var(--sans); font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 6px; }
+
+/* ---------- text ---------- */
+section { scroll-margin-top: 72px; }
+h2 {
+  font-family: var(--sans); font-size: 27px; line-height: 1.2; letter-spacing: -.02em; font-weight: 700;
+  margin: 72px 0 18px; padding-top: 18px; border-top: 1px solid var(--rule);
+}
+h2 .n { display: block; font-size: 12px; letter-spacing: .12em; color: var(--ink-4); font-weight: 600; margin-bottom: 8px; }
+h3 { font-family: var(--sans); font-size: 18.5px; font-weight: 600; letter-spacing: -.01em; margin: 40px 0 10px; }
+p { margin: 0 0 18px; }
+strong { font-weight: 600; }
+article ul, article ol { padding-left: 1.2em; margin: 0 0 20px; }
+article li { margin: 0 0 10px; }
+article li::marker { color: var(--ink-4); }
+.num-list { counter-reset: n; list-style: none; padding-left: 0 !important; }
+.num-list > li { counter-increment: n; position: relative; padding-left: 36px; }
+.num-list > li::before {
+  content: counter(n); position: absolute; left: 0; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--ink); font: 600 11.5px/20px var(--sans); text-align: center;
+}
+code { font-family: var(--mono); font-size: .84em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+.sm { font-family: var(--sans); font-size: 14px; color: var(--ink-3); }
+.tldr { background: var(--panel); border-radius: 10px; padding: 22px 26px 8px; margin: 26px 0 0; }
+.tldr .label, .callout .label {
+  display: block; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.tldr ul { font-size: 17px; }
+.tldr li { margin-bottom: 12px; }
+
+/* ---------- callouts ---------- */
+.callout {
+  border-left: 3px solid var(--ink); background: var(--panel); padding: 16px 20px 4px; margin: 28px 0;
+  font-family: var(--sans); font-size: 15px; line-height: 1.6; border-radius: 0 8px 8px 0;
+}
+.callout p { margin-bottom: 12px; }
+.callout.soft { border-left-color: var(--c-ctx); }
+.tag {
+  display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--rule-2); color: var(--ink-3); border-radius: 999px;
+  padding: 1px 7px; vertical-align: 2px; margin-left: 4px; white-space: nowrap;
+}
+
+/* ---------- figures ---------- */
+figure { margin: 34px 0 38px; scroll-margin-top: 64px; }
+.frame { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.55; color: var(--ink-3); margin-top: 12px; }
+figcaption b { color: var(--ink); font-weight: 600; }
+details.data { margin: 10px 0 0; font-family: var(--sans); font-size: 13px; }
+details.data summary { cursor: pointer; color: var(--ink-3); width: max-content; }
+details.data summary:hover { color: var(--ink); }
+details.data[open] summary { margin-bottom: 8px; }
+
+/* ---------- charts (inline SVG from build.py) ---------- */
+.viz { display: block; width: 100%; height: auto; overflow: visible; }
+.viz .t { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+.viz .t-small { font-size: 11.5px; }
+.viz .t-tiny { font-size: 10.5px; }
+.viz .t-head { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.viz .t-strong { fill: var(--ink); font-weight: 600; }
+.viz .t-muted { fill: var(--ink-3); }
+.viz .t-num { font-variant-numeric: tabular-nums; }
+.viz .t-on-dark { fill: #ffffff; font-weight: 600; }
+.viz .grid { stroke: var(--rule); stroke-width: 1; }
+.viz .grid-strong { stroke: var(--rule-2); stroke-width: 1; }
+.viz .zero { stroke: var(--ink-3); stroke-width: 1; }
+.viz .rule { stroke: var(--rule-2); stroke-width: 1; }
+.viz .track { stroke: var(--rule); stroke-width: 1; }
+.viz .floor { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.viz .f-emph { fill: var(--c-emph); }
+.viz .f-mid { fill: var(--c-mid); }
+.viz .f-ctx { fill: var(--c-ctx); }
+.viz .f-frozen { fill: var(--c-frozen); }
+.viz .f-hollow { fill: var(--bg); stroke: var(--c-emph); stroke-width: 1.6; }
+.viz .ring { stroke: var(--bg); stroke-width: 2; }
+.viz .ci { stroke: var(--c-ctx); stroke-width: 2; stroke-linecap: round; }
+.viz .ci-emph { stroke: var(--c-emph); }
+.viz .whisker { stroke: var(--ink-2); stroke-width: 1.2; }
+.viz .band { fill: var(--panel); }
+.viz .bracket { fill: none; stroke: var(--ink-3); stroke-width: 1; }
+.viz .arrow { stroke: var(--ink-2); stroke-width: 1.4; }
+.viz .arrowhead { fill: var(--ink-2); }
+.viz .cube-top { fill: #f5f5f5; }
+.viz .cube-left { fill: #e6e6e6; }
+.viz .cube-right { fill: #d8d8d8; }
+.viz .cube-grid-fine { fill: none; stroke: #8f8f8f; stroke-width: .45; }
+.viz .cube-grid-bold { fill: none; stroke: #111111; stroke-width: .8; }
+.viz .cube-edge { fill: none; stroke: #111111; stroke-width: 1.2; stroke-linejoin: round; }
+.viz .hitbox { fill: transparent; }
+.viz .hit { outline: none; }
+.viz .hit:hover > :not(.hitbox), .viz .hit:focus-visible > :not(.hitbox) { opacity: .72; }
+.viz .hit:focus-visible .hitbox { stroke: var(--ink); stroke-width: 1.2; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; max-width: 320px;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--rule-2); border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08); padding: 7px 10px; font: 500 12.5px/1.45 var(--sans);
+  opacity: 0; transition: opacity .08s;
+}
+
+/* ---------- pipeline diagram (HTML) ---------- */
+.flow { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
+.flow .row { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: stretch; }
+.flow .box { border: 1px solid var(--rule-2); border-radius: 8px; padding: 12px 14px; position: relative; }
+.flow .box .t1 { font-weight: 600; font-size: 14.5px; }
+.flow .box .t2 { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.flow .box.frozen { background: var(--c-frozen); border-color: var(--c-frozen); }
+.flow .box.train { background: var(--ink); border-color: var(--ink); color: #ffffff; }
+.flow .box.train .t2 { color: #cfcfcf; }
+.flow .box.lora { border: 2px solid var(--ink); }
+.flow .state {
+  position: absolute; top: 12px; right: 12px; font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; opacity: .8;
+}
+.flow .shape { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: flex; align-items: center; border-left: 1px solid var(--rule); padding-left: 14px; }
+.flow .conn { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; }
+.flow .conn div:first-child { position: relative; padding: 10px 0 10px 34px; font-size: 12.5px; color: var(--ink-3); min-height: 30px; }
+.flow .conn div:first-child::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 6px; width: 1px; background: var(--ink-2); }
+.flow .conn div:first-child::after { content: ""; position: absolute; left: 14px; bottom: 0; border: 4.5px solid transparent; border-top: 7px solid var(--ink-2); border-bottom: 0; }
+.flow .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+.flow .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* ---------- recipe cards ---------- */
+dl.recipe { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 22px 0 28px; font-family: var(--sans); font-size: 14px; line-height: 1.5; border-top: 1px solid var(--ink); }
+dl.recipe dt, dl.recipe dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+dl.recipe dt { color: var(--ink-3); padding-right: 12px; }
+dl.recipe dd .d { color: var(--ink-4); font-size: 12.5px; }
+.nr { color: var(--ink-4); font-style: italic; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; margin: 22px 0 10px; -webkit-overflow-scrolling: touch; }
+table.data { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 13px; line-height: 1.4; }
+table.data.narrow { width: auto; min-width: 320px; }
+table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { padding-left: 0; }
+table.data thead th { font-weight: 600; color: var(--ink); border-bottom: 1px solid var(--ink); font-size: 12.5px; }
+table.data tbody th { font-weight: 500; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data .ci { color: var(--ink-4); font-size: 11.5px; }
+table.data.stack .ci { display: block; margin-top: 1px; }
+table.data .ns { font-size: 10.5px; font-weight: 600; border: 1px solid var(--rule-2); border-radius: 999px; padding: 0 5px; color: var(--ink-2); }
+table.data tr.ours { background: var(--panel); }
+table.data tr.ours th, table.data tr.ours .v { font-weight: 700; }
+table.data tr.ours th:first-child { padding-left: 6px; }
+.tcap { font-family: var(--sans); font-size: 13.5px; color: var(--ink-3); margin: 8px 0 30px; line-height: 1.55; }
+.tcap b { color: var(--ink); }
+
+/* ---------- code ---------- */
+pre {
+  font-family: var(--mono); font-size: 12.8px; line-height: 1.6; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 18px 0 8px;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .c { color: var(--ink-4); }
+.eq { font-family: var(--mono); font-size: 13.5px; line-height: 1.9; background: var(--panel); border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px; overflow-x: auto; white-space: nowrap; }
+.eq .c { color: var(--ink-4); }
+pre .k { font-weight: 500; color: var(--ink); }
+
+/* ---------- label chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 22px; padding: 0; list-style: none; font-family: var(--sans); font-size: 12.5px; }
+.chips li { border: 1px solid var(--rule-2); border-radius: 999px; padding: 3px 10px; margin: 0; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 13px; color: var(--ink-3); }
+footer .in { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+.refs { font-family: var(--sans); font-size: 14px; line-height: 1.55; padding-left: 1.4em !important; }
+.refs li { margin-bottom: 8px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1060px) {
+  .page { grid-template-columns: minmax(0, var(--col)); gap: 0; }
+  .toc { display: none; }
+  .hero .in { padding-left: 0; max-width: var(--col); }
+}
+@media (max-width: 720px) {
+  body { font-size: 17px; }
+  .hero { padding-top: 40px; }
+  h1 { font-size: 34px; }
+  .dek { font-size: 18.5px; }
+  h2 { font-size: 23px; margin-top: 56px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile, .tile + .tile { padding: 12px 12px 12px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
+  .tile:nth-child(even) { padding-left: 12px; border-left: 1px solid var(--rule); }
+  .tldr { padding: 18px 18px 4px; }
+  .flow .row, .flow .conn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .flow .shape { border-left: 0; padding: 0 0 0 2px; }
+  .flow .conn div:last-child { display: none; }
+  dl.recipe { grid-template-columns: minmax(0, 1fr); }
+  dl.recipe dt { border-bottom: 0; padding-bottom: 0; font-size: 12.5px; }
+  .topbar nav { gap: 12px; }
+}
+@media (max-width: 560px) {
+  .topbar nav { display: none; }
+  .brand { white-space: nowrap; }
+}
+@media print {
+  .topbar, .toc { display: none; }
+  .page { display: block; }
+  .hero .in { padding-left: 0; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="in">
+    <span class="brand"><a href="/">Jean-Benoit Delbrouck</a> <span>/</span> <a href="/research-blog/">Research blog</a></span>
+    <nav>
+      <a href="https://papers.miccai.org/miccai-2025/0395-Paper0774.html">Paper</a>
+      <a href="https://papers.miccai.org/miccai-2025/paper/0774_paper.pdf">PDF</a>
+      <a href="https://arxiv.org/abs/2505.07001">arXiv</a>
+      <a href="https://github.com/bhattarailab/Hallucination-Aware-VLM">Code</a>
+      <a href="https://github.com/bhattarailab/Hallucination-Aware-VLM/tree/main/dataset/Gut-VLM">Data</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <p class="kicker">Research blog · Endoscopy report generation and hallucination checking</p>
+    <h1>Gut-VLM, 7 in 10 <span style="white-space:nowrap">GPT-4o</span> endoscopy descriptions had an error</h1>
+    <p class="dek">Gut-VLM had gastroenterologists check, sentence by sentence, what GPT-4o wrote about 1,816 endoscopy images, and released the corrections. This post reads what the release holds, and what the paper’s “hallucination-aware” fine-tuning result does and doesn’t show.</p>
+    <div class="meta">
+      <span><b>Paper</b> Bidur Khanal, Sandesh Pokhrel, … Yash R. Shrestha, Binod Bhattarai. <a href="https://papers.miccai.org/miccai-2025/0395-Paper0774.html"><i>Hallucination-Aware Multimodal Benchmark for Gastrointestinal Image Analysis with Large Vision-Language Models</i></a>. MICCAI 2025, LNCS 15969, pp. 235–245</span>
+      <span><b>By</b> <a href="/">Jean-Benoit Delbrouck</a></span>
+      <span><b>Published</b> 13 Oct 2026</span>
+      <span><b>Reading time</b> ~10 min</span>
+      <span><b>Tags</b> <a href="/research-blog/?tag=miccai-2025">MICCAI 2025</a> · <a href="/research-blog/?tag=main">Main</a></span>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <nav class="toc" aria-label="Contents"><p class="h">Contents</p><ol id="toc"></ol></nav>
+  <article>
+
+<section id="tldr" data-toc="TL;DR">
+  <div class="tiles" role="list">
+    <div class="tile" role="listitem"><div class="v">1,816</div><div class="l">endoscopy images, each with GPT-4o’s description, expert tags per sentence and a corrected text</div></div>
+    <div class="tile" role="listitem"><div class="v">69.6%<sup>*</sup></div><div class="l">of GPT-4o’s descriptions had at least one sentence the experts tagged as wrong</div></div>
+    <div class="tile" role="listitem"><div class="v">90.9%</div><div class="l">best score on the paper’s question metric: a model fine-tuned to correct GPT-4o’s text</div></div>
+    <div class="tile" role="listitem"><div class="v">86.0%</div><div class="l">the same metric for GPT-4o’s text before anyone corrects it</div></div>
+  </div>
+  <p class="sm" style="margin:6px 0 0">* Derived: 1,232 mixed and 32 fully wrong descriptions out of 1,816 (Fig. 1 of the paper).</p>
+
+  <div class="tldr">
+    <span class="label">TL;DR</span>
+    <ul>
+      <li><strong>The release is the contribution.</strong> For 1,816 still images of the public Kvasir-v2 set: what GPT-4o wrote, which sentences four gastroenterologists tagged as hallucinated, and their corrected text. It is on GitHub as JSON; the repository has no licence file.</li>
+      <li><strong>GPT-4o needed fixing most of the time.</strong> The experts found no error in 552 descriptions and at least one in 1,264. In the mixed ones, 1,739 of 4,670 sentences (37%) were tagged.</li>
+      <li><strong>The headline comparison isn’t like for like.</strong> Models fine-tuned to detect and correct hallucinations score 88.4 to 90.9 on the question metric; models fine-tuned to write the description score 82.9 to 83.7. The paper’s figure gives the correcting model GPT-4o’s description as input, and that text alone already scores 86.0%.</li>
+      <li><strong>What can’t be told.</strong> How much of the gain is the training recipe and how much is the head start: there is one score per model, no interval, and no baseline that hands the same draft to a differently trained model.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="setup" data-toc="What is compared">
+  <h2><span class="n">01</span>What the experiment compares</h2>
+  <p>Public image-text pairs are scarce in GI endoscopy; the authors cite one earlier set, Kvasir-VQA, with short answers. They build longer ones cheaply: GPT-4o describes each image, then gastroenterologists correct the description instead of writing one from nothing. The corrections leave a trace that ordinary datasets don’t have: which sentences the model got wrong.</p>
+
+  <figure id="fig-flow">
+    <div class="flow" role="img" aria-label="How Gut-VLM is built: Kvasir-v2 images are described by GPT-4o from a prompt with 12 questions; gastroenterologists tag each sentence as hallucinated or not and correct the text; the result, 1,816 images with draft, tags and correction, is released and split into 1,450 for training and 366 for testing; GPT-4o also turns each corrected text into 12 answers, checked by hand">
+      <div class="row">
+        <div class="box"><div class="t1">Kvasir-v2 images</div><div class="t2">Public still images from endoscopy: three normal landmarks, five kinds of finding or procedure.</div></div>
+        <div class="shape">1,816 images<br>8 classes</div>
+      </div>
+      <div class="conn"><div>one prompt: describe the image in a paragraph that answers 12 questions</div><div></div></div>
+      <div class="row">
+        <div class="box frozen"><span class="state">GPT-4o</span><div class="t1">Draft description</div><div class="t2">Which landmark, its colour, any abnormality and where, polyps, instruments, inflammation, bleeding, foreign bodies, infection.</div></div>
+        <div class="shape">1 paragraph<br>per image</div>
+      </div>
+      <div class="conn"><div>four gastroenterologists tag every sentence, then rewrite the wrong ones</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">released</span><div class="t1">Gut-VLM</div><div class="t2">Draft, sentence tags (hallucinated or not) and corrected description for each image.</div></div>
+        <div class="shape">1,450 train<br>366 test</div>
+      </div>
+      <div class="conn"><div>GPT-4o extracts 12 answers from each corrected description; checked by hand</div><div></div></div>
+      <div class="row">
+        <div class="box lora"><span class="state">released</span><div class="t1">Question-answer version</div><div class="t2">The reference answers behind the paper’s accuracy score, usable for visual question answering.</div></div>
+        <div class="shape">12 answers<br>per image</div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--c-frozen);border:1px solid var(--rule-2)"></i>commercial model, not trained</span>
+        <span><i style="border:2px solid var(--ink)"></i>released</span>
+      </div>
+    </div>
+    <figcaption><b>Figure 1 — A draft by GPT-4o, corrected by gastroenterologists, with the corrections kept.</b> Sources: Sections 2.1 and 2.2; Fig. 1 of the paper.</figcaption>
+  </figure>
+
+  <p>A “report” here is a short paragraph about one still image, not the report of a procedure. Four open models (LLaVA-1.6-7B, DeepSeek-7B-VL, Qwen2-7B and mPLUG-Owl-2B, as the paper names them) are then tested three ways. The two fine-tuned versions share images and LoRA settings (rank 8, five epochs); they differ in the task, and with it in what the model is handed:</p>
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th scope="col">Version</th><th scope="col">The model is given</th><th scope="col">and trained to write</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">As released</th><td style="white-space:normal">the image and the 12 questions</td><td style="white-space:normal">nothing: no training</td></tr>
+        <tr><th scope="row">Fine-tuned to write<br>(“standard”)</th><td style="white-space:normal">the image</td><td style="white-space:normal">the expert-corrected description</td></tr>
+        <tr class="ours"><th scope="row">Fine-tuned to correct<br>(“hallucination-aware”)</th><td style="white-space:normal">the image <em>and GPT-4o’s description of it</em></td><td style="white-space:normal">step 1, the description with each sentence tagged; step 2, the corrected description</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tcap"><b>Table 1 — Two fine-tuned models with different inputs.</b> Sources: Sections 2.3 and 3; Fig. 2 of the paper, which labels the second input “GPT-generated response”.</p>
+
+  <div class="callout">
+    <span class="label">What does the correcting model see at test time? <span class="tag">our observation</span></span>
+    <p>The paper doesn’t say; we searched the full text, the reviews and the rebuttal. The repository answers for one model: in the released test outputs of the correcting Qwen, every prompt reads “Can you please correct any hallucinated sentences and generate a modified response?”, and 143 of the 366 answers repeat the expert-corrected reference word for word <span class="tag">our measurement</span>, which only a model handed the text can do. The four models’ scores fit: the correcting models’ word overlap with the reference (ROUGE-L 0.85 to 0.89) matches that of GPT-4o’s unedited text (0.87), while the models that write from the image reach 0.50 to 0.55. We read the “hallucination-aware” rows as <em>GPT-4o’s draft after the model’s pass</em>.</p>
+  </div>
+</section>
+
+<section id="draft" data-toc="What GPT-4o got wrong">
+  <h2><span class="n">02</span>What GPT-4o got wrong</h2>
+  <figure id="fig-draft">
+    <div class="frame"><svg class="viz" viewBox="0 0 720 162" role="img" aria-label="GPT-4o descriptions by what the gastroenterologists found, and sentences in the mixed descriptions" style="min-width:560px" xmlns="http://www.w3.org/2000/svg"><text x="0.0" y="21.0" class="t t-head" text-anchor="start" dominant-baseline="central">Descriptions</text><g class="hit" tabindex="0" data-tip="552 of 1,816 descriptions"><rect x="112.0" y="10.0" width="182.8" height="22.0" class="f-ctx"/><text x="120.0" y="21.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">No error 30.4%</text><rect x="112.0" y="6.0" width="182.8" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="1,232 of 1,816 descriptions"><rect x="296.8" y="10.0" width="410.5" height="22.0" class="f-mid"/><text x="304.8" y="21.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Some sentences wrong 67.8%</text><rect x="296.8" y="6.0" width="410.5" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="32 of 1,816 descriptions"><rect x="709.3" y="10.0" width="10.7" height="22.0" class="f-emph"/><rect x="709.3" y="6.0" width="24.0" height="30.0" class="hitbox"/></g><rect x="112.0" y="46.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="127.0" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">No error 552</text><rect x="220.9" y="46.0" width="10.0" height="10.0" class="f-mid" rx="2"/><text x="235.9" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Some sentences wrong 1,232</text><rect x="418.4" y="46.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="433.4" y="51.0" class="t t-small" text-anchor="start" dominant-baseline="central">Every sentence wrong 32</text><text x="0.0" y="105.0" class="t t-head" text-anchor="start" dominant-baseline="central">Sentences</text><g class="hit" tabindex="0" data-tip="2,931 of 4,670 sentences"><rect x="112.0" y="94.0" width="379.6" height="22.0" class="f-ctx"/><text x="120.0" y="105.0" class="t t-small t-strong" text-anchor="start" dominant-baseline="central">Correct 62.8%</text><rect x="112.0" y="90.0" width="379.6" height="30.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="1,739 of 4,670 sentences"><rect x="493.6" y="94.0" width="226.4" height="22.0" class="f-emph"/><text x="501.6" y="105.0" class="t t-small t-on-dark" text-anchor="start" dominant-baseline="central">Tagged as hallucinated 37.2%</text><rect x="493.6" y="90.0" width="226.4" height="30.0" class="hitbox"/></g><rect x="112.0" y="130.0" width="10.0" height="10.0" class="f-ctx" rx="2"/><text x="127.0" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">Correct 2,931</text><rect x="227.2" y="130.0" width="10.0" height="10.0" class="f-emph" rx="2"/><text x="242.2" y="135.0" class="t t-small" text-anchor="start" dominant-baseline="central">Tagged as hallucinated 1,739</text></svg></div>
+    <figcaption><b>Figure 2 — The experts found no error in 30% of GPT-4o’s descriptions.</b> Top: all 1,816 descriptions. Bottom: the 4,670 sentences inside the 1,232 mixed descriptions; sentence counts for the other two groups aren’t given. Source: Fig. 1 of the paper (counts); shares are ours.</figcaption>
+  </figure>
+  <p>So 1,264 descriptions, 69.6% <span class="tag">derived</span>, carried at least one tagged sentence. A mixed description has about 3.8 sentences, 1.4 of them tagged <span class="tag">derived</span>. The tags mark whole sentences, not the wrong words, a limit the authors name.</p>
+  <p>The paper’s Fig. 1 plots GPT-4o’s accuracy by aspect over the whole dataset: about 50% on the anatomical class (which part of the gut the image shows), against about 82% to 91% on colour, position, findings and polyp count, as measured on the chart <span class="tag">our measurement</span>. By that chart, GPT-4o got the anatomical class wrong about every other time.</p>
+  <p>The set is small and uneven: 1,450 images for training and 366 for testing, and 57% of the 1,816 show a normal landmark. Esophagitis, the smallest class, has 70 images, so 14 test images <span class="tag">derived</span>. All come from Kvasir, collected in one Norwegian health trust.</p>
+</section>
+
+<section id="results" data-toc="Results">
+  <h2><span class="n">03</span>What the models score</h2>
+  <p>The paper’s main metric, QAAS, asks GPT-4o to pull 12 answers out of a generated description and counts how many match the 12 reference answers (Section 04).</p>
+
+  <figure id="fig-results">
+    <div class="frame"><svg class="viz" viewBox="0 0 760 248" role="img" aria-label="QAAS and ROUGE-L on the test set for four models, as released and after two kinds of fine-tuning, against the unedited GPT-4o descriptions" style="min-width:640px" xmlns="http://www.w3.org/2000/svg"><polygon points="6.0,4.7 11.8,15.3 0.2,15.3" class="f-ctx ring"/><text x="17.0" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">as released</text><rect x="106.8" y="7.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><text x="121.6" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">fine-tuned to write the description</text><circle cx="366.9" cy="11.0" r="4.6" class="f-emph ring"/><text x="377.9" y="11.0" class="t t-small" text-anchor="start" dominant-baseline="central">fine-tuned to correct GPT-4o (hallucination-aware)</text><text x="132.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">QAAS: answers matching the reference</text><line x1="132.0" y1="74.0" x2="132.0" y2="214.0" class="grid"/><text x="132.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">40%</text><line x1="226.7" y1="74.0" x2="226.7" y2="214.0" class="grid"/><text x="226.7" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">60%</text><line x1="321.3" y1="74.0" x2="321.3" y2="214.0" class="grid"/><text x="321.3" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">80%</text><line x1="416.0" y1="74.0" x2="416.0" y2="214.0" class="grid"/><text x="416.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">100%</text><line x1="349.7" y1="64.0" x2="349.7" y2="214.0" class="floor"/><text x="344.7" y="62.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">GPT-4o draft, unedited: 86.0</text><text x="118.0" y="95.0" class="t" text-anchor="end" dominant-baseline="central">LLaVA-1.6-7B</text><g class="hit" tabindex="0" data-tip="LLaVA-1.6-7B · as released: 50.9, fine-tuned to write the description: 83.1, fine-tuned to correct GPT-4o (hallucination-aware): 90.9 · GPT-4o draft 86.0"><line x1="183.5" y1="95.0" x2="372.9" y2="95.0" class="ci"/><polygon points="183.5,88.7 189.3,99.3 177.8,99.3" class="f-ctx ring"/><rect x="332.1" y="91.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="372.9" cy="95.0" r="4.6" class="f-emph ring"/><rect x="128.0" y="83.0" width="292.0" height="24.0" class="hitbox"/></g><text x="118.0" y="129.0" class="t" text-anchor="end" dominant-baseline="central">DeepSeek-7B-VL</text><g class="hit" tabindex="0" data-tip="DeepSeek-7B-VL · as released: 65.2, fine-tuned to write the description: 83.7, fine-tuned to correct GPT-4o (hallucination-aware): 88.8 · GPT-4o draft 86.0"><line x1="251.3" y1="129.0" x2="362.8" y2="129.0" class="ci"/><polygon points="251.3,122.7 257.0,133.3 245.5,133.3" class="f-ctx ring"/><rect x="335.2" y="125.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="362.8" cy="129.0" r="4.6" class="f-emph ring"/><rect x="128.0" y="117.0" width="292.0" height="24.0" class="hitbox"/></g><text x="118.0" y="163.0" class="t" text-anchor="end" dominant-baseline="central">Qwen2-7B</text><g class="hit" tabindex="0" data-tip="Qwen2-7B · as released: 67.6, fine-tuned to write the description: 83.3, fine-tuned to correct GPT-4o (hallucination-aware): 90.5 · GPT-4o draft 86.0"><line x1="262.5" y1="163.0" x2="371.2" y2="163.0" class="ci"/><polygon points="262.5,156.7 268.2,167.3 256.7,167.3" class="f-ctx ring"/><rect x="333.0" y="159.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="371.2" cy="163.0" r="4.6" class="f-emph ring"/><rect x="128.0" y="151.0" width="292.0" height="24.0" class="hitbox"/></g><text x="118.0" y="197.0" class="t" text-anchor="end" dominant-baseline="central">mPLUG-Owl-2B</text><g class="hit" tabindex="0" data-tip="mPLUG-Owl-2B · as released: 55.3, fine-tuned to write the description: 82.9, fine-tuned to correct GPT-4o (hallucination-aware): 88.4 · GPT-4o draft 86.0"><line x1="204.4" y1="197.0" x2="361.1" y2="197.0" class="ci"/><polygon points="204.4,190.7 210.1,201.3 198.6,201.3" class="f-ctx ring"/><rect x="331.3" y="193.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="361.1" cy="197.0" r="4.6" class="f-emph ring"/><rect x="128.0" y="185.0" width="292.0" height="24.0" class="hitbox"/></g><text x="460.0" y="38.0" class="t t-head" text-anchor="start" dominant-baseline="central">ROUGE-L: word overlap with the reference</text><line x1="460.0" y1="74.0" x2="460.0" y2="214.0" class="grid"/><text x="460.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0</text><line x1="531.0" y1="74.0" x2="531.0" y2="214.0" class="grid"/><text x="531.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.25</text><line x1="602.0" y1="74.0" x2="602.0" y2="214.0" class="grid"/><text x="602.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.5</text><line x1="673.0" y1="74.0" x2="673.0" y2="214.0" class="grid"/><text x="673.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">0.75</text><line x1="744.0" y1="74.0" x2="744.0" y2="214.0" class="grid"/><text x="744.0" y="228.0" class="t t-small t-muted" text-anchor="middle" dominant-baseline="central">1</text><line x1="707.1" y1="64.0" x2="707.1" y2="214.0" class="floor"/><text x="702.1" y="62.0" class="t t-tiny t-muted" text-anchor="end" dominant-baseline="central">GPT-4o draft, unedited: 0.87</text><g class="hit" tabindex="0" data-tip="LLaVA-1.6-7B · as released: 0.26, fine-tuned to write the description: 0.54, fine-tuned to correct GPT-4o (hallucination-aware): 0.89 · GPT-4o draft 0.87"><line x1="533.8" y1="95.0" x2="712.8" y2="95.0" class="ci"/><polygon points="533.8,88.7 539.6,99.3 528.1,99.3" class="f-ctx ring"/><rect x="609.6" y="91.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="712.8" cy="95.0" r="4.6" class="f-emph ring"/><rect x="456.0" y="83.0" width="292.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="DeepSeek-7B-VL · as released: 0.29, fine-tuned to write the description: 0.55, fine-tuned to correct GPT-4o (hallucination-aware): 0.88 · GPT-4o draft 0.87"><line x1="542.4" y1="129.0" x2="709.9" y2="129.0" class="ci"/><polygon points="542.4,122.7 548.1,133.3 536.6,133.3" class="f-ctx ring"/><rect x="612.4" y="125.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="709.9" cy="129.0" r="4.6" class="f-emph ring"/><rect x="456.0" y="117.0" width="292.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="Qwen2-7B · as released: 0.32, fine-tuned to write the description: 0.54, fine-tuned to correct GPT-4o (hallucination-aware): 0.88 · GPT-4o draft 0.87"><line x1="550.9" y1="163.0" x2="709.9" y2="163.0" class="ci"/><polygon points="550.9,156.7 556.6,167.3 545.1,167.3" class="f-ctx ring"/><rect x="609.6" y="159.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="709.9" cy="163.0" r="4.6" class="f-emph ring"/><rect x="456.0" y="151.0" width="292.0" height="24.0" class="hitbox"/></g><g class="hit" tabindex="0" data-tip="mPLUG-Owl-2B · as released: 0.26, fine-tuned to write the description: 0.50, fine-tuned to correct GPT-4o (hallucination-aware): 0.85 · GPT-4o draft 0.87"><line x1="533.8" y1="197.0" x2="701.4" y2="197.0" class="ci"/><polygon points="533.8,190.7 539.6,201.3 528.1,201.3" class="f-ctx ring"/><rect x="598.2" y="193.2" width="7.6" height="7.6" rx="1.5" class="f-mid ring"/><circle cx="701.4" cy="197.0" r="4.6" class="f-emph ring"/><rect x="456.0" y="185.0" width="292.0" height="24.0" class="hitbox"/></g></svg></div>
+    <figcaption><b>Figure 3 — Models that write from the image land below GPT-4o’s unedited draft; models that correct the draft land above it on QAAS, and keep its wording.</b> Each row is one model in three versions, on the 366 test images. The dashed line is GPT-4o’s own description scored against its expert-corrected version. One score per model, no intervals. Source: Table 1 of the paper.</figcaption>
+    <details class="data"><summary>Show the paper’s Table 1 in full</summary><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Model</th><th scope="col" class="num">ROUGE-L</th><th scope="col" class="num">BLEU</th><th scope="col" class="num">METEOR</th><th scope="col" class="num">R-Sim (1–5)</th><th scope="col" class="num">QAAS (%)</th></tr></thead><tbody><tr class="ours"><th scope="row">GPT-4o, its own unedited descriptions</th><td class="num">0.87</td><td class="num">0.80</td><td class="num">0.89</td><td class="num">2.97</td><td class="num">85.99</td></tr><tr><th scope="row">LLaVA-1.6-7B, as released</th><td class="num">0.26</td><td class="num">0.10</td><td class="num">0.47</td><td class="num">1.36</td><td class="num">50.89</td></tr><tr><th scope="row">LLaVA-1.6-7B, fine-tuned to write</th><td class="num">0.54</td><td class="num">0.35</td><td class="num">0.63</td><td class="num">3.71</td><td class="num">83.07</td></tr><tr><th scope="row">LLaVA-1.6-7B, fine-tuned to correct (H)</th><td class="num">0.89</td><td class="num">0.82</td><td class="num">0.90</td><td class="num">3.96</td><td class="num">90.89</td></tr><tr><th scope="row">DeepSeek-7B-VL, as released</th><td class="num">0.29</td><td class="num">0.11</td><td class="num">0.39</td><td class="num">1.65</td><td class="num">65.20</td></tr><tr><th scope="row">DeepSeek-7B-VL, fine-tuned to write</th><td class="num">0.55</td><td class="num">0.37</td><td class="num">0.65</td><td class="num">3.76</td><td class="num">83.73</td></tr><tr><th scope="row">DeepSeek-7B-VL, fine-tuned to correct (H)</th><td class="num">0.88</td><td class="num">0.81</td><td class="num">0.90</td><td class="num">3.63</td><td class="num">88.77</td></tr><tr><th scope="row">Qwen2-7B, as released</th><td class="num">0.32</td><td class="num">0.12</td><td class="num">0.48</td><td class="num">1.74</td><td class="num">67.57</td></tr><tr><th scope="row">Qwen2-7B, fine-tuned to write</th><td class="num">0.54</td><td class="num">0.37</td><td class="num">0.64</td><td class="num">3.78</td><td class="num">83.27</td></tr><tr><th scope="row">Qwen2-7B, fine-tuned to correct (H)</th><td class="num">0.88</td><td class="num">0.82</td><td class="num">0.90</td><td class="num">4.04</td><td class="num">90.53</td></tr><tr><th scope="row">mPLUG-Owl-2B, as released</th><td class="num">0.26</td><td class="num">0.09</td><td class="num">0.44</td><td class="num">1.34</td><td class="num">55.29</td></tr><tr><th scope="row">mPLUG-Owl-2B, fine-tuned to write</th><td class="num">0.50</td><td class="num">0.32</td><td class="num">0.60</td><td class="num">3.68</td><td class="num">82.90</td></tr><tr><th scope="row">mPLUG-Owl-2B, fine-tuned to correct (H)</th><td class="num">0.85</td><td class="num">0.77</td><td class="num">0.87</td><td class="num">3.72</td><td class="num">88.40</td></tr><tr><th scope="row">LLaVA-1.6-7B answering the questions directly, as released</th><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">49.26</td></tr><tr><th scope="row">LLaVA-1.6-7B answering the questions directly, fine-tuned</th><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">87.91</td></tr></tbody></table></div></details>
+  </figure>
+
+  <ol class="num-list">
+    <li><strong>Fine-tuning works.</strong> As released, LLaVA-1.6-7B scores 50.9% on QAAS; fine-tuned to write the description from the image, 83.1%; fine-tuned to correct, 90.9%. The other three models follow the same order.</li>
+    <li><strong>The draft is a strong baseline that the paper lists but doesn’t compare against.</strong> GPT-4o’s unedited descriptions score 86.0%, which the authors call expected, partly because the references are corrected versions of them. All four writing models sit below that (82.9 to 83.7); all four correcting models sit above it (88.4 to 90.9).</li>
+    <li><strong>The gain splits in two.</strong> Hallucination-aware fine-tuning beats standard fine-tuning by 5.0 to 7.8 points, the paper’s result. Measured from the draft instead, the correcting models add 2.4 to 4.9 points <span class="tag">derived</span>.</li>
+  </ol>
+
+  <div class="table-wrap"><table class="data"><thead><tr><th scope="col">Model</th><th scope="col" class="num">Writes</th><th scope="col" class="num">Corrects</th><th scope="col" class="num">Gap</th><th scope="col" class="num">Over the draft</th><th scope="col" class="num">Draft errors gone</th></tr></thead><tbody><tr><th scope="row">LLaVA-1.6-7B</th><td class="num">83.1</td><td class="num">90.9</td><td class="num">+7.8</td><td class="num">+4.9</td><td class="num">35%</td></tr><tr><th scope="row">DeepSeek-7B-VL</th><td class="num">83.7</td><td class="num">88.8</td><td class="num">+5.0</td><td class="num">+2.8</td><td class="num">20%</td></tr><tr><th scope="row">Qwen2-7B</th><td class="num">83.3</td><td class="num">90.5</td><td class="num">+7.3</td><td class="num">+4.5</td><td class="num">32%</td></tr><tr><th scope="row">mPLUG-Owl-2B</th><td class="num">82.9</td><td class="num">88.4</td><td class="num">+5.5</td><td class="num">+2.4</td><td class="num">17%</td></tr></tbody></table></div>
+  <p class="tcap"><b>Table 2 — The same QAAS scores, measured from two starting points.</b> QAAS (%) on the test set. “Gap”: correcting minus writing, the paper’s result. “Over the draft”: correcting minus GPT-4o’s unedited 86.0. Last column: that difference as a share of the draft’s 14.0 points of wrong answers, net of any new errors. Source: Table 1 of the paper; differences are ours and assume the reading in Section 01.</p>
+
+  <p>On that reading, a small open model trained on 1,450 examples removes, net, between 17% and 35% of the wrong answers in a GPT-4o draft <span class="tag">derived</span>: a useful checker on top of a large drafter. That is a different claim from “hallucination-aware beats standard fine-tuning”, which needs both models to start from the same input.</p>
+
+  <div class="callout soft">
+    <span class="label">Where correcting doesn’t beat writing <span class="tag">our measurement</span></span>
+    <p>The paper’s Fig. 3 splits QAAS by aspect for three models. Measured on the chart (about ±1 point; the draft’s values are from Fig. 1, over the whole dataset): on colour, where the draft is right about 85% of the time, the correcting models reach about 87 to 88 and the writing models about 63 to 64. On the anatomical class, where the draft is right about half the time, the correcting models reach about 80, 72 and 84, against 82, 84 and 83 for the writing models. A reviewer asked why; the authors suggested the correcting model becomes overly cautious, with no experiment to confirm it. Another reading fits both rows: the correcting model inherits the draft’s answers and has to overrule the wrong ones. It beats the writing model where the draft is mostly right, and not where the draft is wrong half the time.</p>
+  </div>
+</section>
+
+<section id="metrics" data-toc="Reading the metrics">
+  <h2><span class="n">04</span>Reading the two new metrics</h2>
+  <p><strong>QAAS</strong>, in the released scripts, takes two GPT-4o calls per description and one set comparison per answer. GPT-4o answers 12 questions from the text in one or two words (“N/A” if the text is silent); GPT-4o maps each answer to a category from a fixed list (for colour: red, pink, orange…; for the landmark: colon, cecum, pylorus, Z-line); an answer is correct when its categories overlap the reference’s. Staying silent where the reference is silent counts as correct.</p>
+  <p><strong>R-Sim</strong> is one GPT-4o call: rate from 1 to 5 how well two descriptions match, with the 12 questions as a guide. Three cautions:</p>
+  <ul>
+    <li><strong>The two metrics disagree about the draft.</strong> GPT-4o’s unedited descriptions get an R-Sim of 2.97, below every fine-tuned row, yet a higher QAAS than every writing model. And on DeepSeek, R-Sim goes down with hallucination-aware training, 3.76 to 3.63, while QAAS goes up.</li>
+    <li><strong>GPT-4o drafts, extracts and judges.</strong> A reviewer raised it; the authors agreed that several independent judges could be more robust. The paper reports that the extraction step itself errs 4.29% of the time on the reference texts, which were then fixed by hand; model outputs go through the same extractor unchecked, which the authors expect to affect all models alike.</li>
+    <li><strong>No intervals.</strong> One QAAS value rests on at most 366 × 12 = 4,392 answers. If answers were independent, a score near 88% would carry about ±1 point and a difference of two scores ±1.4 (unpaired; pairing on the shared images should tighten it); if the 12 answers of an image moved together, ±3.3 and ±4.7 <span class="tag">derived</span>. The 5.0 to 7.8 gaps clear both; of the four against the draft, only the largest clears the second.</li>
+  </ul>
+  <p>One expert also rated 30 sampled LLaVA descriptions per version on a 1-to-5 scale: 1.90, 3.24 and 3.36. The 0.12 between the two fine-tuned versions is within the rater’s own repeat spread: the paper gives a coefficient of variation of 11.41%, about 0.37 per score at that level, so about ±0.19 on a difference between two 30-description averages from rater noise alone <span class="tag">derived</span>.</p>
+</section>
+
+<section id="gaps" data-toc="What’s left out">
+  <h2><span class="n">05</span>What the paper leaves out</h2>
+  <ul>
+    <li><strong>The test-time input of the correcting model</strong>, and a control for it: a writing model given the same draft, or the correcting model given the standard model’s own output.</li>
+    <li><strong>Other ways to reduce hallucination.</strong> A reviewer asked for a comparison; the authors acknowledged the gap and deferred it to a journal version.</li>
+    <li><strong>Agreement between the four experts</strong>, and how many of them saw each description.</li>
+    <li><strong>The exact checkpoints.</strong> Model names are short, and two of the four citations are to papers on other models (the Qwen3 and DeepSeek-V3 language models).</li>
+    <li><strong>Training code and weights.</strong> Training ran on the ms-swift toolkit; the repository links no configuration file and no trained weights.</li>
+    <li><strong>The question-answering row.</strong> LLaVA fine-tuned to answer the 12 questions directly scores 87.9% on QAAS, above the writing version and the draft; the paper doesn’t set it against either.</li>
+  </ul>
+</section>
+
+<section id="takeaways" data-toc="Takeaways">
+  <h2><span class="n">06</span>Takeaways</h2>
+  <ol class="num-list">
+    <li><strong>Score the draft before you score the corrector.</strong> Here the draft is worth 86.0% on the paper’s own metric; a corrector’s 90.9% is +4.9 over it, not +40 over the model as released.</li>
+    <li><strong>Keep the corrections when experts fix LLM drafts.</strong> Sentence-level tags cost little extra and turn a caption set into training data for a checker. Expect real work: 7 drafts in 10 needed a change.</li>
+    <li><strong>Check the anatomical site separately.</strong> It is where the draft was weakest, about one in two, and where correcting did no better than writing.</li>
+    <li><strong>Don’t let the drafter be the only judge.</strong> Two GPT-4o-based scores rank GPT-4o’s own text in opposite ways.</li>
+  </ol>
+</section>
+
+<section id="use" data-toc="Use it today">
+  <h2><span class="n">07</span>What you can use today</h2>
+  <ul>
+    <li><strong>The annotations.</strong> In <a href="https://github.com/bhattarailab/Hallucination-Aware-VLM/tree/main/dataset/Gut-VLM">dataset/Gut-VLM</a> of the repository: <code>all_annotations.json</code> (2.2 MB; draft, sentence tags and corrected text for the complete dataset, per the README), <code>VQA_format_all_annotations.json</code> (3.0 MB; the 12 answers), and <code>train_test_split/</code> with <code>train.json</code>, <code>test.json</code>, question-answer versions and one file per class. <code>training_style/hallucinated_aware_train.json</code> (3.0 MB) is described as the detect-and-correct training file. We read the listing and the README, not the files.</li>
+    <li><strong>The images are not in the repository.</strong> Download <code>kvasir-v2.zip</code> (2.3 GB) from <a href="https://datasets.simula.no/kvasir/">Simula’s Kvasir page</a>.</li>
+    <li><strong>The licence.</strong> The repository has no licence file, so the annotations come with no stated reuse terms: ask the authors before redistributing. For the images, Simula’s page restricts Kvasir to research and education and forbids commercial use without written permission.</li>
+    <li><strong>The evaluation scripts.</strong> <code>eval_scripts/</code> holds the QAAS chain (<code>caption2vqa.py</code>, <code>parse_vqa.py</code>, <code>evaluate_vqa.py</code>) and R-Sim (<code>evaluate_caption.py</code>). They call <code>gpt-4o</code> through the OpenAI API, so scores can drift as that model changes. The prompts and synonym lists are in the scripts.</li>
+    <li><strong>The rule.</strong> When a model’s job is to fix another model’s text, report three numbers: the text before, the text after, and what a model without the draft achieves.</li>
+  </ul>
+</section>
+
+<section id="appendix" data-toc="Sources">
+  <h2><span class="n">A</span>Sources</h2>
+  <ol class="refs">
+    <li>Khanal, B., Pokhrel, S., Bhandari, S., Rana, R., Shrestha, N., Gurung, R.B., Linte, C., Watson, A., Shrestha, Y.R., Bhattarai, B. Hallucination-Aware Multimodal Benchmark for Gastrointestinal Image Analysis with Large Vision-Language Models. MICCAI 2025, LNCS 15969, pp. 235–245: <a href="https://papers.miccai.org/miccai-2025/0395-Paper0774.html">paper page with reviews and rebuttal</a> · <a href="https://papers.miccai.org/miccai-2025/paper/0774_paper.pdf">PDF</a> · <a href="https://doi.org/10.1007/978-3-032-05127-1_23">DOI</a>. The reference for every number here.</li>
+    <li>The earlier version, <a href="https://arxiv.org/abs/2505.07001">arXiv:2505.07001</a> v2 (22 Jun 2025): same result table and counts; it lacks the per-class image counts and the longer metric descriptions of the MICCAI version.</li>
+    <li>The <a href="https://github.com/bhattarailab/Hallucination-Aware-VLM">repository</a>, read on 13 Oct 2026 through the GitHub API: file listing, README, the four evaluation scripts and the two sample files in <code>results_example/</code> (one model’s test outputs and the reference texts). No annotation file (<code>dataset/</code>, <code>training_style/</code>) was opened.</li>
+    <li>Pogorelov, K., et al. Kvasir: a multi-class image dataset for computer aided gastrointestinal disease detection. ACM MMSys 2017; <a href="https://datasets.simula.no/kvasir/">dataset page</a> for the download and the terms of use.</li>
+  </ol>
+</section>
+
+  </article>
+</main>
+
+<footer>
+  <div class="in">
+    <p style="margin:0 0 8px">Notes on Gut-VLM (MICCAI 2025, LNCS 15969). All numbers come from the paper, or from the source cited beside them, unless marked <em>derived</em>, <em>our measurement</em> or <em>our observation</em>. Figures were generated with Python from those numbers. Corrections welcome.</p>
+    <p style="margin:0">© 2026 <a href="/">Jean-Benoit Delbrouck</a> · <a href="/research-blog/">Research blog</a></p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  // Table of contents from <section id> + <h2> (short label in data-toc).
+  const toc = document.getElementById('toc');
+  if (toc) {
+    document.querySelectorAll('article > section[id]').forEach(sec => {
+      const h2 = sec.querySelector('h2');
+      const n = h2 && h2.querySelector('.n') ? h2.querySelector('.n').textContent.trim() : '–';
+      const label = sec.dataset.toc || (h2 ? h2.textContent.replace(n, '').trim() : sec.id);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + sec.id;
+      const span = document.createElement('span');
+      span.textContent = n;
+      a.append(span, document.createTextNode(label));
+      li.append(a);
+      toc.append(li);
+    });
+  }
+
+  // Tooltips for chart marks: any element with data-tip (hover or keyboard focus).
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'status');
+  document.body.appendChild(tip);
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    let left = x + 14, top = y + 14;
+    if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    if (top + r.height > innerHeight - 8) top = y - r.height - 14;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  };
+  const show = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; place(x, y); };
+  const hide = () => { tip.style.opacity = 0; };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.target.closest && e.target.closest('[data-tip]')) place(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerout', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) { const r = el.getBoundingClientRect(); show(el, r.right, r.top); }
+  });
+  document.addEventListener('focusout', hide);
+  addEventListener('scroll', hide, { passive: true });
+
+  // Highlight the current section in the table of contents.
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const a = byId.get(en.target.id);
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('article section[id]').forEach(s => obs.observe(s));
+})();
+</script>
+</body>
+</html>
